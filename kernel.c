@@ -13,11 +13,11 @@ static inline void delay(int32_t count)
 /* I'm alive */
 void heartbeat(void)
 {
-	set_gpio(14, 1);
-	//delay(1);
-	//set_gpio(8, 0);
-	//delay(1);
-	//set_gpio(8, 1);
+	set_gpio_dir(8, 1);
+	set_gpio_val(8, 1);
+
+	set_gpio_dir(18, 1);
+	set_gpio_val(18, 1);
 }
 
 void kernel_main(uint64_t dtb_ptr32, uint64_t x1, uint64_t x2, uint64_t x3)

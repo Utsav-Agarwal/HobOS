@@ -18,19 +18,16 @@ uint32_t mmio_base;
  * 011 = GPIO Pin n takes alternate function 4
  * 010 = GPIO Pin n takes alternate function 5 
  */
-#define	GPFSEL0 0x200000 //0-9
-#define	GPFSEL1 0x200004 //10-19
-#define	GPFSEL2 0x200008 //20-29
-#define	GPFSEL3 0x20000C //30-39
-#define	GPFSEL4 0x200010 //40-49
-#define	GPFSEL5 0x200014 //50-59
+#define	GPFSEL0 0x00 //0-9
+#define	GPFSEL1 0x04 //10-19
+#define	GPFSEL2 0x08 //20-29
+#define	GPFSEL3 0x0C //30-39
+#define	GPFSEL4 0x10 //40-49
+#define	GPFSEL5 0x14 //50-59
 
-#define GPF_IN 0x000
-#define GPF_OUT 0x001
+#define GPF_IN 0x0
+#define GPF_OUT 0x1
 
-//NOTE: For pin 0, please hardcode value
-#define GPF_CFG(pin, val) \
-		val << ((pin * 3) - 1)
 
 /* No effect when pin is set as input
  * 
@@ -42,11 +39,8 @@ uint32_t mmio_base;
  * SET0: 0-31
  * SET1: 32-53
  */
-#define GPSET0 0x20001C
-#define GPSET1 0x200020
-
-#define GPSET_CFG(pin_nr) \
-	pin_nr
+#define GPSET0 0x1C
+#define GPSET1 0x20
 
 /* No effect when pin is set as input
  * 
@@ -58,8 +52,8 @@ uint32_t mmio_base;
  * SET0: 0-31
  * SET1: 32-53
  */
-#define	GPCLR0 0x200028
-#define	GPCLR1 0x20002C
+#define	GPCLR0 0x28
+#define	GPCLR1 0x2C
 
 //TODO: implement feature for runtime detection
 inline uint8_t get_rpi_version(void)
@@ -72,7 +66,7 @@ inline void mmio_write(uint32_t offset, uint32_t val)
 	*(volatile uint32_t *)(mmio_base + offset) = val;
 }
 
-inline uint32_t mmio_read(uint32_t offset, uint32_t val)
+inline uint32_t mmio_read(uint32_t offset)
 {
 	return *(volatile uint32_t *)(mmio_base + offset);
 }
@@ -95,43 +89,28 @@ inline void mmio_init(int rpi_version)
 	}
 }
 
-void clear_gpio(uint8_t pin_nr)
+//there are <32 GPIO for 3b+
+void inline clear_gpio(uint8_t pin_nr)
 {
-	int clr_bank = 0;
-
-	if (pin_nr <= 31)
-		clr_bank = GPCLR0;
-	else
-		clr_bank = GPCLR1;
-
-	mmio_write(clr_bank, BITP(pin_nr));
+	mmio_write(GPIO_BASE + GPCLR0, BITP(pin_nr));
 }
+
+//each config register can only hold 10 GPIO configs
+#define GPF_CFG(pin, val) \
+		(val << ((pin%10) * 3))
 
 //true = output, false = input
-void set_gpio_dir(uint8_t pin_nr, uint8_t dir)
+void inline set_gpio_dir(uint8_t pin_nr, uint32_t dir)
 {
-	uint16_t gpf_val = GPF_CFG(pin_nr, dir ? GPF_OUT : GPF_IN);
-	uint32_t bank_addr = GPFSEL0 + (4 * (pin_nr/10));
+	uint32_t gpf_val = GPF_CFG(pin_nr, dir);
+	uint32_t bank_addr = GPIO_BASE + GPFSEL0 + (4 * (pin_nr/10));
 
-	mmio_write(bank_addr, gpf_val);
+	*(volatile uint32_t *)(mmio_base + bank_addr) |= gpf_val;
 }
 
-void set_gpio(uint8_t pin_nr, uint8_t val)
+void inline set_gpio_val(uint8_t pin_nr, uint8_t val)
 {
-	//clear gpio
-	clear_gpio(pin_nr);
-	
-	//set gpio to output
-	set_gpio_dir(pin_nr, val);
-	
-	//set val
-	if (val) {
-		if (pin_nr > 31)
-			mmio_write(GPSET1, BITP(pin_nr));
-		else
-			mmio_write(GPSET0, BITP(pin_nr));
-	}
-
+	*(volatile uint32_t *)(mmio_base + GPIO_BASE + GPSET0) |= BITP(pin_nr);
 }
 
 #endif
