@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "hobos/mmio.h"
+#include "hobos/gpio.h"
 
 extern void set_gpio(uint8_t pin_nr, uint8_t dir);
 
@@ -13,11 +14,8 @@ static inline void delay(int32_t count)
 /* I'm alive */
 void heartbeat(void)
 {
-	set_gpio_dir(12, 1);
+	set_gpio_set_func(12, GPF_OUT);
 	set_gpio_val(12, 1);
-
-	set_gpio_dir(18, 1);
-	set_gpio_val(18, 1);
 }
 
 void main()
