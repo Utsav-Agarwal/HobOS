@@ -1,7 +1,22 @@
-build:
-	aarch64-elf-as -c boot.S -o boot.o; aarch64-elf-gcc -ffreestanding -c kernel.c -o kernel.o -O2 -Wall -Wextra; 
-	aarch64-elf-gcc -T linker.ld -o myos.elf -ffreestanding -O2 -nostdlib boot.o kernel.o -lgcc; 
-	aarch64-elf-objcopy myos.elf -O binary kernel8.img
+TOOLCHAIN=aarch64-elf-
+CC = ${TOOLCHAIN}gcc
+AS = ${TOOLCHAIN}as
+LD = ${TOOLCHAIN}ld
+SRCS = $(wildcard *.c)
+OBJS = $(SRCS:.c=.o)
+CFLAGS = -Wall -O2 -ffreestanding
+
+all: clean kernel8.img
+
+boot.o: boot.S
+	${CC} ${CFLAGS} -c boot.S -o boot.o 
+
+%.o: %.c
+	${CC} ${CFLAGS} -c $< -o $@
+
+kernel8.img: boot.o ${OBJS}
+	${LD} boot.o ${OBJS} -T linker.ld -o kernel8.elf
+	${TOOLCHAIN}objcopy -O binary kernel8.elf kernel8.img
 
 clean:
 	rm -rf *.o *.img *.elf
