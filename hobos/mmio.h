@@ -1,9 +1,24 @@
-#ifndef __HOBOS_H__
-#define __HOBOS_H__
+#ifndef __MMIO_H_
+#define __MMIO_H_
 
-uint32_t mmio_base;
+#include <stdint.h>
+
+extern uint32_t mmio_base;
 
 #define BITP(pos) (1 << pos)
+
+#define u32	uint32_t
+#define u16	uint16_t
+#define u8	uint8_t
+
+#define WRITE_REG(reg_addr, reg_size, val) \
+	*(u##reg_size *) reg_addr = val
+
+#define REG(reg_addr, reg_size) \
+	*(u##reg_size *) reg_addr
+
+#define CLEAR_REG(reg_addr, reg_size) \
+	*(u##reg_size *) reg_addr = 0
 
 //TODO: implement feature for runtime detection
 inline uint8_t get_rpi_version(void)
@@ -21,6 +36,7 @@ inline uint32_t mmio_read(uint32_t offset)
 	return *(volatile uint32_t *)(mmio_base + offset);
 }
 
+//TODO: add rpi 5
 inline void mmio_init(int rpi_version)
 {
 	switch(rpi_version)
@@ -38,5 +54,11 @@ inline void mmio_init(int rpi_version)
 			break;
 	}
 }
+
+inline void delay(int32_t count)
+{
+	while(count--) {asm volatile("nop");}
+}
+
 
 #endif

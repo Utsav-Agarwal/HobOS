@@ -1,0 +1,53 @@
+#include "hobos/uart.h"
+#include "hobos/gpio.h"
+
+void mini_uart_init(void)
+{
+	/* enable and halt uart peripheral */
+	REG(GPIO_REG(GPFSEL1), 32) &= ~(BITP(14)|BITP(15));
+	REG(AUX_IO_REG(AUX_ENABLES), 8) |= 0x1;
+	CLEAR_REG(AUX_IO_REG(AUX_MU_CNTL), 8); 
+
+	/* Disable all features for now */
+	CLEAR_REG(AUX_IO_REG(AUX_MU_IER), 8);
+	CLEAR_REG(AUX_IO_REG(AUX_MU_MCR), 8);
+
+	/* set baud and enable 8 bit data */
+	//NOTE: for some reason BITP(2) also needs to be set in LCR
+	WRITE_REG(AUX_IO_REG(AUX_MU_LCR), 8, 0x3); 
+	WRITE_REG(AUX_IO_REG(AUX_MU_BAUD), 16, MINI_UART_BAUD); 
+	
+	/* get GPIO pins ready */
+	set_gpio_val(14, GPF_ALT0);
+	set_gpio_val(15, GPF_ALT0);
+
+	CLEAR_REG(GPIO_REG(GPPUD), 32);
+	delay(150);
+	REG(GPIO_REG(GPPUDCLK0), 32) |= ((BITP(14) | BITP(15)));
+	delay(150);
+	CLEAR_REG(GPIO_REG(GPPUDCLK0), 32);
+
+	/* enable transmit and recieve */
+	WRITE_REG(AUX_IO_REG(AUX_MU_CNTL), 8, 0x3);
+}
+
+inline void mini_uart_wait_for_idle(void)
+{
+	/* wait for transmitter to idle */
+	while(!(REG(AUX_IO_REG(AUX_MU_LSR), 8) & BITP(6)))
+		asm volatile("nop");
+}
+
+void mini_uart_putc(char c)
+{
+	mini_uart_wait_for_idle();
+	WRITE_REG(AUX_IO_REG(AUX_MU_IO), 8, c);
+
+}
+
+void mini_uart_puts(char *c)
+{
+	char *s = c;
+	while(*s)
+		mini_uart_putc(*s++);
+}

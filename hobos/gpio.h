@@ -5,6 +5,9 @@
 
 #define	GPIO_BASE 0x200000
 
+#define GPIO_REG(offset) \
+	(mmio_base + GPIO_BASE + offset) 
+
 /*
  *FSELn - Function Select n
  * 000 = GPIO Pin n is an input
@@ -88,14 +91,13 @@ void inline clear_gpio(uint8_t pin_nr)
 void inline set_gpio_set_func(uint8_t pin_nr, uint32_t val)
 {
 	uint32_t gpf_val = GPF_CFG(pin_nr, val);
-	uint32_t bank_addr = GPIO_BASE + GPFSEL_BANK(pin_nr);
 
-	*(volatile uint32_t *)(mmio_base + bank_addr) |= gpf_val;
+	*(volatile uint32_t *) GPIO_REG(GPFSEL_BANK(pin_nr)) |= gpf_val;
 }
 
 void inline set_gpio_val(uint8_t pin_nr, uint8_t val)
 {
-	*(volatile uint32_t *)(mmio_base + GPIO_BASE + GPSET0) |= BITP(pin_nr);
+	*(volatile uint32_t *)(GPIO_REG(GPSET0 + 4*(pin_nr/32))) |= BITP(pin_nr);
 }
 
 #endif
