@@ -1,6 +1,8 @@
 #include "hobos/uart.h"
 #include "hobos/gpio.h"
 
+uint64_t uart_base;
+extern uint64_t rpi_version;
 
 /* Mini UART */
 void mini_uart_init(void)
@@ -20,8 +22,8 @@ void mini_uart_init(void)
 	WRITE_REG(AUX_IO_REG(AUX_MU_BAUD), 16, MINI_UART_BAUD); 
 	
 	/* get GPIO pins ready */
-	set_gpio_val(14, GPF_ALT0);
-	set_gpio_val(15, GPF_ALT0);
+	set_gpio_func(14, GPF_ALT0);
+	set_gpio_func(15, GPF_ALT0);
 
 	CLEAR_REG(GPIO_REG(GPPUD), 32);
 	delay(150);

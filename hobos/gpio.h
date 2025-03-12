@@ -3,10 +3,21 @@
 
 #include "mmio.h"
 
-#define	GPIO_BASE 0x200000
+extern uint64_t gpio_base;
+extern uint64_t mmio_base;
+
+#define	RPI_LEGACY_GPIO_BASE 0x200000
+#define	RPI_5_GPIO_BASE 0xd0000
 
 #define GPIO_REG(offset) \
-	(mmio_base + GPIO_BASE + offset) 
+	(mmio_base + gpio_base + offset) 
+
+/*
+ * Legacy GPIO
+ *
+ * NOTE: This interface is valid for all RPI devices
+ * up till rpi 5, which uses a different IP
+ */
 
 /*
  *FSELn - Function Select n
@@ -71,14 +82,8 @@
 #define GPPUDCLK1	0x9C
 
 //there are <32 GPIO for 3b+
-
 #define GPCLR_BANK(pin) \
 	(GPCLR0 + 4*(pin/32))
-
-void inline clear_gpio(uint8_t pin_nr)
-{
-	mmio_write(GPIO_BASE + GPCLR_BANK(pin_nr), BITP(pin_nr));
-}
 
 //each config register can only hold 10 GPIO configs
 #define GPF_CFG(pin, val) \
@@ -87,17 +92,62 @@ void inline clear_gpio(uint8_t pin_nr)
 #define GPFSEL_BANK(pin) \
 	(GPFSEL0 + (4 * (pin_nr/10)))
 
-//true = output, false = input
-void inline set_gpio_set_func(uint8_t pin_nr, uint32_t val)
-{
-	uint32_t gpf_val = GPF_CFG(pin_nr, val);
 
-	*(volatile uint32_t *) GPIO_REG(GPFSEL_BANK(pin_nr)) |= gpf_val;
-}
+/*
+ * RPI 5 GPIO
+ */
 
-void inline set_gpio_val(uint8_t pin_nr, uint8_t val)
-{
-	*(volatile uint32_t *)(GPIO_REG(GPSET0 + 4*(pin_nr/32))) |= BITP(pin_nr);
-}
+#define RP1_NR_GPIO_PINS	27
+
+#define RP1_GPIO_STATUS_ADDR(pin_nr) \
+	(gpio_base + 0x08*pin_nr) 
+
+#define RP1_GPIO_CTRL_ADDR(pin_nr) \
+	(RP1_GPIO_STATUS_ADDR(pin_nr) + 0x04) 
+
+#define RP1_RW_OFFSET			0x0000
+#define RP1_XOR_OFFSET			0x1000
+#define RP1_SET_OFFSET			0x2000
+#define RP1_CLR_OFFSET			0x3000
+
+#define RP1_GPIO_CTRL_FUNCSEL_LSB	0
+#define RP1_GPIO_CTRL_FUNCSEL_MASK	0x0000001f
+#define RP1_GPIO_CTRL_OUTOVER_LSB	12
+#define RP1_GPIO_CTRL_OUTOVER_MASK	0x00003000
+#define RP1_GPIO_CTRL_OEOVER_LSB	14
+#define RP1_GPIO_CTRL_OEOVER_MASK	0x0000c000
+#define RP1_GPIO_CTRL_INOVER_LSB	16
+#define RP1_GPIO_CTRL_INOVER_MASK	0x00030000
+#define RP1_GPIO_CTRL_IRQEN_FALLING	BIT(20)
+#define RP1_GPIO_CTRL_IRQEN_RISING	BIT(21)
+#define RP1_GPIO_CTRL_IRQEN_LOW		BIT(22)
+#define RP1_GPIO_CTRL_IRQEN_HIGH	BIT(23)
+#define RP1_GPIO_CTRL_IRQEN_F_FALLING	BIT(24)
+#define RP1_GPIO_CTRL_IRQEN_F_RISING	BIT(25)
+#define RP1_GPIO_CTRL_IRQEN_F_LOW	BIT(26)
+#define RP1_GPIO_CTRL_IRQEN_F_HIGH	BIT(27)
+#define RP1_GPIO_CTRL_IRQRESET		BIT(28)
+#define RP1_GPIO_CTRL_IRQOVER_LSB	30
+#define RP1_GPIO_CTRL_IRQOVER_MASK	0xc0000000
+
+
+/*
+ * RP1 uses the RIO interface to manipulate GPIO
+ *
+ * NOTE: RIO1 and RIO2 are reserved
+ * */
+#define RP1_SYS_RIO0			0x10000
+
+#define RIO_REG(offset) \
+	(GPIO_REG(RP1_SYS_RIO0) + offset)
+
+#define RP1_RIO_OUT			0x00
+#define RP1_RIO_OE			0x04
+#define RP1_RIO_IN			0x08
+
+void init_gpio(void);
+void clear_gpio(uint8_t pin_nr);
+void set_gpio_func(uint8_t pin_nr, uint32_t val); 
+void set_gpio_val(uint8_t pin_nr);
 
 #endif
