@@ -33,7 +33,7 @@ void mini_uart_init(void)
 	WRITE_REG(AUX_IO_REG(AUX_MU_CNTL), 8, 0x3);
 }
 
-inline void mini_uart_wait_for_idle(void)
+static void mini_uart_wait_for_idle(void)
 {
 	/* wait for transmitter to idle */
 	while(!(REG(AUX_IO_REG(AUX_MU_LSR), 8) & BITP(6)))
@@ -74,8 +74,18 @@ void uart_init(void)
 
 }
 
+static void uart_wait_for_idle(uint8_t tx_rx)
+{
+	if (tx_rx)
+		while (REG(UART0_REG(FR), 8) & BITP(5)); //TX is FULL
+	else
+		while (REG(UART0_REG(FR), 8) & BITP(4)); //RX is EMPTY
+
+}
+
 void uart_putc(char c)
 {
+	uart_wait_for_idle(1);
 	WRITE_REG(UART0_REG(DR), 8, c);
 }
 
@@ -86,3 +96,10 @@ void uart_puts(char *c)
 	while(*s)
 		uart_putc(*s++);
 }
+
+char uart_getc(void)
+{
+	uart_wait_for_idle(0);
+	return REG(UART0_REG(DR), 8);
+}
+

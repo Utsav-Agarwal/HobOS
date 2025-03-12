@@ -34,7 +34,6 @@ extern uint64_t mmio_base;
 #define MINI_UART_BAUD 270
 
 void mini_uart_init(void);
-inline void mini_uart_wait_for_idle(void);
 void mini_uart_putc(char c);
 void mini_uart_puts(char *c);
 
@@ -69,5 +68,6 @@ extern uint64_t uart0_base;
 void uart_init(void);
 void uart_putc(char c);
 void uart_puts(char *c);
+char uart_getc(void);
 
 #endif

@@ -23,6 +23,9 @@ void main()
 	get_rpi_version();
 	mmio_init(rpi_version);
 	heartbeat();
-	while (1)
-		;
+	while (1) {
+		uart_putc(uart_getc());
+		delay(1000000);
+	}
+
 }
