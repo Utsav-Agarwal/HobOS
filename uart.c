@@ -1,6 +1,8 @@
 #include "hobos/uart.h"
 #include "hobos/gpio.h"
 
+
+/* Mini UART */
 void mini_uart_init(void)
 {
 	/* enable and halt uart peripheral */
@@ -50,4 +52,37 @@ void mini_uart_puts(char *c)
 	char *s = c;
 	while(*s)
 		mini_uart_putc(*s++);
+}
+
+
+/* PL011 UART */
+uint64_t uart0_base;
+
+void uart_init(void)
+{
+	if (rpi_version == 5) 
+		uart0_base = RPI_5_UART0_BASE;
+	else
+		uart0_base = RPI_LEGACY_UART0_BASE;
+
+	//TODO: enable uart init implementation
+ 
+	/* 
+	* NOTE: Current implementation is not complete and is assisted
+	* by the EEPROM enable_rp1_uart option.
+	*/
+
+}
+
+void uart_putc(char c)
+{
+	WRITE_REG(UART0_REG(DR), 8, c);
+}
+
+void uart_puts(char *c)
+{
+	char *s = c;
+	
+	while(*s)
+		uart_putc(*s++);
 }

@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-extern uint32_t mmio_base;
+extern uint64_t mmio_base;
 
 /*
  * NOTE: This currently only implements mini UART - which is supported upto
@@ -37,5 +37,37 @@ void mini_uart_init(void);
 inline void mini_uart_wait_for_idle(void);
 void mini_uart_putc(char c);
 void mini_uart_puts(char *c);
+
+
+/*
+ *
+ * This is PL011 UART, supported by all RPI models.
+ *
+ */
+
+extern uint64_t uart0_base;
+
+#define RPI_LEGACY_UART0_BASE	0x20100
+#define RPI_5_UART0_BASE	0x30000
+
+#define UART0_REG(offset) \
+	(mmio_base + uart0_base + offset)
+
+
+#define DR		0x00
+#define FR		0x18
+#define IBRD		0x24
+#define FBRD		0x28
+#define CR		0x30
+#define IFLS		0x34
+#define IMSC		0x38
+#define RIS		0x3c
+#define MIS		0x40
+#define ICR		0x44
+#define DMACR		0x48
+
+void uart_init(void);
+void uart_putc(char c);
+void uart_puts(char *c);
 
 #endif

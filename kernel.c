@@ -3,22 +3,24 @@
 #include "hobos/gpio.h"
 #include "hobos/uart.h"
 
-uint32_t mmio_base;
+uint8_t rpi_version;
+uint64_t mmio_base;
+uint64_t uart_base;
 
 extern void set_gpio(uint8_t pin_nr, uint8_t dir);
 
 /* I'm alive */
 void heartbeat(void)
 {
-	mini_uart_init();
-	mini_uart_puts("hello world\r\n");
+	char *x = "Hello World\r\n";
+
+	uart_init();
+	uart_puts(x);
 }
 
 void main()
 {
-	int rpi_version = 0;
-
-	rpi_version = get_rpi_version();
+	get_rpi_version();
 	mmio_init(rpi_version);
 	heartbeat();
 	while (1)
