@@ -1,7 +1,7 @@
 #include <stddef.h>
 #include <stdint.h>
-#include "hobos/gpio.h"
-#include "hobos/uart.h"
+#include "hobos/kstdio.h"
+#include "hobos/mmio.h"
 
 extern uint8_t rpi_version;
 extern uint64_t mmio_base;
@@ -14,8 +14,8 @@ void heartbeat(void)
 {
 	char *x = "Hello World\r\n";
 
-	mini_uart_init();
-	mini_uart_puts(x);
+	init_console();
+	puts(x);
 }
 
 void main()
@@ -24,8 +24,7 @@ void main()
 	mmio_init();
 	heartbeat();
 	while (1) {
-		uart_putc(uart_getc());
-		delay(1000000);
+		//start shell here
 	}
 
 }
