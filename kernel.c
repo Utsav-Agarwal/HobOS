@@ -3,10 +3,6 @@
 #include "hobos/kstdio.h"
 #include "hobos/mmio.h"
 
-extern uint8_t rpi_version;
-extern uint64_t mmio_base;
-extern uint64_t uart_base;
-
 extern void set_gpio(uint8_t pin_nr, uint8_t dir);
 
 /* I'm alive */
