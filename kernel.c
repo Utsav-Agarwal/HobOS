@@ -1,16 +1,21 @@
 #include <stddef.h>
-#include <stdint.h>
+#include "hobos/lib/stdlib.h"
 #include "hobos/kstdio.h"
 #include "hobos/mmio.h"
-
-extern void set_gpio(uint8_t pin_nr, uint8_t dir);
 
 /* I'm alive */
 void heartbeat(void)
 {
-	char *x = "Hello World\r\n";
+	char *x = malloc(2);
+	char *a = malloc(3);
+	
+	x[0] = 'x';
+	x[1] = 'y';
 
-	init_console();
+	a[0] = 'a';
+	a[1] = 'b';
+	a[2] = '\0';
+
 	puts(x);
 }
 
@@ -18,9 +23,12 @@ void main()
 {
 	get_rpi_version();
 	mmio_init();
+	init_console();
+	
 	heartbeat();
 	while (1) {
 		//start shell here
+		delay(1000);
 	}
 
 }

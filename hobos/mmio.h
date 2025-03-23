@@ -23,6 +23,5 @@ void get_rpi_version(void);
 void mmio_write(uint32_t offset, uint32_t val);
 uint32_t mmio_read(uint32_t offset);
 void mmio_init(void);
-void delay(uint32_t count);
 
 #endif

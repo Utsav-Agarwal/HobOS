@@ -1,7 +1,9 @@
+#include "hobos/kstdio.h"
 #include "hobos/lib/vsprintf.h"
 #include "hobos/mmio.h"
 #include "hobos/nostdlibc_arg.h"
 #include "hobos/uart.h"
+
 
 extern uint8_t rpi_version;
 

@@ -1,5 +1,6 @@
-#include "hobos/uart.h"
 #include "hobos/gpio.h"
+#include "hobos/lib/stdlib.h"
+#include "hobos/uart.h"
 
 uint64_t uart_base;
 extern uint64_t rpi_version;
