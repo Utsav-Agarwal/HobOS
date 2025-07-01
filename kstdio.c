@@ -64,7 +64,6 @@ void puts(char *c)
 
 int kprintf(const char *format, ...)
 {
-	char print_buf[1024];
 	va_list args;
 	int printed;
 
