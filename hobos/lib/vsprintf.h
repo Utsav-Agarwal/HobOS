@@ -3,6 +3,6 @@
 
 #include <stdarg.h>
 
-int vsprintf(char *buf, const char *format, va_list args);
+int vprintf(const char *format, va_list args);
 
 #endif

@@ -23,7 +23,8 @@ extern uint8_t rpi_version;
 //
 // TODO: Establish locks when accessing peripherals
 // TODO: Establish a device registration layer, 
-// enabling more code reuse
+// enabling more code reuse, maybe use ifdefs and override function
+// names with selective compilation
 
 
 void init_console(void)
@@ -68,7 +69,7 @@ int kprintf(const char *format, ...)
 	int printed;
 
 	va_start(args, format);
-	printed = vsprintf(print_buf, format, args);
+	printed = vprintf(format, args);
 	va_end(args);
 	return printed;
 
