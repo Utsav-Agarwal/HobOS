@@ -34,8 +34,34 @@ char *d_to_s(int i, char *c, uint8_t sz)
 
 	//d is always 0-9
 	while(d) {
-		c[index--] = (char) (d%10 + 48);
+		c[index--] = (char) (d%10 + '0');
 		d = d/10;
+	}
+
+	//store an inverted string from the end and just
+	//return the point where the string should start
+	return &c[index+1];
+}
+
+char *x_to_s(int i, char *c, uint8_t sz) 
+{
+
+	//keep shifting the next digit to the units place
+	//convert unit to ascii and store in the buffer
+
+
+	uint8_t index = sz-1;
+	int res, d = i;
+
+	//d is always 0-9
+	while(d) {
+		res = 0xF & d;	
+		if (res < 0xa)
+			c[index--] = (char) (res + '0');
+		else
+			c[index--] = (char) ((res-0xa) + 'A');
+
+		d = d >> 4;
 	}
 
 	//store an inverted string from the end and just
@@ -77,6 +103,10 @@ int vprintf(const char *format, va_list args)
 				case 'd':
 					arg.i = va_arg(args, int);
 					puts(d_to_s(arg.i, buf, D_BUF_SZ));
+					break;
+				case 'x':
+					arg.i = va_arg(args, int);
+					puts(x_to_s(arg.i, buf, D_BUF_SZ));
 					break;
 				default:
 					puts("Format option not supported\n");

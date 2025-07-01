@@ -17,7 +17,7 @@ void heartbeat(void)
 	a[2] = '\0';
 
 	puts("test\n");
-	kprintf("%s %d\n", a, 1123);
+	kprintf("%s %d %x\n", a, 1123, 0xa12b);
 
 }
 
