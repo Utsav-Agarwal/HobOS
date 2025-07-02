@@ -1,9 +1,14 @@
 .section ".text.boot"
 
+
+#define BIT(x) (1 << (x))
+
 .global _start
 .global __heap_start
 .global __heap_size
 .global __heap_end
+
+#define SMPEN	BIT(6)
 
 _start:
     // read cpu id, stop slave cores
