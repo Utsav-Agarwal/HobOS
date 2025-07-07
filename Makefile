@@ -11,11 +11,14 @@ all: clean kernel8.img
 boot.o: boot.S
 	${CC} ${CFLAGS} -c boot.S -o boot.o 
 
+proc.o: proc.S
+	${CC} ${CFLAGS} -c proc.S -o proc.o 
+
 %.o: %.c
 	${CC} ${CFLAGS} -c $< -o $@
 
-kernel8.img: boot.o ${OBJS}
-	${LD} boot.o ${OBJS} -T linker.ld -o kernel8.elf
+kernel8.img: boot.o proc.o ${OBJS}
+	${LD} boot.o proc.o ${OBJS} -T linker.ld -o kernel8.elf -g
 	${TOOLCHAIN}objcopy -O binary kernel8.elf kernel8.img
 
 clean:

@@ -17,5 +17,7 @@
 #define MAX_REMOTE_CORE_ID	3
 
 int run_process(uint64_t fn_addr, uint8_t cpu_id);
+uint8_t get_curr_core_id(void);
+uint64_t get_curr_stack_base(int core_id);
 
 #endif
