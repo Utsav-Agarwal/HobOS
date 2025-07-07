@@ -4,18 +4,14 @@
 #include "hobos/mmio.h"
 #include "hobos/smp.h"
 
-/* test print */
-void test_print(void)
-{
-	puts("Hello\n");
-}
+extern int setup_stack(void);
 
 /* I'm alive */
 void heartbeat(void)
 {
-	run_process((uint64_t) test_print, 1);
-	run_process((uint64_t) test_print, 2);
-	run_process((uint64_t) test_print, 3);
+	run_process((uint64_t) setup_stack, 1);
+	run_process((uint64_t) setup_stack, 2);
+	run_process((uint64_t) setup_stack, 3);
 }
 
 void main()
@@ -28,7 +24,6 @@ void main()
 
 	while (1) {
 		//start shell here
-		delay(1000);
 	}
 
 }
