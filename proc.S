@@ -35,7 +35,8 @@ setup_stack:
     ret
 
 exec:
-    b park_and_wait
+    bl park_and_wait
+    ret
 
 
 curr_core_id:
