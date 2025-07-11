@@ -16,7 +16,9 @@
 #define SPIN_TABLE_BASE		0xD8
 #define MAX_CORES	4
 
+
+
 int init_smp(void);
-int run_process(uint64_t fn_addr, uint8_t cpu_id);
+int queue_on_proc(uint64_t fn_addr, uint8_t cpu_id);
 
 #endif

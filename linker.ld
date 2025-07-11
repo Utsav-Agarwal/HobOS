@@ -19,6 +19,7 @@ SECTIONS
     {
         KEEP(*(.text.boot))
         KEEP(*(.text.proc))
+        KEEP(*(.text.mutex))
         *(.text)
     }
     . = ALIGN(PAGE_SIZE); /* align to page size */

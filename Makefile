@@ -14,11 +14,14 @@ boot.o: boot.S
 proc.o: proc.S
 	${CC} ${CFLAGS} -c proc.S -o proc.o 
 
+mutex.o: mutex.S
+	${CC} ${CFLAGS} -c mutex.S -o mutex.o 
+
 %.o: %.c
 	${CC} ${CFLAGS} -c $< -o $@
 
-kernel8.img: boot.o proc.o ${OBJS}
-	${LD} boot.o proc.o ${OBJS} -T linker.ld -o kernel8.elf -g
+kernel8.img: boot.o proc.o mutex.o ${OBJS}
+	${LD} boot.o proc.o mutex.o ${OBJS} -T linker.ld -o kernel8.elf -g
 	${TOOLCHAIN}objcopy -O binary kernel8.elf kernel8.img
 
 clean:

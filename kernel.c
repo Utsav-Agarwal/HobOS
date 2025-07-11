@@ -3,7 +3,7 @@
 #include "hobos/kstdio.h"
 #include "hobos/mmio.h"
 #include "hobos/smp.h"
-
+#include "hobos/mutex.h"
 
 void test_print1(void)
 {
@@ -17,14 +17,20 @@ void test_print2(void)
 	return;
 }
 
+MUTEX(x);
 /* I'm alive */
 void heartbeat(void)
 {
-	//TODO: threading implementation
-	//with proper mutex implementation, we
-	//should be able to see both these functions executed
-	run_process((uint64_t) test_print1, 1);
-	run_process((uint64_t) test_print2, 2);
+
+	queue_on_proc((uint64_t) test_print1, 0);
+	unlock_mutex(&x);
+
+	lock_mutex(&x);
+	queue_on_proc((uint64_t) test_print2, 2);
+	unlock_mutex(&x);
+
+	//pause core 2
+	queue_on_proc((uint64_t) 0x0, 2);
 
 }
 
