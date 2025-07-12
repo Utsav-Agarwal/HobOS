@@ -15,9 +15,11 @@ lock_mutex:
     cbnz    w1, 1b             // if locked, retry
     mov     w1, #LOCKED
     stxr    w2, w1, [x0]       // try to store 1 (lock)
+
+    //TODO: Maybe return here and let the program 
+    //decide on triggering a retry
     cbnz    w2, 1b             // if store failed, retry
     ret
-
 
 get_mutex_state:
     dmb 	st		

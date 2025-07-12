@@ -13,5 +13,6 @@ typedef uint8_t	mutex_t;
 
 extern void lock_mutex (mutex_t *mutex);
 extern void unlock_mutex (mutex_t *mutex);
+extern mutex_t get_mutex_state (mutex_t *mutex);
 
 #endif

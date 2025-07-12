@@ -26,11 +26,10 @@ void heartbeat(void)
 	unlock_mutex(&x);
 
 	lock_mutex(&x);
-	queue_on_proc((uint64_t) test_print2, 2);
+	kprintf("mutex:%d *\n", get_mutex_state(&x));
 	unlock_mutex(&x);
 
-	//pause core 2
-	queue_on_proc((uint64_t) 0x0, 2);
+	kprintf("mutex:%d *\n", get_mutex_state(&x));
 
 }
 
