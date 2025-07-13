@@ -32,6 +32,8 @@ int init_smp(void)
 
 	for ( i=1; i<MAX_CORES; i++)
 		queue_on_proc((uint64_t) setup_stack, i);
+
+	return 0;
 }
 
 /* Note that this does not guarantee that the processor

@@ -43,15 +43,6 @@ uint8_t tid_cntr = 0;
  * */
 struct thread_struct active_threads[2*MAX_CORES] = {0x0};
 
-void init_threading(void)
-{
-    int i=0;
-
-    for (i; i<2*MAX_CORES; i++)
-	active_threads[i].tid = INACTIVE;
-}
-
-
 static void set_thread_active(struct thread_struct *t)
 {
     //get tid from pool

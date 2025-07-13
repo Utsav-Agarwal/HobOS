@@ -74,7 +74,6 @@ void main()
 	init_console();
 
 	init_smp();
-	init_threading();
 	heartbeat();
 
 	while (1) {
