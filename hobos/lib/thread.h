@@ -42,9 +42,7 @@ struct thread_struct {
 };
 
 
-void init_threading(void);
 uint8_t incoming_thread_exists(uint8_t core_id);
 void queue_thread(struct task_struct *tsk);
-void check_thread_status(void);
 
 #endif
