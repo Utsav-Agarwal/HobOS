@@ -33,7 +33,7 @@ void heartbeat(void)
 {
 
     struct task_struct tsk1 = { 
-        .core_id = 3, 
+        .core_id = 0, 
         .fn_addr = (uint64_t)(test_print1) 
     };
     

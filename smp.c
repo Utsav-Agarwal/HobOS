@@ -52,7 +52,14 @@ int queue_on_proc(uint64_t fn_addr, uint8_t core_id)
 	 * it a special case since all ops will be sequential 
 	 * */
 	if (!core_id) {
+
+		lock_mutex(&core_exec[core_id]);
+		unlock_mutex(&core_incoming_event[core_id]);
+	
 		((void (*)(void)) fn_addr)();
+	
+		unlock_mutex(&core_exec[core_id]);
+
 		return 0;
 	}
 
