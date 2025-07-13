@@ -3,6 +3,7 @@
 #include "hobos/mmio.h"
 #include "hobos/nostdlibc_arg.h"
 #include "hobos/uart.h"
+#include "hobos/mutex.h"
 
 
 extern uint8_t rpi_version;
@@ -62,13 +63,16 @@ void puts(char *c)
 		mini_uart_puts(c);
 }
 
+MUTEX(uart_mut) = 0;
 int kprintf(const char *format, ...)
 {
 	va_list args;
 	int printed;
 
 	va_start(args, format);
+	lock_mutex(&uart_mut);
 	printed = vprintf(format, args);
+	unlock_mutex(&uart_mut);
 	va_end(args);
 	return printed;
 

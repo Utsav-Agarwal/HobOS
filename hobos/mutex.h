@@ -4,12 +4,17 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define LOCKED		1
-#define UNLOCKED	0
+#define LOCKED			1
+#define UNLOCKED		0
 
-#define MUTEX(x)	mutex_t	x;
+#define MUTEX(x)		mutex_t	x
+#define MUTEX_VECTOR(x, n)	mutex_t	x[n]
 
-typedef uint8_t	mutex_t;
+/* This needs to be 64 bits, else 
+ * writes trample multiple entries due to 
+ * 64 bit function addresses 
+ * */
+typedef uint64_t		mutex_t;
 
 extern void lock_mutex (mutex_t *mutex);
 extern void unlock_mutex (mutex_t *mutex);

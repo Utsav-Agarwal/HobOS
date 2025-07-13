@@ -1,7 +1,9 @@
 #ifndef __THREAD_H
 #define __THREAD_H
 
+#include "task.h"
 #include <stdint.h>
+#include "../kstdio.h"
 
 /* 
  * We want simple thread implementation
@@ -20,28 +22,32 @@
  * suspend execution
  * 
  * TODO: suspend / migration
-*/
+ * */
 
-struct thread {
+#define	ANY_CORE	0xFF
+
+#define INACTIVE	0xFF
+
+#define PRINT_THREAD(t)	kprintf("tid:%d\ncore:%d\nfn:%x\n", t->tid, t->core_id, t->fn_addr);
+
+struct thread_struct {
 	uint8_t tid;
 	uint8_t core_id;
 
 	uint64_t fn_addr;
-	uint64_t *args;
-	uint64_t *result;
+//	uint64_t *args;
+//	uint64_t *result;
+//	TODO: Add more meta data
 
-	uint8_t completed;
-};
-
-struct wk_queue {
-	//LIST(tasks)
 };
 
 struct thread_queue {
 	//LIST(threads)
 };
 
-void queue_thread(void);
+void init_threading(void);
+uint8_t incoming_thread_exists(uint8_t core_id);
+void queue_thread(struct task_struct *tsk);
 void check_thread_status(void);
 
 #endif

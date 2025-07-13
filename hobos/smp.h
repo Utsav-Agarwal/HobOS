@@ -14,9 +14,10 @@
 //TODO: Add mailbox support for reading processor messages
 
 #define SPIN_TABLE_BASE		0xD8
-#define MAX_CORES	4
+#define MAX_CORES		4
 
-
+extern int curr_core_id(void);
+extern int setup_stack(void);
 
 int init_smp(void);
 int queue_on_proc(uint64_t fn_addr, uint8_t cpu_id);
