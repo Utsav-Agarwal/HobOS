@@ -19,6 +19,9 @@
 extern int curr_core_id(void);
 extern int setup_stack(void);
 
+extern int curr_sp(void);
+extern int curr_pc(void);
+
 int init_smp(void);
 int queue_on_proc(uint64_t fn_addr, uint8_t cpu_id);
 

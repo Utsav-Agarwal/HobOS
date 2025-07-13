@@ -41,9 +41,6 @@ struct thread_struct {
 
 };
 
-struct thread_queue {
-	//LIST(threads)
-};
 
 void init_threading(void);
 uint8_t incoming_thread_exists(uint8_t core_id);

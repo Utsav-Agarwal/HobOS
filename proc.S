@@ -2,6 +2,8 @@
 
 .global setup_stack
 .global curr_core_id
+.global curr_sp
+.global curr_pc
 
 #define CORE_STACK_BASE	0x86000
 #define CORE_STACK_SIZE	0x1000
@@ -42,4 +44,12 @@ exec:
 curr_core_id:
     mrs x0, mpidr_el1
     and x0, x0, #0x3
+    ret
+
+curr_sp:
+    mov x0, sp
+    ret
+
+curr_pc:
+    adr	x0, .
     ret

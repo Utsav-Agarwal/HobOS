@@ -65,6 +65,9 @@ void heartbeat(void)
 	queue_thread(&tsk3);
 	queue_thread(&tsk2);
 	queue_thread(&tsk3);
+
+
+	kprintf("sp: 0x%x pc: 0x%x\n", curr_sp, curr_pc);
 }
 
 void main()
