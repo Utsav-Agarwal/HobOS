@@ -8,6 +8,9 @@ extern uint64_t rpi_version;
 /* Mini UART */
 void mini_uart_init(void)
 {
+	
+	init_gpio();
+
 	/* enable and halt uart peripheral */
 	REG(GPIO_REG(GPFSEL1), 32) &= ~(BITP(14)|BITP(15));
 	REG(AUX_IO_REG(AUX_ENABLES), 8) |= 0x1;
