@@ -35,12 +35,12 @@ inline void get_rpi_version(void)
 	}
 }
 
-inline void mmio_write(uint32_t offset, uint32_t val)
+void mmio_write(uint32_t offset, uint32_t val)
 {
 	*(volatile uint32_t *)(mmio_base + offset) = val;
 }
 
-inline uint32_t mmio_read(uint32_t offset)
+uint32_t mmio_read(uint32_t offset)
 {
 	return *(volatile uint32_t *)(mmio_base + offset);
 }
