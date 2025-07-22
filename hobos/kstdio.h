@@ -1,7 +1,8 @@
 #ifndef __KSTDIO_H
 #define __KSTDIO_H
+#include "gpio.h"
 
-void init_console(void);
+void init_console(struct gpio_controller *ctrl);
 
 int kprintf(const char *format, ...);
 
