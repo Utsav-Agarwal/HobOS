@@ -70,3 +70,8 @@ void init_timer(struct timer *t)
 
 	return;	
 }
+
+uint32_t read_timer(bool msb, struct timer *t)
+{
+	return t->read_timer32(msb, t);
+}

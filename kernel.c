@@ -28,9 +28,8 @@ void main()
 
 	struct timer t;
 	init_timer(&t);
-	kprintf("timer: %d\n", t.read_timer32(1, &t));
-	kprintf("timer: %d\n", t.read_timer32(1, &t));
-
+	kprintf("timer: %d\n", read_timer(1, &t));
+	kprintf("timer: %d\n", read_timer(1, &t));
 
 	heartbeat();
 
