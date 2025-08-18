@@ -27,12 +27,12 @@ extern uint8_t rpi_version;
 // names with selective compilation
 
 
-void init_console(void)
+void init_console(struct gpio_controller *ctrl)
 {
 	if (rpi_version == 5)
 		uart_init();
 	else
-		mini_uart_init();
+		mini_uart_init(ctrl);
 }
 
 void putc(char c)

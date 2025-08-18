@@ -10,14 +10,15 @@
 #define u16	uint16_t
 #define u8	uint8_t
 
-#define WRITE_REG(reg_addr, reg_size, val) \
+#define write_reg(reg_addr, reg_size, val) \
 	*(u##reg_size *) reg_addr = val
 
-#define REG(reg_addr, reg_size) \
+#define clear_reg(reg_addr, reg_size) \
+	*(u##reg_size *) reg_addr = 0
+
+#define read_reg(reg_addr, reg_size) \
 	*(u##reg_size *) reg_addr
 
-#define CLEAR_REG(reg_addr, reg_size) \
-	*(u##reg_size *) reg_addr = 0
 
 void get_rpi_version(void);
 void mmio_write(uint32_t offset, uint32_t val);

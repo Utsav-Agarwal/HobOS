@@ -25,5 +25,6 @@ struct timer {
 };
 
 void init_timer(struct timer *t);
+uint32_t read_timer(bool msb, struct timer *t);
 
 #endif

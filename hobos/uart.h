@@ -2,6 +2,7 @@
 #define __UART_H
 
 #include <stdint.h>
+#include "gpio.h"
 
 extern uint64_t mmio_base;
 
@@ -33,10 +34,9 @@ extern uint64_t mmio_base;
 //Clock assumed to be 250MHz for 115200 Baud
 #define MINI_UART_BAUD 270
 
-void mini_uart_init(void);
+void mini_uart_init(struct gpio_controller *ctrl);
 void mini_uart_putc(char c);
 void mini_uart_puts(char *c);
-
 
 /*
  *
