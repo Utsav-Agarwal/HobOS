@@ -1,12 +1,11 @@
 ENTRY(_start)
 
-
 BSS_SIZE = 0x4000;
 
-CORE_STACK_BASE = 0x86000;
+CORE_STACK_BASE = 0x88000;
 CORE_STACK_SIZE = 0x1000;
 
-PAGE_SIZE = 0x4000;
+PAGE_SIZE = 0x1000;
 
 SECTIONS
 {
@@ -21,7 +20,7 @@ SECTIONS
         KEEP(*(.text.proc))
         *(.text)
     }
-    . = ALIGN(PAGE_SIZE); /* align to page size */
+    . = ALIGN(PAGE_SIZE); 
     __text_end = .;
 
     __rodata_start = .;
@@ -29,7 +28,7 @@ SECTIONS
     {
         *(.rodata)
     }
-    . = ALIGN(PAGE_SIZE); /* align to page size */
+    . = ALIGN(PAGE_SIZE); 
     __rodata_end = .;
 
     __data_start = .;
@@ -37,7 +36,7 @@ SECTIONS
     {
         *(.data)
     }
-    . = ALIGN(PAGE_SIZE); /* align to page size */
+    . = ALIGN(PAGE_SIZE); 
     __data_end = .;
 
     __bss_start = .;
@@ -47,7 +46,7 @@ SECTIONS
         bss = .;
         *(.bss)
     }
-    . = ALIGN(PAGE_SIZE); /* align to page size */
+    . = ALIGN(PAGE_SIZE); 
     __bss_end = .;
 
 
@@ -61,7 +60,7 @@ SECTIONS
 	*(.core0_stack)
 	__core0_stack = .;	
     }
-    . = ALIGN(PAGE_SIZE); /* align to page size */
+    . = ALIGN(PAGE_SIZE); 
 
     .core1_stack :
     {
@@ -69,7 +68,7 @@ SECTIONS
         *(.core1_stack)
         __core1_stack = .;
     }
-    . = ALIGN(PAGE_SIZE); /* align to 16 bytes */
+    . = ALIGN(PAGE_SIZE); 
     
     .core2_stack :
     {
@@ -77,7 +76,7 @@ SECTIONS
         *(.core2_stack)
         __core2_stack = .;
     }
-    . = ALIGN(PAGE_SIZE); /* align to 16 bytes */
+    . = ALIGN(PAGE_SIZE); 
     
     .core3_stack :
     {
@@ -85,8 +84,9 @@ SECTIONS
         *(.core3_stack)
         __core3_stack = .;
     }
-    . = ALIGN(PAGE_SIZE); /* align to 16 bytes */
+    . = ALIGN(PAGE_SIZE); 
 
+    /* start translation tables here */
     __end = .;
 }
 

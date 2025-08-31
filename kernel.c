@@ -5,6 +5,7 @@
 #include "hobos/timer.h"
 #include "hobos/smp.h"
 #include "hobos/gpio.h"
+#include "hobos/mmu.h"
 
 extern int setup_stack(void);
 extern uint8_t curr_core_el(void);
@@ -22,6 +23,7 @@ void main()
 {
 	get_rpi_version();
 	mmio_init();
+	init_mmu();
 	
 	struct gpio_controller ctrl;
 	init_gpio(&ctrl);
