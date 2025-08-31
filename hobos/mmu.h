@@ -22,7 +22,16 @@
 //i.e, EL2/EL3 (privileged) levels have limited VM 
 //
 
-//BADDR = TTBR0_EL1 [87:80] [47:5]
+struct ttbr_cfg {
+	uint64_t table_base_addr;
+	uint16_t asid;
+	uint8_t	skl;
+	uint8_t cnp;
+};
+
+//		BADDR = TTBR0_EL1 [87:80] [47:5]
+//		==========================
+//Base address of the stage 1 translation table
 
 #define BADDR_1_POS	80
 #define ASID_POS	48
@@ -30,7 +39,7 @@
 #define SKL_POS		1
 #define CnP_POS		0
 
-//		SKP [2:1]
+//		SKL [2:1]
 //		==========================
 //skips the regular start level when starting to walk from 
 //TTBR0_EL1
@@ -117,10 +126,13 @@ struct tcr_el1_cfg {
 #define TG1_POS			30
 
 
-#define GRANULE_SZ_4KB		0x00
-#define GRANULE_SZ_16KB		0x01
-#define GRANULE_SZ_64KB		0x11
+#define TG0_GRANULE_SZ_4KB		0x00
+#define TG0_GRANULE_SZ_16KB		0x01
+#define TG0_GRANULE_SZ_64KB		0x11
 
+#define TG1_GRANULE_SZ_16KB		0x00
+#define TG1_GRANULE_SZ_4KB		0x01
+#define TG1_GRANULE_SZ_64KB		0x11
 
 void init_mmu(void);
 
