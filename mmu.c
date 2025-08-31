@@ -2,6 +2,7 @@
 #include "hobos/mmu.h"
 
 #include "hobos/mmu/bcm2835.h"
+#include "hobos/kstdio.h"
 
 static void __set_ttbr(struct ttbr_cfg *cfg, uint8_t index, uint8_t el)
 {
@@ -19,25 +20,29 @@ static void __set_ttbr(struct ttbr_cfg *cfg, uint8_t index, uint8_t el)
 
 	switch (el) {
 		case 2:
-			__asm__ volatile ("msr ttbr0_el2, %x0"
+			__asm__ volatile ("msr ttbr0_el2, %0"
 				:
-				:"r"(ttbr_config));
+				:"r"(ttbr_config)
+				: "memory");
 			break;
 		case 3:
-			__asm__ volatile ("msr ttbr0_el3, %x0"
+			__asm__ volatile ("msr ttbr0_el3, %0"
 				:
-				:"r"(ttbr_config));
+				:"r"(ttbr_config)
+				: "memory");
 			break;
 		default:
 			//EL1/0
 			if (!index)
-				__asm__ volatile ("msr ttbr0_el1, %x0"
+				__asm__ volatile ("msr ttbr0_el1, %0"
 					:
-					:"r"(ttbr_config));
+					:"r"(ttbr_config)
+					: "memory");
 			else
-				__asm__ volatile ("msr ttbr1_el1, %x0"
+				__asm__ volatile ("msr ttbr1_el1, %0"
 					:
-					:"r"(ttbr_config));
+					:"r"(ttbr_config)
+					: "memory");
 	}
 }
 

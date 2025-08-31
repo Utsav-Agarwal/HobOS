@@ -21,30 +21,20 @@ void heartbeat(void)
 
 void main()
 {
+	struct gpio_controller ctrl;
+	
+
 	get_rpi_version();
 	mmio_init();
 	init_mmu();
 	
-	struct gpio_controller ctrl;
 	init_gpio(&ctrl);
 	init_console(&ctrl);
 
-	//kprintf("EL: %d\n", curr_core_el());
-//	kprintf("EL: %d\n", curr_core_el());
-//
-
 	uint8_t x; 
 
-	x = 0xdeadbeef;
-	x = curr_core_el();
-	//kprintf("Hello\n");
 
-//	struct timer t;
-//	init_timer(&t);
-//	kprintf("timer: %d\n", read_timer(1, &t));
-//	kprintf("timer: %d\n", read_timer(1, &t));
-//
-//	heartbeat();
+	heartbeat();
 
 	
 	while (1) {
