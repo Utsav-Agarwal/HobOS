@@ -14,26 +14,19 @@ extern void switch_el(void);
 /* I'm alive */
 void heartbeat(void)
 {
-	//run_process((uint64_t) setup_stack, 1);
-	//run_process((uint64_t) setup_stack, 2);
-	//run_process((uint64_t) setup_stack, 3);
 }
 
 void main()
 {
 	struct gpio_controller ctrl;
 	
-
 	get_rpi_version();
 	mmio_init();
+
 	init_mmu();
 	
 	init_gpio(&ctrl);
 	init_console(&ctrl);
-
-	uint8_t x; 
-
-
 	heartbeat();
 
 	
