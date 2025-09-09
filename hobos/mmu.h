@@ -182,6 +182,20 @@ struct tcr_el1_cfg {
 #define PT_INDEX_NC 	2 << PT_INDEX_POS     // non-cachable
 
 
+//MAIR
+
+struct mair_attr {
+	uint8_t cache: 4;
+	uint8_t type: 4;
+};
+
+struct mair {
+	struct mair_attr attr0;
+	struct mair_attr attr1;
+	struct mair_attr attr2;
+	struct mair_attr attr3;
+};
+
 void init_mmu(void);
 
 #endif
