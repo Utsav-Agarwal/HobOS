@@ -219,6 +219,8 @@ static void set_userland_tables(void)
 
 		kprintf("L3 base 0x%x (0x%x)\n", pt_desc[3*512]& ~0xFFF, (uint64_t)&pt_desc[3*512]);
 		kprintf("L3 end 0x%x (0x%x)\n", pt_desc[3*512 + 511]& ~0xFFF, (uint64_t)&pt_desc[3*512 + 511]);
+	
+		kprintf("-----x----\n");
 }
 
 
@@ -255,9 +257,9 @@ static void set_kernel_tables(void)
 			| PT_INDEX_DEV		
 			| PT_PAGE;
 	
-	kprintf("mapping kernel mmio at 0x%x\n", (uint64_t) pt_desc[5*512] & ~0xFFF);
 	kprintf("L3 base 0x%x (0x%x)\n", pt_desc[5*512]& ~0xFFF, (uint64_t)&pt_desc[5*512]);
-	kprintf("L3 end 0x%x (0x%x)\n", pt_desc[3*512 + 512]& ~0xFFF, (uint64_t)&pt_desc[3*512 + 512]);
+	kprintf("-----x----\n");
+
 }
 
 //TODO: Split into user/kernel functions, maybe also make it board
