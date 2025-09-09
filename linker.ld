@@ -13,7 +13,6 @@ SECTIONS
     . = 0x80000;
     /* For AArch64, use . = 0x80000; */
     __start = .;
-    __text_start = .;
     .text :
     {
         KEEP(*(.text.boot))
@@ -21,24 +20,18 @@ SECTIONS
         *(.text)
     }
     . = ALIGN(PAGE_SIZE); 
-    __text_end = .;
-
-    __rodata_start = .;
     .rodata :
     {
         *(.rodata)
     }
-    . = ALIGN(PAGE_SIZE); 
-    __rodata_end = .;
 
+    . = ALIGN(PAGE_SIZE); 
     __data_start = .;
     .data :
     {
         *(.data)
     }
-    __data_end = .;
 
-    . = ALIGN(PAGE_SIZE); 
     __bss_start = .;
     .bss :
     {

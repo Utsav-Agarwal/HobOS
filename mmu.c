@@ -3,6 +3,7 @@
 
 #include "hobos/mmu/bcm2835.h"
 #include "hobos/kstdio.h"
+#include "hobos/uart.h"
 
 extern uint64_t mmio_base;
 
@@ -17,7 +18,7 @@ static void __set_ttbr(struct ttbr_cfg *cfg, uint8_t index, uint8_t el)
 	ttbr_config |= cfg->skl < SKL_POS;
 	ttbr_config |= cfg->asid < ASID_POS;
 
-
+	kprintf("ttbr%d_el%d set to: %x\n", index, el, ttbr_config);
 
 	switch (el) {
 		case 2:
@@ -149,7 +150,9 @@ extern volatile unsigned char __end;
 static void set_userland_tables(void)
 {
 		uint64_t *pt_desc = (uint64_t *) (&__end);
-		uint64_t i, data_pg = ((uint64_t) (&__data_start)) / PAGE_SIZE;
+		uint64_t i, data_pg = ((uint64_t) ((uint64_t *)&__data_start)) / PAGE_SIZE;
+
+		kprintf("\n------userland tables----\n");
 
 		//L0
 		pt_desc[0] = (uint64_t)((uint64_t *)(&__end) + 2*PAGE_SIZE)
@@ -159,6 +162,7 @@ static void set_userland_tables(void)
 			| PT_INDEX_MEM		
 			| PT_PAGE;
 
+		kprintf("L0 base 0x%x (0x%x)\n", pt_desc[0] & ~0xFFF, (uint64_t)&pt_desc);
 		//skip L1 for now
 
 		//L2
@@ -169,7 +173,9 @@ static void set_userland_tables(void)
 			| PT_INDEX_MEM		
 			| PT_PAGE;
 
-		//we are at the penultimate level, so we can skip 0th entry
+		kprintf("L2 base 0x%x (0x%x)\n", pt_desc[2*512]& ~0xFFF, (uint64_t)&pt_desc[2*512]);
+		//we already set the 0th desc, so we dont really need to set
+		//it again
 
 		//at L2 for 4KB, we care only about bits 29:21 for address
 		//translation to L3. Each entry points to a 2MB block.
@@ -196,7 +202,7 @@ static void set_userland_tables(void)
 		//careful about the code and data sections since code
 		//should not be modified. 
 		for (i=0; i<512; i++) {
-			pt_desc[3*512 + i] = ((uint64_t ) i*PAGE_SIZE)
+			pt_desc[3*512 + i] = (i*PAGE_SIZE)
 			| PT_AF_ACCESSED	
 			| PT_USER		
 			| PT_PAGE;
@@ -205,8 +211,14 @@ static void set_userland_tables(void)
 				pt_desc[3*512 + i] |= PT_AP_RW | PT_UXN_NX;
 			else
 				pt_desc[3*512 + i] |= PT_AP_RO;
+			
+			kprintf("L3 user desc: %x\n", pt_desc[3*512 + i] & ~0xFFF);
+		
+
 		}
 
+		kprintf("L3 base 0x%x (0x%x)\n", pt_desc[3*512]& ~0xFFF, (uint64_t)&pt_desc[3*512]);
+		kprintf("L3 end 0x%x (0x%x)\n", pt_desc[3*512 + 511]& ~0xFFF, (uint64_t)&pt_desc[3*512 + 511]);
 }
 
 
@@ -214,30 +226,38 @@ static void set_kernel_tables(void)
 {
 	uint64_t *pt_desc = (uint64_t *) (&__end);
 
+	kprintf("\n------kernel tables----\n");
 	//L1
-	pt_desc[512+511] = (uint64_t)((uint64_t *)&__end + 4*PAGE_SIZE)
+	pt_desc[TTBR1_OFFSET/8] = (uint64_t)((uint64_t *)&__end + 4*PAGE_SIZE)
 			| PT_AF_ACCESSED	
 			| PT_SH_I		
 			| PT_KERNEL		
 			| PT_INDEX_MEM		
 			| PT_PAGE;
+
+	kprintf("L0 base 0x%x (0x%x)\n", pt_desc[TTBR1_OFFSET/8]& ~0xFFF, (uint64_t)&pt_desc[TTBR1_OFFSET/8]);
 
 	//L2
-	pt_desc[4*512+511] = (uint64_t)((uint64_t *)&__end + 5*PAGE_SIZE)
+	pt_desc[4*512] = (uint64_t)((uint64_t *)&__end + 5*PAGE_SIZE)
 			| PT_AF_ACCESSED	
 			| PT_SH_I		
 			| PT_KERNEL		
 			| PT_INDEX_MEM		
 			| PT_PAGE;
 
+	kprintf("L2 base 0x%x (0x%x)\n", pt_desc[4*512] & ~0xFFF, (uint64_t) pt_desc[4*512]);
 	//L3 - only map uart
-	pt_desc[5*512] = (uint64_t) (mmio_base + 0x201000)
+	pt_desc[5*512] = (uint64_t) (mmio_base + AUX_IO_BASE)
 			| PT_AF_ACCESSED	
 			| PT_SH_O
 			| PT_UXN_NX
 			| PT_KERNEL		
 			| PT_INDEX_DEV		
 			| PT_PAGE;
+	
+	kprintf("mapping kernel mmio at 0x%x\n", (uint64_t) pt_desc[5*512] & ~0xFFF);
+	kprintf("L3 base 0x%x (0x%x)\n", pt_desc[5*512]& ~0xFFF, (uint64_t)&pt_desc[5*512]);
+	kprintf("L3 end 0x%x (0x%x)\n", pt_desc[3*512 + 512]& ~0xFFF, (uint64_t)&pt_desc[3*512 + 512]);
 }
 
 //TODO: Split into user/kernel functions, maybe also make it board
@@ -269,7 +289,7 @@ static void __set_translation_tables() {
 //TODO: Take an argument here instead of a static initialization
 void init_mmu(void) {
 
-	__set_translation_tables(TABLE_BADDR);
+	__set_translation_tables();
 	__set_mair_el1(&mair_el1);
 
 	//TODO: Need to skip L0

@@ -11,8 +11,8 @@ extern int setup_stack(void);
 extern uint8_t curr_core_el(void);
 extern void switch_el(void);
 
-#define KERNEL_UART0_DR        ((volatile unsigned int*)0xFFFFFFFFFFE00000)
-#define KERNEL_UART0_FR        ((volatile unsigned int*)0xFFFFFFFFFFE00018)
+#define KERNEL_UART0_DR        ((volatile unsigned int*)0xFFFFFF8000000000)
+#define KERNEL_UART0_FR        ((volatile unsigned int*)0xFFFFFF8000000018)
 
 void identity_mmio_test()
 {
@@ -33,7 +33,6 @@ void heartbeat(void)
 	struct timer t;
 	
 	identity_mmio_test();	
-	
 }
 
 void main()
