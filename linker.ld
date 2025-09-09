@@ -36,9 +36,9 @@ SECTIONS
     {
         *(.data)
     }
-    . = ALIGN(PAGE_SIZE); 
     __data_end = .;
 
+    . = ALIGN(PAGE_SIZE); 
     __bss_start = .;
     .bss :
     {
@@ -46,7 +46,6 @@ SECTIONS
         bss = .;
         *(.bss)
     }
-    . = ALIGN(PAGE_SIZE); 
     __bss_end = .;
 
 
