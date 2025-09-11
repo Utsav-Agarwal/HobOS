@@ -2,6 +2,9 @@
 
 .global setup_stack
 .global curr_core_id
+.global curr_core_el
+.global core_stack_base
+.global switch_el
 
 #define CORE_STACK_BASE	0x86000
 #define CORE_STACK_SIZE	0x1000
@@ -26,6 +29,7 @@ setup_stack:
 1:
     //get stack associated to core id
     ldr x1, =CORE_STACK_BASE
+    //stack grows from high to low
     sub x1, x1, x0
     mov sp, x1
 
@@ -37,8 +41,31 @@ setup_stack:
 exec:
     b park_and_wait
 
+//x0 = core number
+//returns x0 = stack base
+core_stack_base:
+    //get offset from base
+    ldr x2, =CORE_STACK_SIZE
+    mul x0, x0, x2
+
+1:
+    //get stack associated to core id
+    ldr x1, =CORE_STACK_BASE
+    //stack grows from high to low
+    ldr x1, =CORE_STACK_BASE
+    sub x0, x1, x0
+    ret
+
 
 curr_core_id:
     mrs x0, mpidr_el1
     and x0, x0, #0x3
     ret
+
+curr_core_el:
+    mrs x0, CurrentEL
+    and x0, x0, #12
+    lsr x0, x0, #2
+    and x0, x0, #0x0F
+    ret
+
