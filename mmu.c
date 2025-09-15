@@ -18,7 +18,7 @@ static void __set_ttbr(struct ttbr_cfg *cfg, uint8_t index, uint8_t el)
 	ttbr_config |= cfg->skl < SKL_POS;
 	ttbr_config |= cfg->asid < ASID_POS;
 
-	kprintf("ttbr%d_el%d set to: %x\n", index, el, ttbr_config);
+	//kprintf("ttbr%d_el%d set to: %x\n", index, el, ttbr_config);
 
 	switch (el) {
 		case 2:
@@ -45,47 +45,47 @@ static void __set_ttbr(struct ttbr_cfg *cfg, uint8_t index, uint8_t el)
 }
 
 static void __set_tcr_el1 (struct tcr_el1_cfg *cfg) {
-//	uint64_t tcr_config;
-//
-//	tcr_config = cfg->t0_sz < T0_SZ_POS;
-//	tcr_config |= cfg->t1_sz < T1_SZ_POS;
-//	
-//	tcr_config |= cfg->tg0 < TG0_POS;
-//	tcr_config |= cfg->tg1 < TG1_POS;
-//
-//	tcr_config |= cfg->ips_sz < IPS_POS;
-//
-//	__asm__ volatile ("msr tcr_el1, %x0"
-//			:
-//			:"r"(tcr_config));
+	uint64_t tcr_config;
+
+	tcr_config = cfg->t0_sz < T0_SZ_POS;
+	tcr_config |= cfg->t1_sz < T1_SZ_POS;
+	
+	tcr_config |= cfg->tg0 < TG0_POS;
+	tcr_config |= cfg->tg1 < TG1_POS;
+
+	tcr_config |= cfg->ips_sz < IPS_POS;
+
+	__asm__ volatile ("msr tcr_el1, %x0"
+			:
+			:"r"(tcr_config));
 
     uint64_t r,b;
     
     asm volatile ("mrs %0, id_aa64mmfr0_el1" : "=r" (r));
     b=r&0xF;
     if(r&(0xF<<28)/*4k*/ || b<1/*36 bits*/) {
-        kprintf("ERROR: 4k granule or 36 bit address space not supported\n");
+        //kprintf("ERROR: 4k granule or 36 bit address space not supported\n");
         return;
     }
 
-    kprintf("b=%x\n", b);
+    //kprintf("b=%x\n", b);
 
-    r=  (0b00LL << 37) | // TBI=0, no tagging
-        (b << 32) |      // IPS=autodetected
-        (0b10LL << 30) | // TG1=4k
-        (0b11LL << 28) | // SH1=3 inner
-        (0b01LL << 26) | // ORGN1=1 write back
-        (0b01LL << 24) | // IRGN1=1 write back
-        (0b0LL  << 23) | // EPD1 enable higher half
-        (25LL   << 16) | // T1SZ=25, 3 levels (512G)
-        (0b00LL << 14) | // TG0=4k
-        (0b11LL << 12) | // SH0=3 inner
-        (0b01LL << 10) | // ORGN0=1 write back
-        (0b01LL << 8) |  // IRGN0=1 write back
-        (0b0LL  << 7) |  // EPD0 enable lower half
-        (25LL   << 0);   // T0SZ=25, 3 levels (512G)
-			 
-    asm volatile ("msr tcr_el1, %0; isb" : : "r" (r));
+//    r=  (0b00LL << 37) | // TBI=0, no tagging
+//        (b << 32) |      // IPS=autodetected
+//        (0b10LL << 30) | // TG1=4k
+//        (0b11LL << 28) | // SH1=3 inner
+//        (0b01LL << 26) | // ORGN1=1 write back
+//        (0b01LL << 24) | // IRGN1=1 write back
+//        (0b0LL  << 23) | // EPD1 enable higher half
+//        (25LL   << 16) | // T1SZ=25, 3 levels (512G)
+//        (0b00LL << 14) | // TG0=4k
+//        (0b11LL << 12) | // SH0=3 inner
+//        (0b01LL << 10) | // ORGN0=1 write back
+//        (0b01LL << 8) |  // IRGN0=1 write back
+//        (0b0LL  << 7) |  // EPD0 enable lower half
+//        (25LL   << 0);   // T0SZ=25, 3 levels (512G)
+//			 
+//    asm volatile ("msr tcr_el1, %0; isb" : : "r" (r));
 
 
 }
@@ -138,7 +138,7 @@ static inline uint64_t __get_table_level(uint64_t lvl_0_baddr, uint8_t lvl, cons
 void __set_mair_el1(struct mair *mair_el1)
 {
 
-	kprintf("mair: %x\n", *mair_el1);
+	//kprintf("mair: %x\n", *mair_el1);
 	__asm__ volatile ("msr mair_el1, %0"
 			:
 			: "r" (*mair_el1));
@@ -152,28 +152,28 @@ static void set_userland_tables(void)
 		uint64_t *pt_desc = (uint64_t *) (&__end);
 		uint64_t i, data_pg = ((uint64_t) ((uint64_t *)&__data_start)) / PAGE_SIZE;
 
-		kprintf("\n------userland tables----\n");
+		//kprintf("\n------userland tables----\n");
 
 		//L0
-		pt_desc[0] = (uint64_t)((uint64_t *)(&__end) + 2*PAGE_SIZE)
+		pt_desc[0] = ((uint64_t)(uint64_t *)(&__end) + 2*PAGE_SIZE)
 			| PT_AF_ACCESSED	
 			| PT_SH_I		
 			| PT_USER		
 			| PT_INDEX_MEM		
 			| PT_PAGE;
 
-		kprintf("L0 base 0x%x (0x%x)\n", pt_desc[0] & ~0xFFF, (uint64_t)&pt_desc);
+		//kprintf("L0 base 0x%x (0x%x)\n", pt_desc[0] & ~0xFFF, (uint64_t)&pt_desc);
 		//skip L1 for now
 
 		//L2
-		pt_desc[2*512] = (uint64_t)((uint64_t *)&__end + 3*PAGE_SIZE)
+		pt_desc[2*512] = ((uint64_t)(uint64_t *)&__end + 3*PAGE_SIZE)
 			| PT_AF_ACCESSED	
 			| PT_SH_I		
 			| PT_USER		
 			| PT_INDEX_MEM		
 			| PT_PAGE;
 
-		kprintf("L2 base 0x%x (0x%x)\n", pt_desc[2*512]& ~0xFFF, (uint64_t)&pt_desc[2*512]);
+		//kprintf("L2 base 0x%x (0x%x)\n", pt_desc[2*512]& ~0xFFF, (uint64_t)&pt_desc[2*512]);
 		//we already set the 0th desc, so we dont really need to set
 		//it again
 
@@ -212,42 +212,44 @@ static void set_userland_tables(void)
 			else
 				pt_desc[3*512 + i] |= PT_AP_RO;
 			
-			kprintf("L3 user desc: %x\n", pt_desc[3*512 + i] & ~0xFFF);
+			//kprintf("L3 user desc: %x\n", pt_desc[3*512 + i] & ~0xFFF);
 		
 
 		}
 
-		kprintf("L3 base 0x%x (0x%x)\n", pt_desc[3*512]& ~0xFFF, (uint64_t)&pt_desc[3*512]);
-		kprintf("L3 end 0x%x (0x%x)\n", pt_desc[3*512 + 511]& ~0xFFF, (uint64_t)&pt_desc[3*512 + 511]);
+		//kprintf("L3 base 0x%x (0x%x)\n", pt_desc[3*512]& ~0xFFF, (uint64_t)&pt_desc[3*512]);
+		//kprintf("L3 end 0x%x (0x%x)\n", pt_desc[3*512 + 511]& ~0xFFF, (uint64_t)&pt_desc[3*512 + 511]);
 	
-		kprintf("-----x----\n");
+		//kprintf("-----x----\n");
 }
 
 
 static void set_kernel_tables(void)
 {
+	//uint64_t *pt_desc = (uint64_t *) (&__end);
 	uint64_t *pt_desc = (uint64_t *) (&__end);
 
-	kprintf("\n------kernel tables----\n");
+
+	//kprintf("\n------kernel tables----\n");
 	//L1
-	pt_desc[TTBR1_OFFSET/8] = (uint64_t)((uint64_t *)&__end + 4*PAGE_SIZE)
+	pt_desc[TTBR1_OFFSET] = ((uint64_t)(uint64_t *)&__end + 4*PAGE_SIZE)
 			| PT_AF_ACCESSED	
 			| PT_SH_I		
 			| PT_KERNEL		
 			| PT_INDEX_MEM		
 			| PT_PAGE;
 
-	kprintf("L0 base 0x%x (0x%x)\n", pt_desc[TTBR1_OFFSET/8]& ~0xFFF, (uint64_t)&pt_desc[TTBR1_OFFSET/8]);
+	//kprintf("L0 base 0x%x (0x%x)\n", pt_desc[TTBR1_OFFSET/8]& ~0xFFF, (uint64_t)&pt_desc[TTBR1_OFFSET/8]);
 
 	//L2
-	pt_desc[4*512] = (uint64_t)((uint64_t *)&__end + 5*PAGE_SIZE)
+	pt_desc[4*512] = ((uint64_t)(uint64_t *)&__end + 5*PAGE_SIZE)
 			| PT_AF_ACCESSED	
 			| PT_SH_I		
 			| PT_KERNEL		
 			| PT_INDEX_MEM		
 			| PT_PAGE;
 
-	kprintf("L2 base 0x%x (0x%x)\n", pt_desc[4*512] & ~0xFFF, (uint64_t) pt_desc[4*512]);
+	//kprintf("L2 base 0x%x (0x%x)\n", pt_desc[4*512] & ~0xFFF, (uint64_t) pt_desc[4*512]);
 	//L3 - only map uart
 	pt_desc[5*512] = (uint64_t) (mmio_base + AUX_IO_BASE)
 			| PT_AF_ACCESSED	
@@ -257,9 +259,8 @@ static void set_kernel_tables(void)
 			| PT_INDEX_DEV		
 			| PT_PAGE;
 	
-	kprintf("L3 base 0x%x (0x%x)\n", pt_desc[5*512]& ~0xFFF, (uint64_t)&pt_desc[5*512]);
-	kprintf("-----x----\n");
-
+	//kprintf("L3 base 0x%x (0x%x)\n", pt_desc[5*512]& ~0xFFF, (uint64_t)&pt_desc[5*512]);
+	//kprintf("-----x----\n");
 }
 
 //TODO: Split into user/kernel functions, maybe also make it board

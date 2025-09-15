@@ -9,7 +9,8 @@ extern volatile unsigned char __end;
 //TODO: use linker script definitions
 #define PAGE_SIZE	4096
 #define TABLE_BADDR	(uint64_t)(&__end)
-#define TTBR1_OFFSET	PAGE_SIZE
+#define TTBR1_OFFSET_B	PAGE_SIZE
+#define TTBR1_OFFSET	512
 
 struct ttbr_cfg ttbr0_el1 = {
 	.table_base_addr = TABLE_BADDR,
@@ -19,7 +20,7 @@ struct ttbr_cfg ttbr0_el1 = {
 }; 
 
 struct ttbr_cfg ttbr1_el1 = {
-	.table_base_addr =  TABLE_BADDR + TTBR1_OFFSET,
+	.table_base_addr =  TABLE_BADDR + TTBR1_OFFSET_B,
 	.asid = 0,
 	.skl = 0,
 	.cnp = 1,

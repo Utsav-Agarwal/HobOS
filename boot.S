@@ -38,6 +38,12 @@ _start:
     add x2, x3, x0
     str x0, [x1]
 
+    bl get_rpi_version
+    bl mmio_init
+    bl init_mmu
+
+
+    //We need to go to EL1 
     bl	curr_core_el
     cmp	x0, #1
     beq	1f

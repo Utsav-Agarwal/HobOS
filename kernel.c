@@ -11,46 +11,36 @@ extern int setup_stack(void);
 extern uint8_t curr_core_el(void);
 extern void switch_el(void);
 
-#define KERNEL_UART0_DR        ((volatile unsigned int*)0xFFFFFF8000000000)
-#define KERNEL_UART0_FR        ((volatile unsigned int*)0xFFFFFF8000000018)
+#define KERNEL_START	((volatile unsigned int*)0xFFFFFF8000000000)
+#define USER_END        ((volatile unsigned int*)0x200000)
 
 void identity_mmio_test()
 {
-    	char *s="Writing through MMIO mapped in higher half!\r\n";
-
-	while(*s) {
-        /* wait until we can send */
-        do{asm volatile("nop");}while(*KERNEL_UART0_FR&0x20);
-        /* write the character to the buffer */
-        *KERNEL_UART0_DR=*s++;
-    }
+        *USER_END=0xdeadbeef;
+        *(USER_END + 0x1000) = 0xdeadbeef;	//no operation performed (fault is not enabled)
+        //*KERNEL_START='X';
 }
 
 
 /* I'm alive */
 void heartbeat(void)
 {
-	struct timer t;
-	
+	//struct timer t;
+
 	identity_mmio_test();	
 }
 
 void main()
 {
-	struct gpio_controller ctrl;
-	
-	get_rpi_version();
-	mmio_init();
+	//struct gpio_controller ctrl;
 
-	init_mmu();
-	
-	init_gpio(&ctrl);
-	init_console(&ctrl);
+	//init_gpio(&ctrl);
+	//init_console(&ctrl);
 	heartbeat();
 
-	
 	while (1) {
 		//start shell here
 	}
+	
 
 }
