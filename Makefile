@@ -21,5 +21,8 @@ kernel8.img: boot.o proc.o ${OBJS}
 	${LD} boot.o proc.o ${OBJS} -T linker.ld -o kernel8.elf -g
 	${TOOLCHAIN}objcopy -O binary kernel8.elf kernel8.img
 
+run:	kernel8.img
+	qemu-system-aarch64 -M raspi3b -serial null -serial stdio -s -kernel kernel8.img -d int
+
 clean:
 	rm -rf *.o *.img *.elf
