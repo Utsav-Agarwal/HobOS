@@ -232,32 +232,12 @@ static void set_kernel_tables(void)
 
 	//kprintf("\n------kernel tables----\n");
 	//L1
-	pt_desc[TTBR1_OFFSET] = ((uint64_t)(uint64_t *)&__end + 4*PAGE_SIZE)
+	pt_desc[0] = ((uint64_t)(uint64_t *)0x200000)
 			| PT_AF_ACCESSED	
 			| PT_SH_I		
 			| PT_KERNEL		
-			| PT_INDEX_MEM		
-			| PT_PAGE;
-
-	//kprintf("L0 base 0x%x (0x%x)\n", pt_desc[TTBR1_OFFSET/8]& ~0xFFF, (uint64_t)&pt_desc[TTBR1_OFFSET/8]);
-
-	//L2
-	pt_desc[4*512] = ((uint64_t)(uint64_t *)&__end + 5*PAGE_SIZE)
-			| PT_AF_ACCESSED	
-			| PT_SH_I		
-			| PT_KERNEL		
-			| PT_INDEX_MEM		
-			| PT_PAGE;
-
-	//kprintf("L2 base 0x%x (0x%x)\n", pt_desc[4*512] & ~0xFFF, (uint64_t) pt_desc[4*512]);
-	//L3 - only map uart
-	pt_desc[5*512] = (uint64_t) (mmio_base + AUX_IO_BASE)
-			| PT_AF_ACCESSED	
-			| PT_SH_O
-			| PT_UXN_NX
-			| PT_KERNEL		
-			| PT_INDEX_DEV		
-			| PT_PAGE;
+			| PT_INDEX_MEM
+			| PT_BLOCK;
 	
 	//kprintf("L3 base 0x%x (0x%x)\n", pt_desc[5*512]& ~0xFFF, (uint64_t)&pt_desc[5*512]);
 	//kprintf("-----x----\n");
@@ -285,7 +265,7 @@ static void __set_translation_tables() {
 //	VB   - validity descriptor bit
 
 
-	set_userland_tables();
+	//set_userland_tables();
 	set_kernel_tables();
 }
 
@@ -297,7 +277,7 @@ void init_mmu(void) {
 
 	//TODO: Need to skip L0
 	__set_tcr_el1(&tcr_el1);
-	__set_ttbr(&ttbr0_el1, 0, 1);	
+	//__set_ttbr(&ttbr0_el1, 0, 1);	
 	__set_ttbr(&ttbr1_el1, 1, 1);	
 	__asm__ volatile ("isb");
 	
