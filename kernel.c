@@ -30,14 +30,20 @@ void heartbeat(void)
 	identity_mmio_test();	
 }
 
+void setup_console() 
+{
+	struct gpio_controller ctrl;
+
+	init_gpio(&ctrl);
+	init_console(&ctrl);
+	kprintf("Console set\n");
+}
+
 void main()
 {
-	//struct gpio_controller ctrl;
 
-	//init_gpio(&ctrl);
-	//init_console(&ctrl);
-	heartbeat();
-
+	//heartbeat();
+	kprintf("Hello\n");
 	while (1) {
 		//start shell here
 	}

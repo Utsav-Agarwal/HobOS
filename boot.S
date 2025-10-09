@@ -40,8 +40,8 @@ _start:
 
     bl get_rpi_version
     bl mmio_init
+    bl setup_console
     bl init_mmu
-
 
     //We need to go to EL1 
     bl	curr_core_el
@@ -97,9 +97,9 @@ _start:
     msr sctlr_el1, x0
 
     //config SPSR_EL2
-    mov x0, #0x4
-    orr x0, x0, #0xc0
-    orr x0, x0, #0x300
+    mov x0, #0x5		//set next EL to EL1 and SP to SP_EL1
+    orr x0, x0, #0xc0		//set IRQ and FIRQ mask
+    orr x0, x0, #0x300		//set Debug exception and SError mask
     msr spsr_el2, x0
     
 

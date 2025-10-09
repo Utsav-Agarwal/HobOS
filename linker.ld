@@ -42,10 +42,12 @@ SECTIONS
     __bss_end = .;
 
 
-    /* SMP Stack */
     /* NOTE: ARM stack grows downwards */
-   
+
+    /* SMP Stack */
+    /* start translation tables here */
     . = CORE_STACK_BASE;
+    __end = . ;
     .core0_stack :
     {
 	. = . + CORE_STACK_SIZE;
@@ -77,8 +79,5 @@ SECTIONS
         __core3_stack = .;
     }
     . = ALIGN(PAGE_SIZE); 
-
-    /* start translation tables here */
-    __end = .;
 }
 
