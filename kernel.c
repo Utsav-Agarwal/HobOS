@@ -36,14 +36,15 @@ void setup_console()
 
 	init_gpio(&ctrl);
 	init_console(&ctrl);
-	kprintf("Console set\n");
+	kprintf("\n\nConsole set\n");
 }
 
 void main()
 {
 
 	//heartbeat();
-	kprintf("Hello\n");
+	init_mmu();
+
 	while (1) {
 		//start shell here
 	}

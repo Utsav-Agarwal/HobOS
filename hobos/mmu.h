@@ -67,30 +67,19 @@ struct tcr_el1_cfg {
 	uint8_t ips_sz;
 };
 
-//
-//		T1SZ[21:16], T0SZ[5:0]
-//		==========================
-//defines the no. of MSB that are checked for an address
-//
-// i.e, 2^(64-T0SZ) = area addressable by TTBR0, same for TTRB1
-// Min/Max depends on granule size and starting table level
+#define EPD0_POS	7
+#define EPD1_POS	23
+#define EPD_WALK	0b0
+#define EPD_FAULT	0b1
+
+#define IRGN0_POS	8
+
+#define ORGN0_POS	10
+
+#define SH0_POS		12
 
 #define T0_SZ_POS	0
 #define T1_SZ_POS	16
-
-// 		IPS[34:32] (Intermediate Physical Address Size)
-//		==========================
-// defines the max size of the address after which a fault is generated
-//
-//	0b000	32 bits, 4GB.
-//	0b001	36 bits, 64GB.
-//	0b010	40 bits, 1TB.
-//	0b011	42 bits, 4TB.
-//	0b100	44 bits, 16TB.
-//	0b101	48 bits, 256TB.
-//	0b110	52 bits, 4PB.
-//	0b111	56 bits, 64PB.
-//
 
 #define IPS_POS		32    //Starting bit position
 
@@ -103,25 +92,6 @@ struct tcr_el1_cfg {
 #define IPS_52		0x6   // 52-bit PA:  4PB
 #define IPS_56		0x7   // 56-bit PA:  64PB
 
-//
-//		TG1/0 (Translation Granule)
-//		==========================
-//defines the granule size for kernel and user space respectively
-//	00	4KB 
-//	01	16KB 
-//	11	64KB
-//NOTE: Granule = Smallest block of mappable memory to translation tables
-
-// First level of lookup is determined using the TGI and TnSZ fields.
-// This can ofcourse be seperate for TTBR1_EL1/TTBR0_EL1
-// NOTE: Translation lookups can sometimes require 3-4 levels
-//
-//
-//
-
-//NOTE: Writes to System Regs for MMU are context changing events
-//results are not guaranteed until a synchronization event (barrier)
-
 #define TG0_POS			14
 #define TG1_POS			30
 
@@ -133,7 +103,6 @@ struct tcr_el1_cfg {
 #define TG1_GRANULE_SZ_4KB		0b10LL
 #define TG1_GRANULE_SZ_16KB		0b01LL
 #define TG1_GRANULE_SZ_64KB		0b00LL
-
 //----
 //MAIR_EL0
 //----
