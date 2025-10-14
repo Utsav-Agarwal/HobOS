@@ -42,8 +42,6 @@ void setup_console()
 void main()
 {
 
-	//heartbeat();
-	init_mmu();
 
 	while (1) {
 		//start shell here

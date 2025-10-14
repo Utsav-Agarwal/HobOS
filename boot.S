@@ -114,6 +114,7 @@ _start:
     eret
 
 1:
+    bl init_mmu
     mov sp, x0
 
     // jump to C code, should not return
