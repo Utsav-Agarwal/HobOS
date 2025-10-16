@@ -45,7 +45,7 @@ void set_ttbr0_el1(uint64_t x) {
 
 void init_mmu(void) 
 {
-	int tcr, sctlr, spsr;
+	uint64_t tcr, sctlr, spsr;
 
 	//page table set
 	set_ttbr0_el1(set_translation_table() + CNP_COMMON);
@@ -66,9 +66,12 @@ void init_mmu(void)
 
 	asm("mrs %0, sctlr_el1":"=r"(sctlr));
 	
-	sctlr = 0xC00800;
+#ifdef SCTLR_QUIRKS
+	handle_sctlr_quirks(&sctlr);
+#endif
 	sctlr &= ~(1 << 1); //remove alignment check
 	sctlr &= ~(1 << 25); //make sure little endian
+	
 
 	//enable mmu
 	sctlr |= 1;
