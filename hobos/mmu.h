@@ -78,8 +78,8 @@ struct tcr_el1_cfg {
 
 #define SH0_POS		12
 
-#define T0_SZ_POS	0
-#define T1_SZ_POS	16
+#define T0SZ_POS	0
+#define T1SZ_POS	16
 
 #define IPS_POS		32    //Starting bit position
 
