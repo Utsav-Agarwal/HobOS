@@ -53,7 +53,7 @@ void init_mmu(void)
 
 	//translation control TCR_EL1
 
-	tcr = 25;
+	tcr = 25 << T0SZ_POS;
 	tcr |= TG0_GRANULE_SZ_4KB << TG0_POS;
 	tcr |= EPD_WALK << EPD0_POS;
 	tcr |= 0b00 << IRGN0_POS;
