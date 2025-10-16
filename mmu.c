@@ -49,24 +49,7 @@ void init_mmu(void)
 
 	//page table set
 	set_ttbr0_el1(set_translation_table() + CNP_COMMON);
-
-	//mair
-	struct mair attr = {
-		//Normal memory
-		{
-			.outer_cache = MAIR_MEM_O_WB_NT(ALLOC,ALLOC), 
-			.inner_cache = MAIR_MEM_I_WB_NT(ALLOC,ALLOC),
-		}, //Device memory
-		{
-			.outer_cache = MAIR_DEV(0,0,1) >> 4, 
-			.inner_cache = MAIR_DEV(0,0,1),
-		}, //Uncacheable memory
-		{
-			.outer_cache = MAIR_DEV(0,0,0) >> 4,
-			.inner_cache = MAIR_DEV(0,0,0),
-		},
-	};
-	asm("msr mair_el1, %0"::"r"(attr));
+	asm("msr mair_el1, %0"::"r"(at));
 
 	//translation control TCR_EL1
 
