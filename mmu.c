@@ -7,10 +7,10 @@
 
 #define KB(x)	x * (1 << 10)
 #define map_sz	512
-#define PG_SZ   KB(4)
+#define ID_PG_SZ   KB(4)
 
 // lets map 2 GB
-uint64_t set_translation_table() 
+uint64_t set_id_translation_table() 
 {
 	int i;
 	// this is still baremetal, so we dont care
@@ -23,14 +23,14 @@ uint64_t set_translation_table()
 			| PT_INDEX_MEM;
 
 	//L1
-	map[0] = ((uint64_t) (uint8_t *)&__end + PG_SZ) | mem_attr;
+	map[0] = ((uint64_t) (uint8_t *)&__end + ID_PG_SZ) | mem_attr;
 
 	//L2 (8B * 512 = 4096B)
-	map[512] = ((uint64_t) (uint8_t *)&__end + 2*PG_SZ) | mem_attr;
+	map[512] = ((uint64_t) (uint8_t *)&__end + 2*ID_PG_SZ) | mem_attr;
 
 	//L3 identity
 	for (i=0; i<512; i++)
-		map[2*512 + i] = (uint64_t) i*PG_SZ | mem_attr;
+		map[2*512 + i] = (uint64_t) i*ID_PG_SZ | mem_attr;
 
 	return (uint64_t) &map[0];
 }
@@ -48,7 +48,7 @@ void init_mmu(void)
 	uint64_t tcr, sctlr, spsr;
 
 	//page table set
-	set_ttbr0_el1(set_translation_table() + CNP_COMMON);
+	set_ttbr0_el1(set_id_translation_table() + CNP_COMMON);
 	asm("msr mair_el1, %0"::"r"(at));
 
 	//translation control TCR_EL1
