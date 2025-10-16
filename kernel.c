@@ -12,12 +12,11 @@ extern uint8_t curr_core_el(void);
 extern void switch_el(void);
 
 #define KERNEL_START	((volatile unsigned int*)0xFFFFFF8000000000)
-#define USER_END        ((volatile unsigned int*)0x200000)
+#define USER_END        ((volatile unsigned int*)0x800000)
 
 void identity_mmio_test()
 {
-        *USER_END=0xdeadbeef;
-        *(USER_END + 0x1000) = 0xdeadbeef;	//no operation performed (fault is not enabled)
+        *KERNEL_START=0xdeadbeef;
         //*KERNEL_START='X';
 }
 
@@ -39,11 +38,19 @@ void setup_console()
 	kprintf("\n\nConsole set\n");
 }
 
+void kernel_panic()
+{
+	uint64_t *x = (uint64_t *) 0x1f000;
+	
+	*x = 0xdeadbeef;
+}
+
 void main()
 {
 
-	//heartbeat();
 	init_mmu();
+	
+	heartbeat();
 
 	while (1) {
 		//start shell here
