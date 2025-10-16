@@ -38,6 +38,11 @@ _start:
     add x2, x3, x0
     str x0, [x1]
 
+    bl get_rpi_version
+    bl mmio_init
+    bl setup_console
+
+    //We need to go to EL1 
     bl	curr_core_el
     cmp	x0, #1
     beq	1f
@@ -91,9 +96,9 @@ _start:
     msr sctlr_el1, x0
 
     //config SPSR_EL2
-    mov x0, #0x4
-    orr x0, x0, #0xc0
-    orr x0, x0, #0x300
+    mov x0, #0x5		//set next EL to EL1 and SP to SP_EL1
+    orr x0, x0, #0xc0		//set IRQ and FIRQ mask
+    orr x0, x0, #0x300		//set Debug exception and SError mask
     msr spsr_el2, x0
     
 
@@ -110,8 +115,22 @@ _start:
 
 1:
     mov sp, x0
+    adr	x0, vector_table + 0x200
+    msr vbar_el1, x0
+    isb
 
     // jump to C code, should not return
 5:  bl      main
     // for failsafe, halt this core too
     //b       1b
+
+
+.align 11
+vector_table:
+	b sync_exception_handler
+	b 0x200
+	b 0x200
+.align 11
+sync_exception_handler:
+	bl kernel_panic
+	eret

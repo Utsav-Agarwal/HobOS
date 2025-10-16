@@ -4,7 +4,7 @@ AS = ${TOOLCHAIN}as
 LD = ${TOOLCHAIN}ld
 SRCS = $(wildcard *.c)
 OBJS = $(SRCS:.c=.o)
-CFLAGS = -Wall -O2 -ffreestanding
+CFLAGS = -Wall -O2 -ffreestanding -g
 
 all: clean kernel8.img
 
@@ -23,6 +23,9 @@ kernel8.img: boot.o proc.o ${OBJS}
 
 run:	kernel8.img
 	qemu-system-aarch64 -M raspi3b -serial null -serial stdio -s -kernel kernel8.img -d int
+
+run_no_kernel: kernel8.img
+	qemu-system-aarch64 -M raspi3b -serial null -serial stdio -s -d int
 
 clean:
 	rm -rf *.o *.img *.elf

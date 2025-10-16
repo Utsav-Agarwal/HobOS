@@ -1,12 +1,11 @@
 ENTRY(_start)
 
-
 BSS_SIZE = 0x4000;
 
-CORE_STACK_BASE = 0x86000;
+CORE_STACK_BASE = 0x88000;
 CORE_STACK_SIZE = 0x1000;
 
-PAGE_SIZE = 0x4000;
+PAGE_SIZE = 0x1000;
 
 SECTIONS
 {
@@ -14,31 +13,24 @@ SECTIONS
     . = 0x80000;
     /* For AArch64, use . = 0x80000; */
     __start = .;
-    __text_start = .;
     .text :
     {
         KEEP(*(.text.boot))
         KEEP(*(.text.proc))
         *(.text)
     }
-    . = ALIGN(PAGE_SIZE); /* align to page size */
-    __text_end = .;
-
-    __rodata_start = .;
+    . = ALIGN(PAGE_SIZE); 
     .rodata :
     {
         *(.rodata)
     }
-    . = ALIGN(PAGE_SIZE); /* align to page size */
-    __rodata_end = .;
 
+    . = ALIGN(PAGE_SIZE); 
     __data_start = .;
     .data :
     {
         *(.data)
     }
-    . = ALIGN(PAGE_SIZE); /* align to page size */
-    __data_end = .;
 
     __bss_start = .;
     .bss :
@@ -47,21 +39,22 @@ SECTIONS
         bss = .;
         *(.bss)
     }
-    . = ALIGN(PAGE_SIZE); /* align to page size */
     __bss_end = .;
 
 
-    /* SMP Stack */
     /* NOTE: ARM stack grows downwards */
-   
+
+    /* SMP Stack */
+    /* start translation tables here */
     . = CORE_STACK_BASE;
+    __end = . ;
     .core0_stack :
     {
 	. = . + CORE_STACK_SIZE;
 	*(.core0_stack)
 	__core0_stack = .;	
     }
-    . = ALIGN(PAGE_SIZE); /* align to page size */
+    . = ALIGN(PAGE_SIZE); 
 
     .core1_stack :
     {
@@ -69,7 +62,7 @@ SECTIONS
         *(.core1_stack)
         __core1_stack = .;
     }
-    . = ALIGN(PAGE_SIZE); /* align to 16 bytes */
+    . = ALIGN(PAGE_SIZE); 
     
     .core2_stack :
     {
@@ -77,7 +70,7 @@ SECTIONS
         *(.core2_stack)
         __core2_stack = .;
     }
-    . = ALIGN(PAGE_SIZE); /* align to 16 bytes */
+    . = ALIGN(PAGE_SIZE); 
     
     .core3_stack :
     {
@@ -85,8 +78,6 @@ SECTIONS
         *(.core3_stack)
         __core3_stack = .;
     }
-    . = ALIGN(PAGE_SIZE); /* align to 16 bytes */
-
-    __end = .;
+    . = ALIGN(PAGE_SIZE); 
 }
 

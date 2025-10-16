@@ -5,48 +5,56 @@
 #include "hobos/timer.h"
 #include "hobos/smp.h"
 #include "hobos/gpio.h"
+#include "hobos/mmu.h"
 
 extern int setup_stack(void);
 extern uint8_t curr_core_el(void);
 extern void switch_el(void);
 
+#define KERNEL_START	((volatile unsigned int*)0xFFFFFF8000000000)
+#define USER_END        ((volatile unsigned int*)0x800000)
+
+void identity_mmio_test()
+{
+        *KERNEL_START=0xdeadbeef;
+        //*KERNEL_START='X';
+}
+
+
 /* I'm alive */
 void heartbeat(void)
 {
-	//run_process((uint64_t) setup_stack, 1);
-	//run_process((uint64_t) setup_stack, 2);
-	//run_process((uint64_t) setup_stack, 3);
+	//struct timer t;
+
+	identity_mmio_test();	
+}
+
+void setup_console() 
+{
+	struct gpio_controller ctrl;
+
+	init_gpio(&ctrl);
+	init_console(&ctrl);
+	kprintf("\n\nConsole set\n");
+}
+
+void kernel_panic()
+{
+	uint64_t *x = (uint64_t *) 0x1f000;
+	
+	*x = 0xdeadbeef;
 }
 
 void main()
 {
-	get_rpi_version();
-	mmio_init();
+
+	init_mmu();
 	
-	struct gpio_controller ctrl;
-	init_gpio(&ctrl);
-	init_console(&ctrl);
+	heartbeat();
 
-	//kprintf("EL: %d\n", curr_core_el());
-//	kprintf("EL: %d\n", curr_core_el());
-//
-
-	uint8_t x; 
-
-	x = 0xdeadbeef;
-	x = curr_core_el();
-	//kprintf("Hello\n");
-
-//	struct timer t;
-//	init_timer(&t);
-//	kprintf("timer: %d\n", read_timer(1, &t));
-//	kprintf("timer: %d\n", read_timer(1, &t));
-//
-//	heartbeat();
-
-	
 	while (1) {
 		//start shell here
 	}
+	
 
 }
