@@ -12,6 +12,14 @@ extern volatile unsigned char __end;
 #define TTBR1_OFFSET_B	0
 #define TTBR1_OFFSET	0
 
+//default magic value required for rpi3
+#define SCTLR_QUIRKS	
+
+__inline__ void handle_sctlr_quirks(uint64_t *sctlr)
+{
+	*sctlr = 0xC00800;
+}
+
 struct ttbr_cfg ttbr0_el1 = {
 	.table_base_addr = TABLE_BADDR,
 	.asid = 0,
