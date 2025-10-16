@@ -52,9 +52,19 @@ void init_mmu(void)
 
 	//mair
 	struct mair attr = {
-		{.type = 0xf, .cache = 0xf},
-		{.type = 0x0, .cache = 0x4},
-		{.type = 0x0, .cache = 0x0},
+		//Normal memory
+		{
+			.outer_cache = MAIR_MEM_O_WB_NT(ALLOC,ALLOC), 
+			.inner_cache = MAIR_MEM_I_WB_NT(ALLOC,ALLOC),
+		}, //Device memory
+		{
+			.outer_cache = MAIR_DEV(0,0,1) >> 4, 
+			.inner_cache = MAIR_DEV(0,0,1),
+		}, //Uncacheable memory
+		{
+			.outer_cache = MAIR_DEV(0,0,0) >> 4,
+			.inner_cache = MAIR_DEV(0,0,0),
+		},
 	};
 	asm("msr mair_el1, %0"::"r"(attr));
 

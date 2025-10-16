@@ -36,16 +36,16 @@ struct tcr_el1_cfg tcr_el1 = {
 
 const static struct mair_attr at[] = {
 	{
-		.type = 0b1111,
-		.cache = 0b1111,
-	},
+		.outer_cache = MAIR_MEM_O_WB_NT(ALLOC,ALLOC), 
+		.inner_cache = MAIR_MEM_I_WB_NT(ALLOC,ALLOC),
+	}, //Device memory
 	{
-		.type = 0b0000,
-		.cache = 0b0100,
-	},
+		.outer_cache = MAIR_DEV(0,0,1) >> 4, 
+		.inner_cache = MAIR_DEV(0,0,1),
+	}, //Uncacheable memory
 	{
-		.type = 0b0100,	
-		.cache = 0b0100,
+		.outer_cache = MAIR_DEV(0,0,0) >> 4,
+		.inner_cache = MAIR_DEV(0,0,0),
 	},
 };
 

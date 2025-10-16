@@ -153,9 +153,35 @@ struct tcr_el1_cfg {
 
 //MAIR
 
+#define	NO_ALLOC	0b0
+#define ALLOC		0b1
+
+//Device memory
+#define MAIR_DEV(g, r, e)	((g + r + e) << 2) 
+
+//Normal memory
+
+#define MAIR_MEM_RW(msb_2, r, w)	((msb_2 << 2) | (r < 1) | w)  
+
+//Outer cache
+#define MAIR_MEM_O_NC	0b0100
+
+#define MAIR_MEM_O_WT_T(r, w)	MAIR_MEM_RW(0b00, r, w)
+#define MAIR_MEM_O_WB_T(r, w)	MAIR_MEM_RW(0b01, r, w)
+#define MAIR_MEM_O_WT_T(r, w)	MAIR_MEM_RW(0b10, r, w)
+#define MAIR_MEM_O_WB_NT(r, w)	MAIR_MEM_RW(0b11, r, w)
+
+//Inner cache
+#define MAIR_MEM_I_NC	0b0100
+
+#define MAIR_MEM_I_WT_T(r, w)	MAIR_MEM_RW(0b00, r, w)
+#define MAIR_MEM_I_WB_T(r, w)	MAIR_MEM_RW(0b01, r, w)
+#define MAIR_MEM_I_WT_T(r, w)	MAIR_MEM_RW(0b10, r, w)
+#define MAIR_MEM_I_WB_NT(r, w)	MAIR_MEM_RW(0b11, r, w)
+
 struct mair_attr {
-	uint8_t cache: 4;
-	uint8_t type: 4;
+	uint8_t outer_cache: 4;
+	uint8_t inner_cache: 4;
 };
 
 struct mair {
