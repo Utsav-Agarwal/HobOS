@@ -191,6 +191,12 @@ struct mair {
 	struct mair_attr attr3;
 };
 
+
+extern volatile unsigned char __data_start;
+extern volatile unsigned char __end;
+extern volatile unsigned char __core0_stack;
+
 void init_mmu(void);
+uint64_t switch_vmem(void);
 
 #endif

@@ -35,12 +35,61 @@ uint64_t set_id_translation_table()
 	return (uint64_t) &map[0];
 }
 
+uint64_t set_kernel_translation_table()
+{
+	//we can just reuse the id_map as we only
+	//really care about it being mapped to high memory
+
+	int i;
+	volatile uint64_t *map = (uint64_t *) &__end;
+	uint64_t mem_attr =  PT_BLOCK 
+			| PT_AP_RW 
+			| PT_AF_ACCESSED 
+			| PT_SH_O
+			| PT_INDEX_DEV;
+
+	//we do want to map the peripherals to certain memory blocks
+	//for now lets just do mini uart
+	map[512 + 1] = (uint64_t) ((uint8_t *)AUX_IO_BASE + ID_PG_SZ); 
+	
+	return (uint64_t) &map[0];
+}
+
 void set_ttbr1_el1(uint64_t x) {
 	asm("msr ttbr1_el1, %0"::"r"(x));
 }
 
 void set_ttbr0_el1(uint64_t x) {
 	asm("msr ttbr0_el1, %0"::"r"(x));
+}
+
+#define KERNEL_START	0xFFFFFF8000000000
+
+uint64_t switch_vmem(void)
+{
+	uint64_t tcr, reg;
+	
+	set_ttbr1_el1((uint64_t) set_kernel_translation_table());
+	
+	asm("mrs %0, tcr_el1":"=r"(tcr));
+
+	tcr |= TG1_GRANULE_SZ_4KB << TG1_POS;
+	tcr |= 25 << T1SZ_POS;
+	tcr |= EPD_WALK << EPD1_POS;
+
+	asm("msr tcr_el1, %0"::"r"(tcr));
+	
+
+	//at this point the table should be active, so in theory
+	//we should be able to just set the next instruction
+	
+	reg = ((uint64_t) &__core0_stack) + KERNEL_START;
+	asm("mov sp, %0"::"r"(reg));
+
+	asm("mov %0, lr":"=r"(reg));
+	reg += KERNEL_START;	//jump to heartbeat
+	asm("mov lr, %0"::"r"(reg));
+
 }
 
 void init_mmu(void) 
