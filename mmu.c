@@ -86,9 +86,9 @@ uint64_t switch_vmem(void)
 	reg = ((uint64_t) &__core0_stack) + KERNEL_START;
 	asm("mov sp, %0"::"r"(reg));
 
-	asm("adr %0, .":"=r"(reg));
-	reg += KERNEL_START + 81260;	//jump to heartbeat
-	asm("br %0"::"r"(reg));
+	asm("mov %0, lr":"=r"(reg));
+	reg += KERNEL_START;	//jump to heartbeat
+	asm("mov lr, %0"::"r"(reg));
 
 }
 

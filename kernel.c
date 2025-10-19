@@ -11,7 +11,8 @@ extern int setup_stack(void);
 extern uint8_t curr_core_el(void);
 extern void switch_el(void);
 
-#define USER_END        ((volatile unsigned int*)0x1f000)
+#define KERNEL_START	0xFFFFFF8000000000
+#define USER_END        ((volatile unsigned int*) (KERNEL_START + 0x1f000))
 
 /* I'm alive */
 void heartbeat(void)
@@ -35,11 +36,16 @@ void kernel_panic()
 	*x = 0xdeadbeef;
 }
 
+void init_kernel() 
+{
+	init_mmu();
+	switch_vmem();
+}
+
 void main()
 {
 
-	init_mmu();
-	switch_vmem();
+	init_kernel();
 	heartbeat();
 
 	while (1) {
