@@ -3,9 +3,6 @@
 
 #include "../mmu.h"
 
-extern volatile unsigned char __data_start;
-extern volatile unsigned char __end;
-
 //TODO: use linker script definitions
 #define PAGE_SIZE	4096
 #define TABLE_BADDR	(uint64_t)(&__end)

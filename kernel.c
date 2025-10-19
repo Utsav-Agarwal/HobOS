@@ -11,22 +11,12 @@ extern int setup_stack(void);
 extern uint8_t curr_core_el(void);
 extern void switch_el(void);
 
-#define KERNEL_START	((volatile unsigned int*)0xFFFFFF8000000000)
-#define USER_END        ((volatile unsigned int*)0x800000)
-
-void identity_mmio_test()
-{
-        *KERNEL_START=0xdeadbeef;
-        //*KERNEL_START='X';
-}
-
+#define USER_END        ((volatile unsigned int*)0x1f000)
 
 /* I'm alive */
 void heartbeat(void)
 {
-	//struct timer t;
-
-	identity_mmio_test();	
+	*USER_END = 0xcacacaca;	
 }
 
 void setup_console() 
@@ -49,7 +39,7 @@ void main()
 {
 
 	init_mmu();
-	
+	switch_vmem();
 	heartbeat();
 
 	while (1) {
