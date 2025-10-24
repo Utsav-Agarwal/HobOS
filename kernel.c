@@ -24,7 +24,6 @@ void setup_console()
 {
 	struct gpio_controller ctrl;
 
-	init_gpio(&ctrl);
 	init_console(&ctrl);
 	kprintf("\n\nConsole set\n");
 }
