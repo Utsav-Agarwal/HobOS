@@ -191,10 +191,18 @@ struct mair {
 	struct mair_attr attr3;
 };
 
+//table config (TTBR0/1)
+struct t_cfg {
+	uint8_t tsz:	5;
+	uint8_t epd:	1;
+	uint8_t irgn:	2;
+	uint8_t orgn:	2;
+	uint8_t sh:	2;
+	uint8_t tgsz:	2;
+};
 
 extern volatile unsigned char __data_start;
 extern volatile unsigned char __end;
-extern volatile unsigned char __core0_stack;
 
 void init_mmu(void);
 uint64_t switch_vmem(void);

@@ -9,6 +9,8 @@
 #define map_sz	512
 #define ID_PG_SZ   KB(4)
 
+#define KERNEL_START	0xFFFFFF8000000000
+
 // lets map 2 GB
 uint64_t set_id_translation_table() 
 {
@@ -63,8 +65,6 @@ void set_ttbr0_el1(uint64_t x) {
 	asm("msr ttbr0_el1, %0"::"r"(x));
 }
 
-#define KERNEL_START	0xFFFFFF8000000000
-
 uint64_t switch_vmem(void)
 {
 	uint64_t tcr, reg;
@@ -83,12 +83,75 @@ uint64_t switch_vmem(void)
 	//at this point the table should be active, so in theory
 	//we should be able to just set the next instruction
 	
-	reg = ((uint64_t) &__core0_stack) + KERNEL_START;
+	asm("mov %0, sp":"=r"(reg));
+	reg += KERNEL_START;
 	asm("mov sp, %0"::"r"(reg));
 
 	asm("mov %0, lr":"=r"(reg));
-	reg += KERNEL_START;	//jump to heartbeat
+	reg += KERNEL_START;
 	asm("mov lr, %0"::"r"(reg));
+}
+
+uint64_t create_pg_table(uint64_t baddr, uint8_t size, uint8_t pg_sz_kb)
+{
+	uint64_t i, nr_ent, nr_lvl;
+	//keep max allowed pt size
+	uint64_t *map = (uint64_t *)((uint64_t) &__end + 512*512*512*512); 
+
+	nr_ent = size/pg_sz_kb;
+	nr_lvl = nr_ent/512;	//each level has a max of 512 entries (9bits) 
+
+	//first map the physical pages
+	//then the outer laters
+	for (i=0; i<nr_lvl; i++) {
+		uint64_t paddr = baddr + i*512*KB(pg_sz_kb);
+		uint64_t mem_attr = PT_PAGE 
+			| PT_AP_RW 
+			| PT_AF_ACCESSED 
+			| PT_UXN_NX
+			| PT_SH_I
+			| PT_INDEX_MEM;
+
+		for (j=i*512; i<(i+1)*512; i++) {		
+			map[j] = baddr + j; //TODO: increment needs to adjust
+					    //as per pagetable
+		}
+	}
+}
+
+//we will use ttbr0_el1 for all ioremaps/kernel thread contexts/etc.
+//For now, lets keep all context mappings as simply identity maps
+uint64_t set_new_context(uint64_t baddr, uint32_t size, uint8_t pg_sz_kb)
+{
+	uint64_t pg_baddr, tcr = 0;
+	struct t_cfg t0;
+
+	//we dont want a fixed granule size since different
+	//threads may require different handling
+	
+	switch (size) {
+		case 4:
+			t0.tgsz = TG0_GRANULE_SZ_4KB;
+			break;
+		case 16:
+			t0.tgsz = TG0_GRANULE_SZ_16KB;
+			break;
+		case 64:
+			t0.tgsz = TG0_GRANULE_SZ_64KB;
+			break;
+
+	}
+
+	t0.irgn = 0;
+	t0.orgn = 0;
+	t0.sh	= 0;
+	t0.epd	= EPD_WALK;
+
+	//TODO: 
+	//uint64_t pg_baddr = create_pg_table(baddr, size, pg_sz_kb);
+	//set t0.tsz after creating p
+
+	set_ttbr0_el1(pg_baddr);
 
 }
 

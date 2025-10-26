@@ -25,7 +25,7 @@ void setup_console()
 	struct gpio_controller ctrl;
 
 	init_console(&ctrl);
-	kprintf("\n\nConsole set\n");
+	kprintf("\n\nConsole initialized successfully!\n");
 }
 
 void kernel_panic()
@@ -50,6 +50,5 @@ void main()
 	while (1) {
 		//start shell here
 	}
-	
 
 }
