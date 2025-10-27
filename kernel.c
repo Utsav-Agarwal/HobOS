@@ -30,7 +30,7 @@ void setup_console()
 
 void kernel_panic()
 {
-	uint64_t *x = (uint64_t *) 0x1f000;
+	uint64_t *x = (uint64_t *) (KERNEL_START + 0x1f000);
 	
 	*x = 0xdeadbeef;
 }
@@ -45,7 +45,9 @@ void main()
 {
 
 	init_kernel();
-	heartbeat();
+	set_new_context(mmio_base, 0x1000, 4);
+	heartbeat();	
+	//setup_console();
 
 	while (1) {
 		//start shell here

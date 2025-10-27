@@ -206,5 +206,6 @@ extern volatile unsigned char __end;
 
 void init_mmu(void);
 uint64_t switch_vmem(void);
+void set_new_context(uint64_t baddr, uint32_t size, uint8_t pg_sz_kb);
 
 #endif

@@ -11,6 +11,8 @@
 
 #define KERNEL_START	0xFFFFFF8000000000
 
+static uint64_t *id_map_end;
+
 // lets map 2 GB
 uint64_t set_id_translation_table() 
 {
@@ -31,8 +33,10 @@ uint64_t set_id_translation_table()
 	map[512] = ((uint64_t) (uint8_t *)&__end + 2*ID_PG_SZ) | mem_attr;
 
 	//L3 identity
-	for (i=0; i<512; i++)
+	for (i=0; i<512; i++) {
 		map[2*512 + i] = (uint64_t) i*ID_PG_SZ | mem_attr;
+		id_map_end = &map[2*512 + i];
+	}
 
 	return (uint64_t) &map[0];
 }
@@ -42,18 +46,8 @@ uint64_t set_kernel_translation_table()
 	//we can just reuse the id_map as we only
 	//really care about it being mapped to high memory
 
-	int i;
 	volatile uint64_t *map = (uint64_t *) &__end;
-	uint64_t mem_attr =  PT_BLOCK 
-			| PT_AP_RW 
-			| PT_AF_ACCESSED 
-			| PT_SH_O
-			| PT_INDEX_DEV;
 
-	//we do want to map the peripherals to certain memory blocks
-	//for now lets just do mini uart
-	map[512 + 1] = (uint64_t) ((uint8_t *)AUX_IO_BASE + ID_PG_SZ); 
-	
 	return (uint64_t) &map[0];
 }
 
@@ -87,41 +81,80 @@ uint64_t switch_vmem(void)
 	reg += KERNEL_START;
 	asm("mov sp, %0"::"r"(reg));
 
+
 	asm("mov %0, lr":"=r"(reg));
 	reg += KERNEL_START;
 	asm("mov lr, %0"::"r"(reg));
+
+	//remove access
+	//set_ttbr0_el1(0);
+	//asm("tlbi vmalle1; dsb ish; isb");
 }
 
-uint64_t create_pg_table(uint64_t baddr, uint8_t size, uint8_t pg_sz_kb)
+void create_phy_table(uint64_t *map, uint64_t baddr, uint32_t nr_entries, 
+		uint8_t pg_sz_kb, uint64_t mem_attr) 
 {
-	uint64_t i, nr_ent, nr_lvl;
-	//keep max allowed pt size
-	uint64_t *map = (uint64_t *)((uint64_t) &__end + 512*512*512*512); 
 
-	nr_ent = size/pg_sz_kb;
-	nr_lvl = nr_ent/512;	//each level has a max of 512 entries (9bits) 
+	uint32_t i; 
+	for(i=0; i<nr_entries; i++)
+		map[i] = baddr + i*KB(pg_sz_kb) | mem_attr;
 
-	//first map the physical pages
-	//then the outer laters
-	for (i=0; i<nr_lvl; i++) {
-		uint64_t paddr = baddr + i*512*KB(pg_sz_kb);
-		uint64_t mem_attr = PT_PAGE 
+}
+
+uint64_t create_pg_tables(uint64_t baddr, uint8_t size, uint8_t pg_sz_kb)
+{
+	uint64_t nr_phy_pages, nr_tables;
+	uint64_t *map = id_map_end + ID_PG_SZ;	//leave some space
+	int i=0;
+
+	uint64_t mem_attr =  PT_PAGE 
 			| PT_AP_RW 
 			| PT_AF_ACCESSED 
 			| PT_UXN_NX
-			| PT_SH_I
+			| PT_SH_O
 			| PT_INDEX_MEM;
+	
+	//calculate number of pages required
+	nr_phy_pages = size/KB(pg_sz_kb);
+	nr_tables = nr_phy_pages/512;	//each table can have 512 entries
+	
+	//TODO: Add support for dynamic multi level pg table support
+	//for now, lets assume its only ever going to be requiring one
+	//table for the level before
+	
 
-		for (j=i*512; i<(i+1)*512; i++) {		
-			map[j] = baddr + j; //TODO: increment needs to adjust
-					    //as per pagetable
-		}
-	}
+	//1st level
+	map[0] = ((uint64_t) ((uint8_t *)&map[0] + ID_PG_SZ)) | mem_attr;
+	//2nd level
+	map[512] = ((uint64_t) ((uint8_t *)&map[0] + 2*ID_PG_SZ)) | mem_attr;
+	//3rd level
+	create_phy_table(&map[512*2], baddr, nr_phy_pages, 
+				pg_sz_kb, mem_attr);
+	
+
+	return (uint64_t) map;
+
+}
+
+inline void set_tcr_ttbr0_config(struct t_cfg *t0)
+{
+	uint64_t tcr;
+
+	asm("mrs %0, tcr_el1":"=r"(tcr));
+
+	tcr |= t0->tsz 	<< T0SZ_POS;
+	tcr |= t0->tgsz << TG0_POS;
+	tcr |= t0->epd 	<< EPD0_POS;
+	tcr |= t0->irgn << IRGN0_POS;
+	tcr |= t0->orgn << ORGN0_POS;
+	tcr |= t0->sh 	<< SH0_POS;
+
+	asm("msr tcr_el1, %0"::"r"(tcr));
 }
 
 //we will use ttbr0_el1 for all ioremaps/kernel thread contexts/etc.
 //For now, lets keep all context mappings as simply identity maps
-uint64_t set_new_context(uint64_t baddr, uint32_t size, uint8_t pg_sz_kb)
+void set_new_context(uint64_t baddr, uint32_t size, uint8_t pg_sz_kb)
 {
 	uint64_t pg_baddr, tcr = 0;
 	struct t_cfg t0;
@@ -146,12 +179,10 @@ uint64_t set_new_context(uint64_t baddr, uint32_t size, uint8_t pg_sz_kb)
 	t0.orgn = 0;
 	t0.sh	= 0;
 	t0.epd	= EPD_WALK;
+	t0.tsz 	= 25;	//TODO: make this dynamic
 
-	//TODO: 
-	//uint64_t pg_baddr = create_pg_table(baddr, size, pg_sz_kb);
-	//set t0.tsz after creating p
-
-	set_ttbr0_el1(pg_baddr);
+	set_tcr_ttbr0_config(&t0);
+	set_ttbr0_el1(create_pg_tables(baddr, size, pg_sz_kb));
 
 }
 

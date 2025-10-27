@@ -40,7 +40,6 @@ _start:
 
     bl get_rpi_version
     bl mmio_init
-    bl setup_console
 
     //We need to go to EL1 
     bl	curr_core_el
