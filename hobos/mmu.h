@@ -114,43 +114,6 @@ struct tcr_el1_cfg {
 #define NORMAL_NON_CACHEABLE	0b0100
 
 
-//-----
-// Page Table Descriptor Attributes
-//-----
-#define PT_PAGE 	0b11        // 4k granule
-#define PT_BLOCK	0b01        // 2M granule
-
-#define PT_UXN_POS	54
-#define PT_PXN_POS	53
-#define PT_AF_POS	10
-#define PT_SH_POS	8
-#define PT_AP_POS	6
-#define PT_NS_POS	5
-#define PT_INDEX_POS	2
-
-//AP Flag (Access permissions)
-
-#define PT_KERNEL	0b00 << PT_AP_POS     // privileged, supervisor EL1 access only
-#define PT_USER  	0b01 << PT_AP_POS     // unprivileged, EL0 access allowed
-#define PT_AP_RW	0b00 << PT_AP_POS     	// read-write
-#define PT_AP_RO	0b10 << PT_AP_POS     	// read-only
-
-//AF Flag (Accessed desc)
-#define PT_AF_ACCESSED	1 << PT_AF_POS     	// accessed flag
-
-//UXN
-#define PT_UXN_NX	1UL << PT_UXN_POS  	// no execute for user
-
-//SH Flag
-#define PT_SH_O		0b10 << PT_SH_POS      // outter shareable
-#define PT_SH_I		0b11 << PT_SH_POS      // inner shareable
-
-//Indx Flag (index to MAIR_ELn)
-#define PT_INDEX_MEM	0 << PT_INDEX_POS     // normal memory
-#define PT_INDEX_DEV	1 << PT_INDEX_POS     // device MMIO
-#define PT_INDEX_NC 	2 << PT_INDEX_POS     // non-cachable
-
-
 //MAIR
 
 #define	NO_ALLOC	0b0

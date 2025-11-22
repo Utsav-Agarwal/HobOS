@@ -1,38 +1,61 @@
 #include <stdint.h>
 #include "hobos/mmu.h"
+#include "hobos/lib/pt_lib.h"
 
 #include "hobos/mmu/bcm2835.h"
 #include "hobos/kstdio.h"
 #include "hobos/uart.h"
 
-#define KB(x)	x * (1 << 10)
 #define map_sz	512
 #define ID_PG_SZ   KB(4)
 
-// lets map 2 GB
-uint64_t set_id_translation_table() 
-{
-	int i;
-	// this is still baremetal, so we dont care
-	volatile uint64_t *map = (uint64_t *) &__end;
-	uint64_t mem_attr =  PT_PAGE 
+extern struct page_table_desc *global_page_tables[10];
+extern uint8_t pt_ctr;
+
+//create a table just for identity mapping
+void create_id_mapping (uint64_t start_paddr, uint64_t end_paddr, 
+		uint64_t pt)
+{	
+
+	//for each entry, use the mask to check if something is 
+	//needed at this level, if not, move to next and keep moving
+	//till the final paddr is reached.
+
+	//for now lets assume T0/1_SZ is constant at 25, so we
+	//only care about 3 levels
+	
+	struct page_table_desc *pt_desc;
+	uint64_t end_addr;
+	uint64_t flags =  PT_PAGE 
 			| PT_AP_RW 
 			| PT_AF_ACCESSED 
 			| PT_UXN_NX
 			| PT_SH_O
 			| PT_INDEX_MEM;
 
-	//L1
-	map[0] = ((uint64_t) (uint8_t *)&__end + ID_PG_SZ) | mem_attr;
+	//SKIP L0 - dont need it
 
-	//L2 (8B * 512 = 4096B)
-	map[512] = ((uint64_t) (uint8_t *)&__end + 2*ID_PG_SZ) | mem_attr;
+	//L1 - point to L2
+	pt_desc = create_pt(pt, 1);
+	end_addr = (uint64_t )pt_desc->pt + 0x2000; //next
+	create_pt_entries(pt_desc, end_addr, end_addr, flags);
 
-	//L3 identity
-	for (i=0; i<512; i++)
-		map[2*512 + i] = (uint64_t) i*ID_PG_SZ | mem_attr;
+	//L2 - point to L3
+	pt_desc = create_pt(end_addr, 2);
+	end_addr += 0x2000;	//next
+	create_pt_entries(pt_desc, end_addr, end_addr, flags);
 
-	return (uint64_t) &map[0];
+	//L3 - physical pages
+	pt_desc = create_pt(end_addr, 3);
+	create_pt_entries(pt_desc, start_paddr, end_paddr, flags); //2GB
+		
+}
+
+uint64_t set_id_translation_table() 
+{
+
+	create_id_mapping(0, 0x1000 * 512, (uint64_t) &__end);
+	return (uint64_t) (global_page_tables[0]->pt);
 }
 
 uint64_t set_kernel_translation_table()
