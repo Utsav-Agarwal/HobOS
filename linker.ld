@@ -47,7 +47,6 @@ SECTIONS
     /* SMP Stack */
     /* start translation tables here */
     . = CORE_STACK_BASE;
-    __end = . ;
     .core0_stack :
     {
 	. = . + CORE_STACK_SIZE;
@@ -79,5 +78,12 @@ SECTIONS
         __core3_stack = .;
     }
     . = ALIGN(PAGE_SIZE); 
+   
+    /* Leave some buffer for misc
+     * components such as exception vector tables
+     */
+    . += 0x1000;
+
+    __end = . ;
 }
 
