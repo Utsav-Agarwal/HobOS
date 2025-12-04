@@ -47,6 +47,9 @@ void main()
 	init_kernel();
 	heartbeat();
 
+	//should trigger data abort
+	//setup_console();
+
 	while (1) {
 		//start shell here
 	}
