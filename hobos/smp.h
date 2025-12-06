@@ -2,6 +2,7 @@
 #define SMP_H
 
 #include <stdint.h>
+#include "asm/barrier.h"
 
 /*
  * refer to https://github.com/raspberrypi/tools/blob/439b6198a9b340de5998dd14a26a0d9d38a6bcac/armstubs/armstub8.S#L175
@@ -16,7 +17,29 @@
 #define SPIN_TABLE_BASE		0xD8
 #define MAX_REMOTE_CORE_ID	3
 
-int run_process(uint64_t fn_addr, uint8_t cpu_id);
+extern uint8_t *semaphores; 
+extern uint64_t *cpu_spin_table; 
+
+//we essentially want every function to block its spot while executing and
+//then cleanup after itself. This wrapper does it.
+#define smp_wrapper_name(fn)	smp_ps_wrapper_##fn
+
+#define smp_process(fn, core)	\
+void smp_wrapper_name(fn##core) (void)	\
+{								\
+	fn();							\
+	smp_store_release(&semaphores[core], 0); 		\
+	smp_store_release(&cpu_spin_table[core], (uint64_t) __park_and_wait); \
+	__park_and_wait();					\
+}								
+
+#define smp_run_process(fn, core) 					\
+	do {								\
+		__run_process( (uint64_t) smp_wrapper_name(fn##core), core);	\
+	} while(0)
+
+int __run_process(uint64_t fn_addr, uint8_t cpu_id);
+void __park_and_wait (void);
 uint8_t get_curr_core_id(void);
 uint64_t get_curr_stack_base(int core_id);
 

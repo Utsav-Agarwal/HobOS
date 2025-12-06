@@ -39,7 +39,7 @@ setup_stack:
     ret
 
 exec:
-    b park_and_wait
+    b __park_and_wait
 
 //x0 = core number
 //returns x0 = stack base
