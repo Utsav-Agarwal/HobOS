@@ -6,13 +6,8 @@
 .global core_stack_base
 .global switch_el
 
-#define CORE_STACK_BASE	0x86000
 #define CORE_STACK_SIZE	0x1000
 
-
-
-//Check https://github.com/rsta2/circle/blob/927941cec722f530a23d0f636f03480dd9972056/lib/startup64.S#L106
-//for RPI5
 setup_stack:
 
     //get core id
@@ -28,7 +23,7 @@ setup_stack:
 
 1:
     //get stack associated to core id
-    ldr x1, =CORE_STACK_BASE
+    adrp x1, __core0_stack
     //stack grows from high to low
     sub x1, x1, x0
     mov sp, x1
@@ -50,9 +45,7 @@ core_stack_base:
 
 1:
     //get stack associated to core id
-    ldr x1, =CORE_STACK_BASE
-    //stack grows from high to low
-    ldr x1, =CORE_STACK_BASE
+    adrp x1, __core0_stack
     sub x0, x1, x0
     ret
 

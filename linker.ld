@@ -2,9 +2,7 @@ ENTRY(_start)
 
 BSS_SIZE = 0x4000;
 
-CORE_STACK_BASE = 0x90000;
 CORE_STACK_SIZE = 0x1000;
-
 PAGE_SIZE = 0x1000;
 
 SECTIONS
@@ -46,7 +44,7 @@ SECTIONS
 
     /* SMP Stack */
     /* start translation tables here */
-    . = CORE_STACK_BASE;
+    /*. = CORE_STACK_BASE;*/
     .core0_stack :
     {
 	. = . + CORE_STACK_SIZE;
