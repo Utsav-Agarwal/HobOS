@@ -49,7 +49,6 @@ core_stack_base:
     sub x0, x1, x0
     ret
 
-
 curr_core_id:
     mrs x0, mpidr_el1
     and x0, x0, #0x3
@@ -61,4 +60,3 @@ curr_core_el:
     lsr x0, x0, #2
     and x0, x0, #0x0F
     ret
-
