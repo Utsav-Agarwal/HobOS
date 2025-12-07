@@ -5,8 +5,6 @@
 #include "asm/barrier.h"
 
 /*
- * refer to https://github.com/raspberrypi/tools/blob/439b6198a9b340de5998dd14a26a0d9d38a6bcac/armstubs/armstub8.S#L175
- *
  * RPI FW initializes the remote processors using a spin table
  * where CPU IDs 1-3 are put to sleep using a spin table
  * */
@@ -24,12 +22,14 @@ extern uint64_t *cpu_spin_table;
 //then cleanup after itself. This wrapper does it.
 #define smp_wrapper_name(fn)	smp_ps_wrapper_##fn
 
+//we just make sure the function to be threaded was scheduled
 #define smp_process(fn, core)	\
 void smp_wrapper_name(fn##core) (void)	\
 {								\
 	fn();							\
-	smp_store_release(&semaphores[core], 0); 		\
-	smp_store_release(&cpu_spin_table[core], (uint64_t) __park_and_wait); \
+	wmb();							\
+	smp_store_release(&semaphores[core], 0);		\
+	smp_store_release(&cpu_spin_table[core], 0);		\
 	__park_and_wait();					\
 }								
 
