@@ -46,6 +46,7 @@ void heartbeat(void)
 
 	smp_run_process(test, 1);
 	smp_run_process(test, 2);
+	smp_run_process(test, 1);
 }
 
 

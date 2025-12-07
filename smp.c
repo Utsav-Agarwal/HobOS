@@ -13,9 +13,10 @@ int __run_process(uint64_t fn_addr, uint8_t cpu_id)
 	if (cpu_id > MAX_REMOTE_CORE_ID)
 	    return -1;
 
-	//TODO: this function needs to indicate back that it has completed
-	//execution and wants to complete the task. 
-	//Perhaps a lockless acquire/release?
+	//we dont really need stronger ordering here since only one issuer
+	//can acquire a semaphore. The others can only release it, and it
+	//would not be much of an issue if the release is slightly delayed
+	//as long as the task that was scheduled is complete.
 	while (READ_ONCE(semaphores[cpu_id]))
 	    asm volatile ("nop");
 
@@ -33,14 +34,11 @@ void __park_and_wait (void)
 	uint8_t id = curr_core_id();
 	void (*trigger) (void);
 
-	kprintf ("core %d waiting\n", id);
-
 	//keep waiting until you see something new
 	while (1) {
-		while (READ_ONCE(cpu_spin_table[id]) == (uint64_t) __park_and_wait)
+		while (!READ_ONCE(cpu_spin_table[id]))
 			asm volatile ("wfe");
 
-		kprintf("got: %x\n", cpu_spin_table[id]);
 		trigger = (void (*)(void))cpu_spin_table[id];
 		trigger();
 	}

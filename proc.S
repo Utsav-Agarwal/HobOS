@@ -9,7 +9,6 @@
 #define CORE_STACK_SIZE	0x1000
 
 setup_stack:
-
     //get core id
     mrs x0, mpidr_el1
     and x0, x0, #0x3
@@ -19,13 +18,13 @@ setup_stack:
 
     //get offset from base
     ldr x2, =CORE_STACK_SIZE
-    mul x0, x0, x2
+    mul x2, x0, x2
 
 1:
     //get stack associated to core id
     adrp x1, __core0_stack
     //stack grows from high to low
-    sub x1, x1, x0
+    sub x1, x1, x2
     mov sp, x1
 
     //continue execution to main
