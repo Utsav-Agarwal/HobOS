@@ -7,7 +7,7 @@
 //to be used and volatile
 #define barrier() asm volatile ("" : : :"memory");
 
-#define dmb(opt)	asm volatile ("dmb" #opt :::"memory")
+#define dmb(opt)	asm volatile ("dmb " #opt :::"memory")
 
 #define mb()	dmb(ish)
 #define wmb()	dmb(ishst)
@@ -80,7 +80,7 @@
 		*(volatile typeof(x) *) &(x) = val;	\
 	} while (0)
 
-////Generic smp barriers
+//Generic smp barriers
 #define smp_store_mb(x, val)	do {	\
 		csan_mb();	\
 		WRITE_ONCE(x, val);	\
