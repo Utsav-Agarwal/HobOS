@@ -55,7 +55,6 @@ curr_core_id:
 
 curr_core_el:
     mrs x0, CurrentEL
-    and x0, x0, #12
     lsr x0, x0, #2
     and x0, x0, #0x0F
     ret
