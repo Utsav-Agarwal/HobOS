@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "asm/barrier.h"
+#include "asm/mutex.h"
 
 /*
  * RPI FW initializes the remote processors using a spin table
@@ -15,8 +16,8 @@
 #define SPIN_TABLE_BASE		0xD8
 #define MAX_REMOTE_CORE_ID	3
 
-extern uint8_t *semaphores; 
-extern uint64_t *cpu_spin_table; 
+extern uint32_t volatile *semaphores; 
+extern uint32_t volatile *m_fn_addr; 
 
 //we essentially want every function to block its spot while executing and
 //then cleanup after itself. This wrapper does it.
@@ -28,17 +29,15 @@ void smp_wrapper_name(fn##core) (void)	\
 {								\
 	fn();							\
 	wmb();							\
-	smp_store_release(&semaphores[core], 0);		\
-	smp_store_release(&cpu_spin_table[core], 0);		\
 	__park_and_wait();					\
 }								
 
 #define smp_run_process(fn, core) 					\
 	do {								\
-		__run_process( (uint64_t) smp_wrapper_name(fn##core), core);	\
+		__run_process((uint64_t) smp_wrapper_name(fn##core), core);	\
 	} while(0)
 
-int __run_process(uint64_t fn_addr, uint8_t cpu_id);
+int __run_process(uint64_t fn_addr, uint8_t core);
 void __park_and_wait (void);
 uint8_t get_curr_core_id(void);
 uint64_t get_curr_stack_base(int core_id);
