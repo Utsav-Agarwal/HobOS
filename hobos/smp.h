@@ -39,7 +39,5 @@ void smp_wrapper_name(fn##core) (void)	\
 
 int __run_process(uint64_t fn_addr, uint8_t core);
 void __park_and_wait (void);
-uint8_t get_curr_core_id(void);
-uint64_t get_curr_stack_base(int core_id);
 
 #endif
