@@ -3,26 +3,27 @@
 #include "hobos/kstdio.h"
 
 extern int curr_core_id(void);
-uint64_t *cpu_spin_table = (uint64_t *) SPIN_TABLE_BASE;
+uint64_t volatile *cpu_spin_table = (uint64_t volatile *) SPIN_TABLE_BASE;
 
-uint8_t tmp[MAX_REMOTE_CORE_ID+1] = {0}; 
-uint8_t *semaphores = tmp;
+static uint32_t volatile __tmp1[MAX_REMOTE_CORE_ID+1] = {0}; 
+uint32_t volatile *semaphores = __tmp1;
 
-int __run_process(uint64_t fn_addr, uint8_t cpu_id)
+static uint32_t volatile __tmp2[MAX_REMOTE_CORE_ID+1] = {0}; 
+uint32_t volatile *m_fn_addr = __tmp2;
+
+int __run_process(uint64_t fn_addr, uint8_t core)
 {
-	if (cpu_id > MAX_REMOTE_CORE_ID)
+	if (core > MAX_REMOTE_CORE_ID)
 	    return -1;
 
-	//we dont really need stronger ordering here since only one issuer
-	//can acquire a semaphore. The others can only release it, and it
-	//would not be much of an issue if the release is slightly delayed
-	//as long as the task that was scheduled is complete.
-	while (READ_ONCE(semaphores[cpu_id]))
-	    asm volatile ("nop");
+	
+	//we need some sync/ordering here since 2 processors
+	//are competing to write to a common memory location (semaphores[..])
 
-	smp_store_release(&semaphores[cpu_id], 1); 
-	smp_store_mb(cpu_spin_table[cpu_id], fn_addr);
-
+	acquire_mutex(&semaphores[core]); 
+	smp_store_mb(cpu_spin_table[core], fn_addr);
+	acquire_mutex(&m_fn_addr[core]); 
+	
 	//wake up processors with "SEND EVENT"
 	asm volatile("sev");
 
@@ -31,15 +32,17 @@ int __run_process(uint64_t fn_addr, uint8_t cpu_id)
 
 void __park_and_wait (void)
 {
-	uint8_t id = curr_core_id();
+	uint8_t core = curr_core_id();
 	void (*trigger) (void);
 
+	release_mutex(&m_fn_addr[core]);	
+	release_mutex(&semaphores[core]);
 	//keep waiting until you see something new
 	while (1) {
-		while (!READ_ONCE(cpu_spin_table[id]))
+		while (!READ_ONCE(m_fn_addr[core]))
 			asm volatile ("wfe");
 
-		trigger = (void (*)(void))cpu_spin_table[id];
+		trigger = (void (*)(void)) cpu_spin_table[core];
 		trigger();
 	}
 }

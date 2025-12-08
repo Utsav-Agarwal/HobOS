@@ -22,31 +22,57 @@ void setup_console()
 	kprintf("\n\nConsole set by %d\n", curr_core_id());
 }
 
-
 int cntr = 0;
+uint32_t cntr_mtx = 0;
+
 void test(void) 
 {
-	//setup_console();
-	smp_store_release(&cntr, READ_ONCE(cntr)+1); 	
+	acquire_mutex(&cntr_mtx);
+	smp_store_mb(cntr, READ_ONCE(cntr)+1); 	
 	kprintf("Hello again %d\n", cntr);
+	release_mutex(&cntr_mtx);
 }
 smp_process(test, 1)
 smp_process(test, 2)
 
+void fail_print(void)
+{
+	kprintf("Failed after %d cycles\n", cntr/3);
+}
+smp_process(fail_print, 1)
+
 extern void setup_stack(void);
+
 
 /* I'm alive */
 void heartbeat(void)
 {
-	__run_process((uint64_t) setup_stack, 1);
-	smp_store_release(&semaphores[1], 0); 
-	
-	__run_process((uint64_t) setup_stack, 2);
-	smp_store_release(&semaphores[2], 0); 
 
-	smp_run_process(test, 1);
-	smp_run_process(test, 2);
-	smp_run_process(test, 1);
+	__run_process((uint64_t) setup_stack, 1);
+	__run_process((uint64_t) setup_stack, 2);
+
+	while (1) {
+	
+		smp_run_process(test, 1);
+		smp_run_process(test, 2);
+		smp_run_process(test, 1);
+		smp_run_process(test, 2);
+
+		acquire_mutex(&cntr_mtx);
+		//we dont care for mutex if we wont live
+		//any longer
+		if (READ_ONCE(cntr) % 4 != 0)
+			break;
+		
+		release_mutex(&cntr_mtx);
+
+	}
+
+	//it eventually always fails since there will be
+	//a time where counter is read prior to core 1 or 2
+	//updating the counter
+	smp_run_process(fail_print, 1);
+
 }
 
 
