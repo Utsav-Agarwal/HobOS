@@ -37,12 +37,12 @@ void create_id_mapping (uint64_t start_paddr, uint64_t end_paddr,
 
 	//L1 - point to L2
 	pt_desc = create_pt(pt, 1);
-	end_addr = (uint64_t )pt_desc->pt + 0x2000; //next
+	end_addr = (uint64_t )pt_desc->pt + 0x1000; //next
 	create_pt_entries(pt_desc, end_addr, end_addr, flags);
 
 	//L2 - point to L3
 	pt_desc = create_pt(end_addr, 2);
-	end_addr += 0x2000;	//next
+	end_addr += 0x1000;	//next
 	create_pt_entries(pt_desc, end_addr, end_addr, flags);
 
 	//L3 - physical pages
