@@ -1,5 +1,6 @@
 #include <stddef.h>
 #include "hobos/lib/stdlib.h"
+#include "hobos/process.h"
 #include "hobos/kstdio.h"
 #include "hobos/mmio.h"
 #include "hobos/timer.h"
@@ -7,6 +8,7 @@
 #include "hobos/gpio.h"
 #include "hobos/mmu.h"
 
+extern void setup_stack(void);
 extern uint8_t curr_core_el(void);
 extern uint8_t curr_core_id(void);
 extern void switch_el(void);
@@ -38,41 +40,46 @@ smp_process(test, 2)
 void fail_print(void)
 {
 	kprintf("Failed after %d cycles\n", cntr/3);
+	smp_store_mb(cntr, 0); 	
+	kprintf("cntr reset to %d\n", cntr);
 }
 smp_process(fail_print, 1)
-
-extern void setup_stack(void);
 
 
 /* I'm alive */
 void heartbeat(void)
 {
 
+	struct ctxt *p = (struct ctxt *)(0x2f000);
+	
 	__run_process((uint64_t) setup_stack, 1);
 	__run_process((uint64_t) setup_stack, 2);
 
-	while (1) {
-	
-		smp_run_process(test, 1);
-		smp_run_process(test, 2);
-		smp_run_process(test, 1);
-		smp_run_process(test, 2);
+	save_curr_context(p);
+	//while (1) {
+	//
+	//	smp_run_process(test, 1);
+	//	smp_run_process(test, 2);
+	//	smp_run_process(test, 1);
+	//	smp_run_process(test, 2);
 
-		acquire_mutex(&cntr_mtx);
-		//we dont care for mutex if we wont live
-		//any longer
-		if (READ_ONCE(cntr) % 4 != 0)
-			break;
-		
-		release_mutex(&cntr_mtx);
+	//	delay(100);
+	//	acquire_mutex(&cntr_mtx);
+	//	//we dont care for mutex if we wont live
+	//	//any longer
+	//	if (READ_ONCE(cntr) % 4 != 0)
+	//		break;
+	//	
+	//	release_mutex(&cntr_mtx);
 
-	}
+	//}
 
 	//it eventually always fails since there will be
 	//a time where counter is read prior to core 1 or 2
 	//updating the counter
 	smp_run_process(fail_print, 1);
 
+	resume_from_context(p);
 }
 
 
@@ -94,6 +101,7 @@ void main()
 
 	//init_kernel();
 	heartbeat();
+	
 
 	while (1) {
 		//start shell here
