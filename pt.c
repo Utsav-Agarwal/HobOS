@@ -16,7 +16,12 @@ static uint64_t pt_entry(uint64_t paddr, uint64_t flags) {
 }
 
 //TODO: Add error checking to make sure we dont exceed 512 entries
-// take a pt entry value and place it inside a pt
+
+//TODO: for malloc entries, assign a different block and mark it
+//TODO: device memories should be in a separate block/page table
+//		-- for now we dont really care about granularity about 
+//		permissions for io, so we can just allocate a big block for
+//		io based memory ops
 static void place_pt_entry(struct page_table_desc *pt_desc,
 		uint64_t pte)
 {
