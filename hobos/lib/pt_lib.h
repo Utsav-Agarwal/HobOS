@@ -19,25 +19,25 @@
 
 //AP Flag (Access permissions)
 
-#define PT_KERNEL	0b00 << PT_AP_POS     // privileged, supervisor EL1 access only
-#define PT_USER  	0b01 << PT_AP_POS     // unprivileged, EL0 access allowed
-#define PT_AP_RW	0b00 << PT_AP_POS     	// read-write
-#define PT_AP_RO	0b10 << PT_AP_POS     	// read-only
+#define PT_KERNEL	(0b00 << PT_AP_POS)
+#define PT_USER  	(0b01 << PT_AP_POS)
+#define PT_AP_RW	(0b00 << PT_AP_POS)
+#define PT_AP_RO	(0b10 << PT_AP_POS)
 
 //AF Flag (Accessed desc)
-#define PT_AF_ACCESSED	1 << PT_AF_POS     	// accessed flag
+#define PT_AF_ACCESSED	(1 << PT_AF_POS)
 
 //UXN
-#define PT_UXN_NX	1UL << PT_UXN_POS  	// no execute for user
+#define PT_UXN_NX	(1UL << PT_UXN_POS)
 
 //SH Flag
-#define PT_SH_O		0b10 << PT_SH_POS      // outter shareable
-#define PT_SH_I		0b11 << PT_SH_POS      // inner shareable
+#define PT_SH_O		(0b10 << PT_SH_POS)
+#define PT_SH_I		(0b11 << PT_SH_POS)
 
 //Indx Flag (index to MAIR_ELn)
-#define PT_INDEX_MEM	0 << PT_INDEX_POS     // normal memory
-#define PT_INDEX_DEV	1 << PT_INDEX_POS     // device MMIO
-#define PT_INDEX_NC 	2 << PT_INDEX_POS     // non-cachable
+#define PT_INDEX_MEM	(0 << PT_INDEX_POS)     // normal memory
+#define PT_INDEX_DEV	(1 << PT_INDEX_POS)     // device MMIO
+#define PT_INDEX_NC 	(2 << PT_INDEX_POS)     // non-cachable
 
 //lets keep it 38 bits for now
 #define PT_LVL_MIN	1
@@ -46,9 +46,9 @@
 //TODO: extend this for level 0, currently this is only
 //till 38 bits
 #define VADDR_MASK_4KB(level) \
-	0x5FC0000000UL >> (9*(PT_LVL_MIN-level))
+	(0x5FC0000000UL >> (9*(PT_LVL_MIN-level)))
 
-#define KB(x)	x * (1 << 10)
+#define KB(x)	(x * (1 << 10))
 
 
 // a list of entries need to be tracked for
@@ -79,6 +79,5 @@ struct page_table_desc *create_pt(uint64_t pt_baddr, uint8_t level);
 uint64_t *create_pt_entries(
 		struct page_table_desc *pt_desc,
 		uint64_t start_paddr, uint64_t end_paddr, uint64_t flags);
-
 
 #endif
