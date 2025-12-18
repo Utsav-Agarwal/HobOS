@@ -50,12 +50,22 @@
 
 #define KB(x)	(x * (1 << 10))
 
+#define PTE_FLAGS_GENERIC   \
+    		(PT_PAGE | PT_AP_RW | PT_AF_ACCESSED \
+		| PT_UXN_NX | PT_SH_O | PT_INDEX_MEM)
+
+//the actual structures are on the heap, appended just under the tables
+//that they describe. to retrieve them, just read after the last table entry
+
+//TODO: add roundoff
+//#define NEXT_PT_OFFSET (512*8 + sizeof(struct page_table_desc))
+#define NEXT_PT_OFFSET (0x2000)
 
 // a list of entries need to be tracked for
 // every thread when we want to track context.
 // Upon completion of the same, we can now cleanup/free
 // the memory in question.
-struct uint64_t_desc {
+struct t_desc {
 	uint64_t vaddr;
 	uint64_t paddr;
 	uint16_t flags;
@@ -72,9 +82,16 @@ struct page_table_desc {
 	uint16_t pt_len;	//max 512 elements, 9bits each level
 };
 
+struct va_metadata {
+	uint32_t index[3];
+	uint16_t offset;
+};
+
 //extract pte desc/meta data - more for debugging purposes
 //struct *uint64_t_desc get_pte(void *);
 
+uint64_t pt_entry(uint64_t paddr, uint64_t flags);
+void place_pt_entry(struct page_table_desc *pt_desc, uint64_t pte, int index);
 struct page_table_desc *create_pt(uint64_t pt_baddr, uint8_t level);
 uint64_t *create_pt_entries(
 		struct page_table_desc *pt_desc,

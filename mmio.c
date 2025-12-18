@@ -65,9 +65,3 @@ void mmio_init(void)
 			mmio_base = 0x20000000;
 	}
 }
-
-inline void delay(uint32_t count)
-{
-	while(count--) {asm volatile("nop");}
-}
-

@@ -1,9 +1,8 @@
 #ifndef __MMIO_H_
 #define __MMIO_H_
 
-#include <stdint.h>
+#include "lib/stdlib.h"
 
-#define BITP(pos) (1 << pos)
 
 #define u64	uint64_t
 #define u32	uint32_t

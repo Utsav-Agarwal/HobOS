@@ -1,6 +1,4 @@
-#include <stdint.h>
 #include "hobos/mmu.h"
-#include "hobos/lib/pt_lib.h"
 
 #include "hobos/mmu/bcm2835.h"
 #include "hobos/kstdio.h"
@@ -23,32 +21,126 @@ void create_id_mapping (uint64_t start_paddr, uint64_t end_paddr,
 
 	//for now lets assume T0/1_SZ is constant at 25, so we
 	//only care about 3 levels
-	
+	uint16_t flags = PTE_FLAGS_GENERIC;
+	uint64_t end_addr; 
 	struct page_table_desc *pt_desc;
-	uint64_t end_addr;
-	uint64_t flags =  PT_PAGE 
-			| PT_AP_RW 
-			| PT_AF_ACCESSED 
-			| PT_UXN_NX
-			| PT_SH_O
-			| PT_INDEX_MEM;
 
 	//SKIP L0 - dont need it
 
 	//L1 - point to L2
 	pt_desc = create_pt(pt, 1);
-	end_addr = (uint64_t )pt_desc->pt + 0x1000; //next
+	end_addr = (uint64_t)(pt_desc->pt) + NEXT_PT_OFFSET; //next
 	create_pt_entries(pt_desc, end_addr, end_addr, flags);
 
 	//L2 - point to L3
 	pt_desc = create_pt(end_addr, 2);
-	end_addr += 0x1000;	//next
+	end_addr += NEXT_PT_OFFSET;	//next
 	create_pt_entries(pt_desc, end_addr, end_addr, flags);
 
 	//L3 - physical pages
 	pt_desc = create_pt(end_addr, 3);
 	create_pt_entries(pt_desc, start_paddr, end_paddr, flags); //2GB
 		
+}
+
+inline static void extract_va_metadata(uint64_t va, struct va_metadata *meta)
+{
+	uint64_t mask = 0x0FFF;
+
+	meta->offset = va & mask;
+
+	mask = ((1 << 10) - 1) << 12;	//ignore the last 12 bytes
+	kprintf("mask: %x\n", mask);
+	meta->index[0] = (va & mask);
+	mask = mask << 9;	//ignore the last 12 bytes
+	meta->index[1] = (va & mask);
+	mask = mask << 9;	
+	meta->index[2] = (va & mask);
+}
+
+static void print_meta(struct va_metadata *meta)
+{
+	kprintf("offset: %x\n"
+		"l1: %x\n"
+		"l2: %x\n"
+		"l3: %x\n",
+		meta->offset,
+		meta->index[0],
+		meta->index[1],
+		meta->index[2]);
+}
+
+static inline uint64_t pte_is_empty(uint64_t pte)
+{
+	return !(pte);
+}
+
+void map_pa_to_va_pg(uint64_t pa, uint64_t va, struct page_table_desc *pt_top)
+{
+	//take va
+	//walk the pt(s)
+	//reach block/page level
+	//create entry
+	
+	struct page_table_desc *pt_desc = pt_top;
+	uint64_t volatile *pt, pte;
+	struct va_metadata meta;
+	uint16_t pt_index;
+	uint8_t level, i;
+	
+	extract_va_metadata(va, &meta);	
+	print_meta(&meta);
+
+	//lets navigate to l3 and create entries as required
+
+	//L1/L2
+	for (i=pt_desc->level; i<=PT_LVL_MAX; i++) {
+
+		level = pt_desc->level;
+		pt = pt_desc->pt;
+		pt_index = meta.index[level - 1];	//indexing
+		pte = pt[pt_index];
+
+		kprintf("i, level: %d, %d\n", i, level);
+		
+		if (i == PT_LVL_MAX) {
+			//create entry
+			//kprintf("l3 last entry: %x\n", pt[pt_index]);
+			pt[pt_index] = pt_entry(meta.offset,
+					PTE_FLAGS_GENERIC);
+			//kprintf("l3 new entry: %x\n", pt[pt_index]);
+			break;
+		}
+
+		//TODO: if 0 is provided, new address given automatically
+		if (pte_is_empty(pte)) {
+
+			struct page_table_desc *new_pt_desc;
+			
+			//kprintf("creating new at: %d\n", level+1);
+			//we create next level
+			new_pt_desc = create_pt(0, level + 1);	
+			pte = pt_entry((uint64_t )new_pt_desc->pt, 
+					PTE_FLAGS_GENERIC);
+			place_pt_entry(pt_desc, pte, pt_index);
+			pt_desc = new_pt_desc;
+		} else {
+			//todo: extract pt desc from pt addr dynamically
+			//essentially, clean the entry and extract the address,
+			//then examine the pt and populate the struct
+			//pt_desc = get_pt_desc(pte);
+			
+			//for now just use the global table
+			//and go to next in arr
+			//kprintf("going to level: %d\n", level+1);
+			pt_desc = global_page_tables[level];	
+		}
+
+	}
+
+	//we should land in L3 with updated data
+	
+
 }
 
 uint64_t set_id_translation_table() 
@@ -110,7 +202,7 @@ uint64_t switch_vmem(void)
 	asm("mov sp, %0"::"r"(reg));
 
 	asm("mov %0, lr":"=r"(reg));
-	reg += KERNEL_START;	//jump to heartbeat
+	reg += KERNEL_START;
 	asm("mov lr, %0"::"r"(reg));
 
 }

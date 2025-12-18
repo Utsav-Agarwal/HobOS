@@ -13,7 +13,6 @@ extern uint8_t curr_core_el(void);
 extern uint8_t curr_core_id(void);
 extern void switch_el(void);
 
-#define KERNEL_START	0xFFFFFF8000000000
 #define USER_END        ((volatile unsigned int*) (KERNEL_START + 0x1f000))
 
 void setup_console() 
@@ -42,6 +41,7 @@ void fail_print(void)
 	kprintf("Failed after %d cycles\n", cntr/3);
 	smp_store_mb(cntr, 0); 	
 	kprintf("cntr reset to %d\n", cntr);
+	ioremap(0x30000);
 }
 smp_process(fail_print, 1)
 
@@ -50,12 +50,13 @@ smp_process(fail_print, 1)
 void heartbeat(void)
 {
 
-	struct ctxt *p = (struct ctxt *)(0x2f000);
+	*(USER_END) = 0xcacacaca;
+	//struct ctxt *p = (struct ctxt *)(0x2f000);
 	
-	__run_process((uint64_t) setup_stack, 1);
-	__run_process((uint64_t) setup_stack, 2);
+	//__run_process((uint64_t) setup_stack, 1);
+	//__run_process((uint64_t) setup_stack, 2);
 
-	save_curr_context(p);
+	//save_curr_context(p);
 	//while (1) {
 	//
 	//	smp_run_process(test, 1);
@@ -74,12 +75,13 @@ void heartbeat(void)
 
 	//}
 
-	//it eventually always fails since there will be
+	//it eventually always fail since there will be
 	//a time where counter is read prior to core 1 or 2
 	//updating the counter
-	smp_run_process(fail_print, 1);
+	//smp_run_process(fail_print, 1);
 
-	resume_from_context(p);
+	//resume_from_context(p);
+	
 }
 
 
@@ -99,8 +101,8 @@ void init_kernel()
 void main()
 {
 
-	//init_kernel();
-	heartbeat();
+	init_kernel();
+	//heartbeat();
 	
 
 	while (1) {

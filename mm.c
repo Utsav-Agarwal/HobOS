@@ -1,29 +1,28 @@
+#include "hobos/lib/pt_lib.h"
 #include "hobos/lib/stdlib.h"
+#include "hobos/mmu.h"
 
-void *io_remap(uint64_t addr, uint32_t size) 
+extern struct page_table_desc *global_page_tables[10];
+
+void *ioremap(uint64_t addr) 
 {
-//TODO: 
-//1) traverse the page table and check if this
-//address has been already mapped or not. 
-//2a) if already in use, return null.
-//2b) if available, create mapping(s) and return the vaddr
-//associated to the first physical pointer.
-//3) make sure the mapping contains nGnRnE appropriate flags
+	//TODO: do not assume which page table is being used
+	//currently we will assume that all operations are being done
+	//on kernel page table.
+	map_pa_to_va_pg(addr, addr, global_page_tables[0]);
+	
+	return (void *) (addr + KERNEL_START);
+
 }
 
-void *malloc (uint32_t size) 
+void *kmalloc (uint32_t size) 
 {
-//TODO: 
-//1) traverse the page table and create
-//a new set of physical pages/blocks mappings. 
-//2) return the vaddr associated with them.
+//TODO: write a memory allocator 
 }
 
-void free(uint64_t addr)
+void kfree(uint64_t addr)
 {
-//TODO
-//1. remove given address from current page table
-//2. invalidate the particular tlb entry for this variable
+//TODO: impl depends on kmalloc
 }
 
 void memcpy (void *dst, void *src, uint32_t size)
