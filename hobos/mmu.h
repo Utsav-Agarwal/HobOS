@@ -1,6 +1,10 @@
 #ifndef __MMU_H
 #define __MMU_H
 
+#include "lib/pt_lib.h"
+#include "lib/stdlib.h"
+
+
 //references:
 /* https://lowenware.com/blog/aarch64-mmu-programming/ */
 /* https://github.com/bztsrc/raspi3-tutorial/tree/master/10_virtualmemory */
@@ -142,6 +146,9 @@ struct tcr_el1_cfg {
 #define MAIR_MEM_I_WT_T(r, w)	MAIR_MEM_RW(0b10, r, w)
 #define MAIR_MEM_I_WB_NT(r, w)	MAIR_MEM_RW(0b11, r, w)
 
+//kernel offset after switch to high memory addressing
+#define KERNEL_START	0xFFFFFF8000000000
+
 struct mair_attr {
 	uint8_t outer_cache: 4;
 	uint8_t inner_cache: 4;
@@ -161,5 +168,6 @@ extern volatile unsigned char __core0_stack;
 
 void init_mmu(void);
 uint64_t switch_vmem(void);
+void map_pa_to_va_pg(uint64_t pa, uint64_t va, struct page_table_desc *pt_top);
 
 #endif
