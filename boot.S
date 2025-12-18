@@ -3,7 +3,8 @@
 .global _start
 
 _start:
-    bl setup_stack 
+
+    bl setup_stack
 
     // clear bss
     ldr     x1, =__bss_start
@@ -13,10 +14,8 @@ _start:
     sub     w2, w2, #1
     cbnz    w2, 3b
     
-4:  bl get_rpi_version
-    bl mmio_init
-    bl setup_console
-
+4: 
+    
     //We need to go to EL1 
     bl	curr_core_el
     cmp	x0, #1
