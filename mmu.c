@@ -1,3 +1,4 @@
+#include "hobos/asm/barrier.h"
 #include "hobos/mmu.h"
 
 #include "hobos/mmu/bcm2835.h"
@@ -43,19 +44,18 @@ void create_id_mapping (uint64_t start_paddr, uint64_t end_paddr,
 		
 }
 
-inline static void extract_va_metadata(uint64_t va, struct va_metadata *meta)
+static inline void extract_va_metadata(uint64_t va, struct va_metadata *meta)
 {
-	uint64_t mask = 0x0FFF;
+	uint64_t mask = 0xFFF;
 
-	meta->offset = va & mask;
-
-	mask = ((1 << 10) - 1) << 12;	//ignore the last 12 bytes
-	kprintf("mask: %x\n", mask);
-	meta->index[0] = (va & mask);
-	mask = mask << 9;	//ignore the last 12 bytes
-	meta->index[1] = (va & mask);
-	mask = mask << 9;	
-	meta->index[2] = (va & mask);
+	meta->offset = va & mask;	//offset is calculated with last
+					//12 bits
+	
+	mask = ((1 << 9) - 1);		//9 bits bitmask
+	
+	meta->index[0] = (va >> 30) & mask;
+	meta->index[1] = (va >> 21) & mask;
+	meta->index[2] = (va >> 12) & mask;
 }
 
 static void print_meta(struct va_metadata *meta)
@@ -75,6 +75,7 @@ static inline uint64_t pte_is_empty(uint64_t pte)
 	return !(pte);
 }
 
+struct va_metadata meta;
 void map_pa_to_va_pg(uint64_t pa, uint64_t va, struct page_table_desc *pt_top)
 {
 	//take va
@@ -84,12 +85,11 @@ void map_pa_to_va_pg(uint64_t pa, uint64_t va, struct page_table_desc *pt_top)
 	
 	struct page_table_desc *pt_desc = pt_top;
 	uint64_t volatile *pt, pte;
-	struct va_metadata meta;
 	uint16_t pt_index;
 	uint8_t level, i;
 	
 	extract_va_metadata(va, &meta);	
-	print_meta(&meta);
+	//print_meta(&meta);
 
 	//lets navigate to l3 and create entries as required
 
