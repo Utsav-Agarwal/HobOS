@@ -5,8 +5,6 @@
 
 #define BITP(pos) (1 << pos)
 
-void *ioremap (uint64_t addr);
-
 void *kmalloc (uint32_t size);
 void free (uint64_t addr);
 

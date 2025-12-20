@@ -1,5 +1,5 @@
-#include "hobos/lib/pt_lib.h"
 #include "hobos/kstdio.h"
+#include "hobos/lib/pt_lib.h"
 #include "hobos/asm/barrier.h"
 
 //global list of page tables
@@ -95,6 +95,7 @@ struct page_table_desc *create_pt(uint64_t pt_baddr, uint8_t level)
 			 NEXT_PT_OFFSET);
 	}
 
+	memset(pt, 0, 0x1000);	//512 entries * 8 B
 	pt_desc = (struct page_table_desc *) &pt[512];
 
 	wmb();
@@ -105,6 +106,15 @@ struct page_table_desc *create_pt(uint64_t pt_baddr, uint8_t level)
 	global_page_tables[pt_ctr++] = pt_desc;
 
 	return pt_desc;	
+}
+
+void reserve_block(uint64_t baddr)
+{
+	void *addr;
+	uint16_t i = 0;
+
+	for (i=0; i<512; i++)
+		addr = ioremap(baddr + 0x1000*i);
 }
 
 //traverse the page table and validate this vaddr range

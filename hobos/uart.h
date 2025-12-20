@@ -1,8 +1,9 @@
 #ifndef __UART_H
 #define __UART_H
 
-#include <stdint.h>
+#include "chardev.h"
 #include "gpio.h"
+#include "uart.h"
 
 extern uint64_t mmio_base;
 
@@ -13,10 +14,7 @@ extern uint64_t mmio_base;
  * For RPI 5, PLL01 UART is needed, which is currently being worked on.
  * */
 
-#define AUX_IO_BASE 0x215000
-
-#define AUX_IO_REG(offset) \
-	(mmio_base + AUX_IO_BASE + offset)
+#define AUX_IO_BASE 	0x215000
 
 #define AUX_ENABLES     0x04
 #define AUX_MU_IO       0x40
@@ -34,24 +32,14 @@ extern uint64_t mmio_base;
 //Clock assumed to be 250MHz for 115200 Baud
 #define MINI_UART_BAUD 270
 
-void mini_uart_init(struct gpio_controller *ctrl);
-void mini_uart_putc(char c);
-void mini_uart_puts(char *c);
-
 /*
  *
  * This is PL011 UART, supported by all RPI models.
  *
  */
 
-extern uint64_t uart0_base;
-
 #define RPI_LEGACY_UART0_BASE	0x20100
 #define RPI_5_UART0_BASE	0x30000
-
-#define UART0_REG(offset) \
-	(mmio_base + uart0_base + offset)
-
 
 #define DR		0x00
 #define FR		0x18
@@ -64,10 +52,5 @@ extern uint64_t uart0_base;
 #define MIS		0x40
 #define ICR		0x44
 #define DMACR		0x48
-
-void uart_init(void);
-void uart_putc(char c);
-void uart_puts(char *c);
-char uart_getc(void);
 
 #endif

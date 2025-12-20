@@ -1,8 +1,4 @@
 #include "hobos/kstdio.h"
-#include "hobos/lib/vsprintf.h"
-#include "hobos/mmio.h"
-#include "hobos/nostdlibc_arg.h"
-#include "hobos/uart.h"
 
 
 extern uint8_t rpi_version;
@@ -26,40 +22,32 @@ extern uint8_t rpi_version;
 // enabling more code reuse, maybe use ifdefs and override function
 // names with selective compilation
 
+struct char_device *_console;
 
-void init_console(struct gpio_controller *ctrl)
+void init_console(struct char_device *console, void *priv)
 {
-	if (rpi_version == 5)
-		uart_init();
-	else
-		mini_uart_init(ctrl);
+    _console = console; 
+    _console->init(priv);
+    
+    //any extra init?
+    if (_console->quirks)
+	_console->quirks(priv);
 }
 
 void putc(char c)
 {
-	if (rpi_version == 5)
-		uart_putc(c);
-	else
-		mini_uart_putc(c);
+    _console->putc(c);
 }
 
 
 char getc(void)
 {
-	if (rpi_version == 5)
-		return uart_getc();
-//	else
-//		return	mini_uart_getc(); //TODO
-
-	return 0;
+    return _console->getc();
 }
 
-void puts(char *c)
+void puts(char *s)
 {
-	if (rpi_version == 5)
-		uart_puts(c);
-	else
-		mini_uart_puts(c);
+    _console->puts(s);
 }
 
 int kprintf(const char *format, ...)
