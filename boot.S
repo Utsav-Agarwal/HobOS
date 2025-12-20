@@ -6,11 +6,6 @@
 .global __heap_end
 
 _start:
-    // read cpu id, stop slave cores
-
-    mrs     x1, mpidr_el1
-    and     x1, x1, #3
-
     bl setup_stack 
 
     // clear bss

@@ -6,15 +6,9 @@
 .global core_stack_base
 .global switch_el
 
-#define CORE_STACK_BASE	0x86000
 #define CORE_STACK_SIZE	0x1000
 
-
-
-//Check https://github.com/rsta2/circle/blob/927941cec722f530a23d0f636f03480dd9972056/lib/startup64.S#L106
-//for RPI5
 setup_stack:
-
     //get core id
     mrs x0, mpidr_el1
     and x0, x0, #0x3
@@ -24,13 +18,13 @@ setup_stack:
 
     //get offset from base
     ldr x2, =CORE_STACK_SIZE
-    mul x0, x0, x2
+    mul x2, x0, x2
 
 1:
     //get stack associated to core id
-    ldr x1, =CORE_STACK_BASE
+    adrp x1, __core0_stack
     //stack grows from high to low
-    sub x1, x1, x0
+    sub x1, x1, x2
     mov sp, x1
 
     //continue execution to main
@@ -39,7 +33,7 @@ setup_stack:
     ret
 
 exec:
-    b park_and_wait
+    b __park_and_wait
 
 //x0 = core number
 //returns x0 = stack base
@@ -50,12 +44,9 @@ core_stack_base:
 
 1:
     //get stack associated to core id
-    ldr x1, =CORE_STACK_BASE
-    //stack grows from high to low
-    ldr x1, =CORE_STACK_BASE
+    adrp x1, __core0_stack
     sub x0, x1, x0
     ret
-
 
 curr_core_id:
     mrs x0, mpidr_el1
@@ -64,8 +55,6 @@ curr_core_id:
 
 curr_core_el:
     mrs x0, CurrentEL
-    and x0, x0, #12
     lsr x0, x0, #2
     and x0, x0, #0x0F
     ret
-
