@@ -2,6 +2,7 @@
 #define __MMIO_H_
 
 #include "lib/stdlib.h"
+#include "lib/pt_lib.h"
 
 
 #define u64	uint64_t
@@ -20,8 +21,11 @@
 
 
 void get_rpi_version(void);
-void mmio_write(uint32_t offset, uint32_t val);
-uint32_t mmio_read(uint32_t offset);
+void *ioremap (uint64_t addr);
 void mmio_init(void);
+void mmio_write(uint32_t offset, uint32_t val);
+void mmio_write_long(uint64_t offset, uint64_t val);
+uint32_t mmio_read(uint32_t offset);
+uint64_t mmio_read_long(uint64_t offset);
 
 #endif

@@ -57,7 +57,7 @@ const static struct mair_attr at[] = {
 struct mair mair_el1 = {
 	.attr0 = at[0],
 	.attr1 = at[1],		//non cacheable device memory (mmio)
-	.attr2 = at[2],			//non-cacheable memory
+	.attr2 = at[2],		//non-cacheable memory
 };
 
 #endif

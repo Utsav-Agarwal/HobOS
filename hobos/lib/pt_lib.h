@@ -30,14 +30,17 @@
 //UXN
 #define PT_UXN_NX	(1UL << PT_UXN_POS)
 
+//PXN
+#define PT_PXN_NX	(1UL << PT_PXN_POS)
+
 //SH Flag
 #define PT_SH_O		(0b10 << PT_SH_POS)
 #define PT_SH_I		(0b11 << PT_SH_POS)
 
 //Indx Flag (index to MAIR_ELn)
-#define PT_INDEX_MEM	(0 << PT_INDEX_POS)     // normal memory
-#define PT_INDEX_DEV	(1 << PT_INDEX_POS)     // device MMIO
-#define PT_INDEX_NC 	(2 << PT_INDEX_POS)     // non-cachable
+#define PT_INDEX_MEM	(1 << PT_INDEX_POS)     // normal memory
+#define PT_INDEX_DEV	(2 << PT_INDEX_POS)     // device MMIO
+#define PT_INDEX_NC 	(0 << PT_INDEX_POS)     // non-cachable
 
 //lets keep it 38 bits for now
 #define PT_LVL_MIN	1
@@ -52,7 +55,15 @@
 
 #define PTE_FLAGS_GENERIC   \
     		(PT_PAGE | PT_AP_RW | PT_AF_ACCESSED \
-		| PT_UXN_NX | PT_SH_O | PT_INDEX_MEM)
+		 | PT_SH_I | PT_INDEX_MEM)
+
+#define PTE_FLAGS_IO   \
+    		(PT_PAGE | PT_AF_ACCESSED \
+		| PT_PXN_NX | PT_UXN_NX | PT_SH_O | PT_INDEX_DEV)
+
+#define PTE_FLAGS_NC   \
+    		(PT_PAGE | PT_AF_ACCESSED \
+		| PT_PXN_NX | PT_UXN_NX | PT_SH_O | PT_INDEX_NC)
 
 //the actual structures are on the heap, appended just under the tables
 //that they describe. to retrieve them, just read after the last table entry
@@ -83,8 +94,8 @@ struct page_table_desc {
 };
 
 struct va_metadata {
-	uint32_t index[3];
-	uint16_t offset;
+	uint64_t index[3];
+	uint64_t offset;
 };
 
 //extract pte desc/meta data - more for debugging purposes
@@ -96,5 +107,8 @@ struct page_table_desc *create_pt(uint64_t pt_baddr, uint8_t level);
 uint64_t *create_pt_entries(
 		struct page_table_desc *pt_desc,
 		uint64_t start_paddr, uint64_t end_paddr, uint64_t flags);
+
+//TODO: remove
+void reserve_block(uint64_t baddr);
 
 #endif

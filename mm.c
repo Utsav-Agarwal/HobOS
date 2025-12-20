@@ -1,17 +1,22 @@
 #include "hobos/lib/pt_lib.h"
 #include "hobos/lib/stdlib.h"
+#include "hobos/mmio.h"
 #include "hobos/mmu.h"
 
 extern struct page_table_desc *global_page_tables[10];
 
 void *ioremap(uint64_t addr) 
 {
-	//TODO: do not assume which page table is being used
-	//currently we will assume that all operations are being done
-	//on kernel page table.
-	map_pa_to_va_pg(addr, addr, global_page_tables[0]);
+	//all of this is going to be before switching to high memory addressing
+	//so we dont mind if we get an identity mapped pointer.
+	//
+	//TODO: make it so that its compatible after high mem switch has taken
+	//place so we can add data during runtime (loadable drivers for instace).
+	uint64_t vaddr = addr;
+
+	map_pa_to_va_pg(addr, vaddr, global_page_tables[0], PTE_FLAGS_NC);
 	
-	return (void *) (addr + KERNEL_START);
+	return (void *) vaddr;
 
 }
 

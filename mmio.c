@@ -45,8 +45,19 @@ uint32_t mmio_read(uint32_t offset)
 	return *(volatile uint32_t *)(mmio_base + offset);
 }
 
+void mmio_write_long(uint64_t offset, uint64_t val)
+{
+	*(volatile uint64_t *)(mmio_base + offset) = val;
+}
+
+uint64_t mmio_read_long(uint64_t offset)
+{
+	return *(volatile uint64_t *)(mmio_base + offset);
+}
+
 void mmio_init(void)
 {
+	get_rpi_version();
 	switch(rpi_version)
 	{
 		case 3:

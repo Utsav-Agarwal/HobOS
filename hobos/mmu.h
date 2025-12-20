@@ -168,6 +168,8 @@ extern volatile unsigned char __core0_stack;
 
 void init_mmu(void);
 uint64_t switch_vmem(void);
-void map_pa_to_va_pg(uint64_t pa, uint64_t va, struct page_table_desc *pt_top);
+void map_pa_to_va_pg(uint64_t pa, uint64_t va, struct page_table_desc *pt_top,
+		uint64_t flags);
+
 
 #endif

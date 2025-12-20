@@ -58,25 +58,14 @@ static inline void extract_va_metadata(uint64_t va, struct va_metadata *meta)
 	meta->index[2] = (va >> 12) & mask;
 }
 
-static void print_meta(struct va_metadata *meta)
-{
-	kprintf("offset: %x\n"
-		"l1: %x\n"
-		"l2: %x\n"
-		"l3: %x\n",
-		meta->offset,
-		meta->index[0],
-		meta->index[1],
-		meta->index[2]);
-}
-
 static inline uint64_t pte_is_empty(uint64_t pte)
 {
 	return !(pte);
 }
 
 struct va_metadata meta;
-void map_pa_to_va_pg(uint64_t pa, uint64_t va, struct page_table_desc *pt_top)
+void map_pa_to_va_pg(uint64_t pa, uint64_t va, struct page_table_desc *pt_top, 
+		uint64_t flags)
 {
 	//take va
 	//walk the pt(s)
@@ -89,35 +78,33 @@ void map_pa_to_va_pg(uint64_t pa, uint64_t va, struct page_table_desc *pt_top)
 	uint8_t level, i;
 	
 	extract_va_metadata(va, &meta);	
-	//print_meta(&meta);
+	meta.offset += pa;		//we want physical address at the end
 
 	//lets navigate to l3 and create entries as required
-
-	//L1/L2
 	for (i=pt_desc->level; i<=PT_LVL_MAX; i++) {
 
 		level = pt_desc->level;
 		pt = pt_desc->pt;
 		pt_index = meta.index[level - 1];	//indexing
-		pte = pt[pt_index];
 
-		kprintf("i, level: %d, %d\n", i, level);
-		
+		//L3
 		if (i == PT_LVL_MAX) {
 			//create entry
-			//kprintf("l3 last entry: %x\n", pt[pt_index]);
-			pt[pt_index] = pt_entry(meta.offset,
-					PTE_FLAGS_GENERIC);
-			//kprintf("l3 new entry: %x\n", pt[pt_index]);
+			if (!flags)
+				pt[pt_index] = pt_entry(meta.offset,
+						PTE_FLAGS_GENERIC);
+			else
+				pt[pt_index] = pt_entry(meta.offset, flags);
+
 			break;
 		}
 
+		pte = pt[pt_index];
 		//TODO: if 0 is provided, new address given automatically
 		if (pte_is_empty(pte)) {
 
 			struct page_table_desc *new_pt_desc;
 			
-			//kprintf("creating new at: %d\n", level+1);
 			//we create next level
 			new_pt_desc = create_pt(0, level + 1);	
 			pte = pt_entry((uint64_t )new_pt_desc->pt, 
@@ -132,14 +119,14 @@ void map_pa_to_va_pg(uint64_t pa, uint64_t va, struct page_table_desc *pt_top)
 			
 			//for now just use the global table
 			//and go to next in arr
-			//kprintf("going to level: %d\n", level+1);
-			pt_desc = global_page_tables[level];	
+			
+			pt_desc = (struct page_table_desc *) 
+				((pte & ~(0xF0000000000FFF)) + 0x1000);
+
+			//pt_desc = global_page_tables[level];	
 		}
 
 	}
-
-	//we should land in L3 with updated data
-	
 
 }
 
@@ -204,6 +191,8 @@ uint64_t switch_vmem(void)
 	asm("mov %0, lr":"=r"(reg));
 	reg += KERNEL_START;
 	asm("mov lr, %0"::"r"(reg));
+	
+	asm("tlbi vmalle1; dsb sy; isb");
 
 }
 
@@ -213,7 +202,7 @@ void init_mmu(void)
 
 	//page table set
 	set_ttbr0_el1(set_id_translation_table() + CNP_COMMON);
-	asm("msr mair_el1, %0"::"r"(at));
+	asm("msr mair_el1, %0"::"r"(mair_el1));
 
 	//translation control TCR_EL1
 
@@ -236,12 +225,14 @@ void init_mmu(void)
 	sctlr &= ~(1 << 1); //remove alignment check
 	sctlr &= ~(1 << 25); //make sure little endian
 	
-
 	//enable mmu
 	sctlr |= 1;
-	
+
 	asm("msr sctlr_el1, %0"::"r"(sctlr));
-	asm("isb; dsb sy");
+	asm("dsb sy; isb");
+
+	//invalidate tlb
+	asm("tlbi vmalle1; dsb sy; isb");
 
 	return;
 }
