@@ -3,9 +3,11 @@
 
 #include <stdint.h>
 
-void *vm_remap (uint64_t addr);
+#define BITP(pos) (1 << pos)
 
-void *malloc (uint32_t size);
+void *ioremap (uint64_t addr);
+
+void *kmalloc (uint32_t size);
 void free (uint64_t addr);
 
 void memcpy (void *dst, void *src, uint32_t size);
