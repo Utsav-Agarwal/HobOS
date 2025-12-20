@@ -83,8 +83,8 @@ struct page_table_desc {
 };
 
 struct va_metadata {
-	uint32_t index[3];
-	uint16_t offset;
+	uint64_t index[3];
+	uint64_t offset;
 };
 
 //extract pte desc/meta data - more for debugging purposes

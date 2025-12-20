@@ -46,11 +46,12 @@ void fail_print(void)
 smp_process(fail_print, 1)
 
 
+#define TEST	0x401010
+
 /* I'm alive */
 void heartbeat(void)
 {
 
-	*(USER_END) = 0xcacacaca;
 	//struct ctxt *p = (struct ctxt *)(0x2f000);
 	
 	//__run_process((uint64_t) setup_stack, 1);
@@ -90,19 +91,17 @@ void kernel_panic()
 	uint64_t *x = (uint64_t *) 0x1f000;
 	
 	*x = 0xdeadbeef;
-}
-
-void init_kernel() 
-{
-	init_mmu();
-	switch_vmem();
+	while (1);
 }
 
 void main()
 {
 
-	init_kernel();
-	//heartbeat();
+	init_mmu();
+	uint64_t *x = ioremap(TEST);
+	heartbeat();
+	switch_vmem();
+	*x = 0xcacacaca;
 	
 
 	while (1) {

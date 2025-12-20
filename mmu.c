@@ -99,9 +99,8 @@ void map_pa_to_va_pg(uint64_t pa, uint64_t va, struct page_table_desc *pt_top)
 		level = pt_desc->level;
 		pt = pt_desc->pt;
 		pt_index = meta.index[level - 1];	//indexing
-		pte = pt[pt_index];
 
-		kprintf("i, level: %d, %d\n", i, level);
+		//kprintf("i, level: %d, %d\n", i, level);
 		
 		if (i == PT_LVL_MAX) {
 			//create entry
@@ -112,6 +111,7 @@ void map_pa_to_va_pg(uint64_t pa, uint64_t va, struct page_table_desc *pt_top)
 			break;
 		}
 
+		pte = pt[pt_index];
 		//TODO: if 0 is provided, new address given automatically
 		if (pte_is_empty(pte)) {
 
@@ -132,7 +132,6 @@ void map_pa_to_va_pg(uint64_t pa, uint64_t va, struct page_table_desc *pt_top)
 			
 			//for now just use the global table
 			//and go to next in arr
-			//kprintf("going to level: %d\n", level+1);
 			pt_desc = global_page_tables[level];	
 		}
 
