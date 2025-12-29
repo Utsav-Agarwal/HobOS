@@ -1,14 +1,5 @@
-#include <stddef.h>
-#include "hobos/lib/stdlib.h"
-#include "hobos/process.h"
 #include "hobos/kstdio.h"
-#include "hobos/mmio.h"
-#include "hobos/timer.h"
-#include "hobos/smp.h"
-#include "hobos/gpio.h"
 #include "hobos/mmu.h"
-
-#define USER_END        ((volatile unsigned int*) (KERNEL_START + 0x1f000))
 
 extern struct char_device uart_dev;
 
@@ -41,6 +32,8 @@ void main()
 
 	mmio_init();
 	init_mmu();
+	
+	//initialize drivers
 	setup_console();
 	
 	switch_vmem();
