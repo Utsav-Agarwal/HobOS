@@ -4,7 +4,7 @@ AS = ${TOOLCHAIN}as
 LD = ${TOOLCHAIN}ld
 SRCS = $(wildcard *.c)
 OBJS = $(SRCS:.c=.o)
-CFLAGS = -Wall -O2 -ffreestanding -g -march=armv8-a+nosimd
+CFLAGS = -Wall -O2 -ffreestanding -g -march=armv8-a+nosimd -mgeneral-regs-only
 
 all: clean kernel8.img
 
