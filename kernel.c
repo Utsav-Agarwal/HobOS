@@ -24,7 +24,7 @@ void setup_console()
 void heartbeat(void)
 {
     
-	puts("Hello from vmem\n");
+	kprintf("Hello from vmem\n");
 }
 
 
