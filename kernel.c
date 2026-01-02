@@ -18,7 +18,6 @@ void heartbeat(void)
 	kprintf("Hello from vmem\n");
 }
 
-
 void kernel_panic()
 {
 	uint64_t *x = (uint64_t *) 0x1f000;

@@ -4,10 +4,11 @@
 #include "../mmu.h"
 
 //TODO: use linker script definitions
-#define PAGE_SIZE	4096
+#define PAGE_SIZE	KB(4)
 #define TABLE_BADDR	(uint64_t)(&__end)
 #define TTBR1_OFFSET_B	0
 #define TTBR1_OFFSET	0
+#define MMU_TSZ		25
 
 //default magic value required for rpi3
 #define SCTLR_QUIRKS	

@@ -5,27 +5,6 @@
 #include "lib/stdlib.h"
 
 
-//references:
-/* https://lowenware.com/blog/aarch64-mmu-programming/ */
-/* https://github.com/bztsrc/raspi3-tutorial/tree/master/10_virtualmemory */
-/* https://developer.arm.com/documentation/100940/0101/ */
-
-/* MMU translates 64bit addresses, but not all addresses are 64bits */
-
-//-----
-//TTBR : Translation Table Base Registers - which then point to translation tables
-//-----
-//EL1/EL0 - Range: 
-//			TTBR0  0x0000FFFF_FFFFFFFF - 0x00000000_00000000
-//			TTBR1  0xFFFF0000_00000000 - 0x0000FFFF_FFFFFFFF
-//	           
-//EL2/EL3 - Range: 
-//			TTBR0	0x0000FFFF_FFFFFFFF - 0x00000000_00000000
-//
-//NOTE: These are ofc the virtual address spaces in each execution level.
-//i.e, EL2/EL3 (privileged) levels have limited VM 
-//
-
 struct ttbr_cfg {
 	uint64_t table_base_addr;
 	uint16_t asid;

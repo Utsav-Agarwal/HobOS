@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #define BITP(pos) (1 << pos)
+#define BITM(pos) ((BITP(pos)) - 1)
 
 void *kmalloc (uint32_t size);
 void free (uint64_t addr);
