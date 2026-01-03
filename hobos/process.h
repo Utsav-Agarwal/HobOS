@@ -21,7 +21,6 @@ struct process {
 	struct ctxt *proc_state;			//context
 };
 
-
 //TODO: we need to make sure proc_ctxt is not stored on stack
 //since stack is per task/ctxt - it changes.
 //

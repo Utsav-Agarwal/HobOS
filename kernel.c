@@ -20,9 +20,6 @@ void heartbeat(void)
 
 void kernel_panic()
 {
-	uint64_t *x = (uint64_t *) 0x1f000;
-	
-	*x = 0xdeadbeef;
 	while (1);
 }
 
@@ -36,6 +33,7 @@ void main()
 	setup_console();
 	
 	switch_vmem();
+	init_smp();
 	heartbeat();
 
 	while (1) {
