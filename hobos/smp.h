@@ -10,34 +10,34 @@
  * where CPU IDs 1-3 are put to sleep using a spin table
  * */
 
-//TODO: Add error codes
-//TODO: Add mailbox support for reading processor messages
-
 #define SPIN_TABLE_BASE		0xD8
 #define MAX_REMOTE_CORE_ID	3
 
-extern uint32_t volatile *semaphores; 
-extern uint32_t volatile *m_fn_addr; 
+#define JOBS_HEAD	0xFA
+#define JOBS_TAIL	0xAF
 
-//we essentially want every function to block its spot while executing and
-//then cleanup after itself. This wrapper does it.
-#define smp_wrapper_name(fn)	smp_ps_wrapper_##fn
+struct jobs_meta {
+	struct worker_job *head;		
+	struct worker_job *tail;		
+};
 
-//we just make sure the function to be threaded was scheduled
-#define smp_process(fn, core)	\
-void smp_wrapper_name(fn##core) (void)	\
-{								\
-	fn();							\
-	wmb();							\
-	__park_and_wait();					\
-}								
+struct worker_job {
+	volatile uint64_t fn_addr;
+	struct worker_job *next;
+	struct jobs_meta *meta;	//only applicable for head
+	uint8_t job_pos;
+};
 
-#define smp_run_process(fn, core) 					\
-	do {								\
-		__run_process((uint64_t) smp_wrapper_name(fn##core), core);	\
-	} while(0)
+struct worker {
+	uint8_t core_id;
+	volatile uint32_t mutex[2];
+	volatile uint64_t queue_lock; //TODO
+	volatile uint64_t *exec_addr;  //spin table entry
+	volatile struct worker_job *jobs;
+};
 
-int __run_process(uint64_t fn_addr, uint8_t core);
-void __park_and_wait (void);
+extern int curr_core_id(void);
+
+void init_smp(void);
 
 #endif
