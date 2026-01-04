@@ -123,7 +123,6 @@ static void inline set_ttbr0_el1(uint64_t x) {
 	asm("msr ttbr0_el1, %0"::"r"(x));
 }
 
-
 uint64_t switch_vmem(void)
 {
 	uint64_t tcr, reg;

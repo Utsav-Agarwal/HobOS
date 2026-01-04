@@ -1,5 +1,6 @@
 #include "hobos/kstdio.h"
 #include "hobos/mmu.h"
+#include "hobos/smp.h"
 
 extern struct char_device uart_dev;
 
@@ -18,9 +19,15 @@ void heartbeat(void)
 	kprintf("Hello from vmem\n");
 }
 
-void kernel_panic()
+//TODO: write 
+void kernel_panic(void)
 {
 	while (1);
+}
+
+void init_device_drivers(void)
+{
+	setup_console();
 }
 
 void main()
@@ -30,10 +37,10 @@ void main()
 	init_mmu();
 	
 	//initialize drivers
-	setup_console();
+	init_device_drivers();
 	
-	switch_vmem();
 	init_smp();
+	switch_vmem();
 	heartbeat();
 
 	while (1) {
