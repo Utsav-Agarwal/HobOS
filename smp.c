@@ -4,21 +4,25 @@
 #include "hobos/kstdio.h"
 
 extern void setup_stack(void);
-struct worker smp_worker[MAX_REMOTE_CORE_ID+1];
+extern void jump_to_EL1(void);
+
 struct worker_job smp_worker_jobs[MAX_REMOTE_CORE_ID+1]; //just one job per 
 							 //proc for now
 struct jobs_meta smp_worker_jobs_meta[MAX_REMOTE_CORE_ID+1]; //only need 1
+struct worker smp_worker[MAX_REMOTE_CORE_ID+1];
 
-static void pop_worker_job(struct worker_job *jobs)
+static inline void pop_worker_job(struct worker *w)
 {
-	struct worker_job *n = jobs->next;
-	struct jobs_meta *meta = jobs->meta;
-
-	meta->head = n;
-	n->meta = meta;
+	struct worker_job *head = w->jobs;
+	struct worker_job *next_job = head->next;
+	struct jobs_meta *meta = head->meta;
 	
-	n->job_pos = JOBS_HEAD;
-	jobs = n;
+	next_job->meta = meta;
+	meta->head = next_job;
+
+	next_job->job_pos = JOBS_HEAD;
+	w->jobs = next_job;
+
 }
 
 //TODO: sort out memory mamangement for malloc
@@ -63,14 +67,16 @@ static void worker_process(void)
 	//be modified by another core. This would result in us not having
 	//to go back to __park_and_wait. This will be critical once processes
 	//come into the picture.
+	
+
 	while (1) {
 		execute = (void (*)(void)) (w->jobs->fn_addr);
 		execute();
 
-		if (w->jobs->next)
-			pop_worker_job(w->jobs);
-		else
+		if (!w->jobs->next)
 			break;
+		
+		pop_worker_job(w);
 	}
 
 	__park_and_wait();
@@ -82,7 +88,7 @@ static void set_job_queue_head(struct worker_job *job, uint64_t fn_addr)
 	//job.job_meta = malloc(sizeof(struct jobs_meta));
 
 	job->job_pos = JOBS_HEAD;
-	job->fn_addr = fn_addr;
+	job->fn_addr = (uint64_t *)fn_addr;
 	job->next = 0;
 
 	job->meta->head = job;
@@ -172,6 +178,20 @@ static void smp_heartbeat()
 {
 	kprintf("core %d up and running!\n", curr_core_id());
 }
+struct worker_job smp_heartbeat_jobs[MAX_REMOTE_CORE_ID+1] = {
+	{
+		.fn_addr = (uint64_t *)smp_heartbeat,
+	},
+	{
+		.fn_addr = (uint64_t *)smp_heartbeat,
+	},
+	{
+		.fn_addr = (uint64_t *)smp_heartbeat,
+	},
+	{
+		.fn_addr = (uint64_t *)smp_heartbeat,
+	},
+};
 
 void init_smp(void)
 {
@@ -179,9 +199,9 @@ void init_smp(void)
 
 	for(i=1; i<=MAX_REMOTE_CORE_ID; i++) {
 		smp_worker_jobs[i].meta = &smp_worker_jobs_meta[i];
-		smp_worker_jobs[i].meta = &smp_worker_jobs_meta[i];
-		set_job_queue_head(&smp_worker_jobs[i], 
-				(uint64_t) smp_heartbeat);
+		set_job_queue_head(&smp_worker_jobs[i], (uint64_t) jump_to_EL1);
+		push_worker_job(&smp_worker_jobs[i], &smp_heartbeat_jobs[i]);
+		
 		__init_worker(i);
 		__setup_core(i);
 		__run_core(i);

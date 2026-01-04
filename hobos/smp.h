@@ -22,7 +22,7 @@ struct jobs_meta {
 };
 
 struct worker_job {
-	volatile uint64_t fn_addr;
+	volatile uint64_t *fn_addr;
 	struct worker_job *next;
 	struct jobs_meta *meta;	//only applicable for head
 	uint8_t job_pos;
@@ -33,7 +33,7 @@ struct worker {
 	volatile uint32_t mutex[2];
 	volatile uint64_t queue_lock; //TODO
 	volatile uint64_t *exec_addr;  //spin table entry
-	volatile struct worker_job *jobs;
+	struct worker_job *jobs;
 };
 
 extern int curr_core_id(void);
