@@ -187,3 +187,7 @@ void init_smp(void)
 		__run_core(i);
 	}
 }
+
+//TODO:
+uint64_t smp_switch_vmem(void);
+uint64_t smp_jump_to_EL1(void);
