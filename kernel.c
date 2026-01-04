@@ -27,7 +27,6 @@ void kernel_panic(void)
 
 void init_device_drivers(void)
 {
-	setup_console();
 }
 
 void main()
@@ -35,6 +34,7 @@ void main()
 
 	mmio_init();
 	init_mmu();
+	setup_console();
 	
 	init_device_drivers();
 	
