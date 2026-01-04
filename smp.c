@@ -6,6 +6,22 @@
 extern void setup_stack(void);
 extern void jump_to_EL1(void);
 
+#define declare_smp_worker_jobs(fn) \
+	struct worker_job fn##_jobs[] = {			\
+		{					\
+			.fn_addr = (uint64_t *)fn,	\
+		},					\
+		{					\
+			.fn_addr = (uint64_t *)fn,	\
+		},					\
+		{					\
+			.fn_addr = (uint64_t *)fn,	\
+		},					\
+		{					\
+			.fn_addr = (uint64_t *)fn,	\
+		},					\
+	}
+
 struct worker_job smp_worker_jobs[MAX_REMOTE_CORE_ID+1]; //just one job per 
 							 //proc for now
 struct jobs_meta smp_worker_jobs_meta[MAX_REMOTE_CORE_ID+1]; //only need 1
@@ -22,7 +38,6 @@ static inline void pop_worker_job(struct worker *w)
 
 	next_job->job_pos = JOBS_HEAD;
 	w->jobs = next_job;
-
 }
 
 //TODO: sort out memory mamangement for malloc
@@ -174,25 +189,8 @@ void __park_and_wait (void)
 	}
 }
 
-static void smp_heartbeat()
-{
-	kprintf("core %d up and running!\n", curr_core_id());
-}
-struct worker_job smp_heartbeat_jobs[MAX_REMOTE_CORE_ID+1] = {
-	{
-		.fn_addr = (uint64_t *)smp_heartbeat,
-	},
-	{
-		.fn_addr = (uint64_t *)smp_heartbeat,
-	},
-	{
-		.fn_addr = (uint64_t *)smp_heartbeat,
-	},
-	{
-		.fn_addr = (uint64_t *)smp_heartbeat,
-	},
-};
-
+declare_smp_worker_jobs(init_mmu);
+declare_smp_worker_jobs(switch_vmem);
 void init_smp(void)
 {
 	int i;
@@ -200,14 +198,11 @@ void init_smp(void)
 	for(i=1; i<=MAX_REMOTE_CORE_ID; i++) {
 		smp_worker_jobs[i].meta = &smp_worker_jobs_meta[i];
 		set_job_queue_head(&smp_worker_jobs[i], (uint64_t) jump_to_EL1);
-		push_worker_job(&smp_worker_jobs[i], &smp_heartbeat_jobs[i]);
+		push_worker_job(&smp_worker_jobs[i], &init_mmu_jobs[i]);
+		push_worker_job(&smp_worker_jobs[i], &switch_vmem_jobs[i]);
 		
 		__init_worker(i);
 		__setup_core(i);
 		__run_core(i);
 	}
 }
-
-//TODO:
-uint64_t smp_switch_vmem(void);
-uint64_t smp_jump_to_EL1(void);

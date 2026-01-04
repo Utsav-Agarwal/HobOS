@@ -36,16 +36,15 @@ void main()
 	mmio_init();
 	init_mmu();
 	
-	//initialize drivers
 	init_device_drivers();
 	
 	init_smp();
 	switch_vmem();
+	
 	heartbeat();
 
 	while (1) {
 		//start shell here
 	}
 	
-
 }

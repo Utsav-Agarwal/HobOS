@@ -1,12 +1,13 @@
 #include "hobos/asm/barrier.h"
 #include "hobos/mmu/bcm2835.h"
 #include "hobos/mmu.h"
+#include "hobos/smp.h"
 
 #define map_sz		512
 #define ID_PG_SZ	PAGE_SIZE
 
 //default MMU characteristics
-#define KERNEL_START	(~(BITM(64-MMU_TSZ)))
+//#define KERNEL_START	(~(BITM(64-MMU_TSZ)))
 
 
 extern struct page_table_desc *global_page_tables[10];
@@ -126,7 +127,7 @@ static void inline set_ttbr0_el1(uint64_t x) {
 uint64_t switch_vmem(void)
 {
 	uint64_t tcr, reg;
-	
+
 	set_ttbr1_el1((uint64_t) set_kernel_translation_table());
 	
 	asm("mrs %0, tcr_el1":"=r"(tcr));
@@ -157,7 +158,13 @@ void init_mmu(void)
 	uint64_t tcr, sctlr, spsr;
 
 	//page table set
-	set_ttbr0_el1(set_id_translation_table() + CNP_COMMON);
+	//we want to share the page tables from core 0 to others, to start
+	//with
+	if (!curr_core_id())
+		set_ttbr0_el1(set_id_translation_table() + CNP_COMMON);
+	else
+		set_ttbr0_el1((uint64_t)global_page_tables[0]->pt + CNP_COMMON);
+
 	asm("msr mair_el1, %0"::"r"(mair_el1));
 
 	//translation control TCR_EL1

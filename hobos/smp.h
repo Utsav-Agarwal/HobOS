@@ -39,5 +39,7 @@ struct worker {
 extern int curr_core_id(void);
 
 void init_smp(void);
+void smp_switch_vmem(void);
+void smp_init_mmu(void);
 
 #endif
