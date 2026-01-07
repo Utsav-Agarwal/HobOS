@@ -6,8 +6,7 @@
 #include "gpio/bcm2712.h"
 #include "gpio/bcm2835.h"
 
-extern uint64_t gpio_base;
-extern uint64_t mmio_base;
+extern uint64_t *mmio_base;
 
 struct gpio_controller {
 	uint64_t *base;

@@ -1,7 +1,9 @@
 #include "hobos/mmio.h"
+#include "hobos/kstdio.h"
+#include "hobos/asm/barrier.h"
 
 uint8_t rpi_version;
-uint64_t mmio_base;
+uint64_t *mmio_base;
 
 inline void get_rpi_version(void)
 {
@@ -37,22 +39,37 @@ inline void get_rpi_version(void)
 
 void mmio_write(uint32_t offset, uint32_t val)
 {
-	*(volatile uint32_t *)(mmio_base + offset) = val;
+	dmb(ish);
+	*(volatile uint32_t *)((uint64_t) mmio_base + offset) = val;
+	dmb(ish);
 }
 
 uint32_t mmio_read(uint32_t offset)
 {
-	return *(volatile uint32_t *)(mmio_base + offset);
+	uint32_t val;
+
+	dmb(ish);
+	val = *(volatile uint32_t *)((uint64_t) mmio_base + offset);
+	dmb(ish);
+	return val;
 }
 
 void mmio_write_long(uint64_t offset, uint64_t val)
 {
-	*(volatile uint64_t *)(mmio_base + offset) = val;
+	dmb(ish);
+	*(volatile uint64_t *)((uint64_t) mmio_base + offset) = val;
+	dmb(ish);
 }
 
 uint64_t mmio_read_long(uint64_t offset)
 {
-	return *(volatile uint64_t *)(mmio_base + offset);
+	uint64_t val;
+
+	dmb(ish);
+	val = *(volatile uint64_t *)((uint64_t) mmio_base + offset);
+        dmb(ish);
+
+	return val;
 }
 
 void mmio_init(void)
@@ -61,18 +78,18 @@ void mmio_init(void)
 	switch(rpi_version)
 	{
 		case 3:
-			mmio_base = 0x3f000000;
+			mmio_base = (uint64_t *)0x3f000000;
 			break;
 		case 4:
-			mmio_base = 0xfe000000;
+			mmio_base = (uint64_t *)0xfe000000;
 			break;
 		case 5:
 			//uart offset: 0x30000
 			//uart address: 0x107d001000
 			//uart address = BAR + offset
-			mmio_base = 0x107cfd1000;
+			mmio_base = (uint64_t *)0x107cfd1000;
 			break;
 		default:
-			mmio_base = 0x20000000;
+			mmio_base = (uint64_t *)0x20000000;
 	}
 }

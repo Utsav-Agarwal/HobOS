@@ -7,8 +7,10 @@
 #include <stdint.h>
 #include "mmio.h"
 
+extern struct timer global_timer;
+
 struct timer {
-	uint32_t base;		//base addr
+	uint64_t base;		//base addr
 	uint32_t msb;		//Most Sig 32 bits
 	uint32_t lsb;		//Least Sig 32 bits
 

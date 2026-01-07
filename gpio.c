@@ -40,7 +40,7 @@ void init_gpio(struct gpio_controller *ctrl)
 			return;
 	}
 
-	ctrl->base = (uint64_t *) ioremap(mmio_base + base);
+	ctrl->base = (uint64_t *) ioremap((uint64_t)mmio_base + base);
 
 	/* generic functions */
 	ctrl->ctrl_set_gpio_fn = generic_set_gpio_func;

@@ -1,8 +1,11 @@
 #include "hobos/kstdio.h"
 #include "hobos/mmu.h"
 #include "hobos/smp.h"
+#include "hobos/timer.h"
+#include "hobos/asm/barrier.h"
 
 extern struct char_device uart_dev;
+extern void enable_global_interrupts(void);
 
 void setup_console() 
 {
@@ -16,10 +19,15 @@ void setup_console()
 void heartbeat(void)
 {
     
+	struct timer t;
+
+	kprintf("%d\n", read_timer(1, &global_timer));
 	kprintf("Hello from vmem\n");
+	kprintf("%d\n", read_timer(1, &global_timer));
+	dmb(ish);
 }
 
-//TODO: write 
+//TODO:
 void kernel_panic(void)
 {
 	while (1);
@@ -27,6 +35,7 @@ void kernel_panic(void)
 
 void init_device_drivers(void)
 {
+	init_timer(&global_timer);
 }
 
 void main()
@@ -35,7 +44,8 @@ void main()
 	mmio_init();
 	init_mmu();
 	setup_console();
-	
+
+	enable_global_interrupts();
 	init_device_drivers();
 	
 	init_smp();

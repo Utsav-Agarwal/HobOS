@@ -70,7 +70,8 @@ static void push_worker_job(struct worker_job *jobs, struct worker_job *n)
 //process pool.
 
 //essentially the entire purpose of this worker process is to flush the jobs
-//that have been queued on it
+//that have been queued on it. Let yield be called with an interrupt and the job will
+//be flushed.
 void __park_and_wait (void);
 static void worker_process(void)
 {

@@ -1,7 +1,9 @@
 #include "hobos/timer.h"
+#include "hobos/lib/stdlib.h"
 #include "hobos/kstdio.h"
 
 extern uint8_t rpi_version;
+struct timer global_timer;
 
 static uint32_t read_timer32(bool msb, struct timer *t)
 {
@@ -50,12 +52,14 @@ void init_timer(struct timer *t)
 			t->base = BCM2835(BASE_OFF);
 			t->msb = BCM2835(MSB);
 			t->lsb = BCM2835(LSB);
-
 			break;
+		
 		default:
 			kprintf("RPI rev not supported\n");
 			return;
 	}
+	
+	ioremap(BCM2835(BASE_OFF) + (uint64_t) mmio_base);
 
 	/* populate the remaining functions with generic implementations IF 
 	 * no user/platform specific functions. */
@@ -66,7 +70,6 @@ void init_timer(struct timer *t)
 	if (!t->set_timer32)
 		t->set_timer32 = write_timer32; 
 		t->set_timer64 = write_timer64; 
-
 
 	return;	
 }
