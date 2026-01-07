@@ -5,7 +5,7 @@
 #include "gpio.h"
 #include "uart.h"
 
-extern uint64_t mmio_base;
+extern uint64_t *mmio_base;
 
 /*
  * NOTE: This currently only implements mini UART - which is supported upto

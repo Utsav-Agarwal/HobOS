@@ -11,7 +11,6 @@
  * access */
 #define BCM2835(reg) BCM2835_##reg
 
-
 /* SYSTEM TIMER */
 #define	BCM2835_BASE_OFF	0x3000
 #define	BCM2835_MSB		0x3004

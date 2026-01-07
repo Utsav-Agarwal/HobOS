@@ -14,7 +14,6 @@ static inline uint64_t uart_reg(uint32_t offset)
 	return ((uint64_t)uart_dev.base + offset);	
 }
 
-
 //TODO: return error codes
 /* Mini UART */
 static void mini_uart_init(void *priv)
@@ -132,7 +131,7 @@ static void uart_init(void *priv)
     		uart_dev.puts = mini_uart_puts;
         }
 
-    	uart_dev.base = (uint64_t *)ioremap(base + mmio_base);
+    	uart_dev.base = (uint64_t *)ioremap(base + (uint64_t)mmio_base);
 
 	/* 
 	* NOTE: Current implementation is not complete and is assisted

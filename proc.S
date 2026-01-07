@@ -7,8 +7,13 @@
 .global curr_core_el
 .global core_stack_base
 .global jump_to_EL1
+.global enable_global_interrupts
 
 #define CORE_STACK_SIZE	0x1000
+
+enable_global_interrupts:
+    msr daifclr, #2
+    ret
 
 jump_to_EL1:
     mov x16, lr
@@ -30,7 +35,6 @@ jump_to_EL1:
 
     //config SPSR_EL3
     mov x1, #0x9	//Drop to EL2 with SP_EL2
-    orr x1, x1, #0xC0	//Mask FIQ, IRQ
     orr x1, x1, #0x300	//Mask Debug, SError Exceptions
     msr spsr_el3, x1
 
@@ -68,7 +72,6 @@ jump_to_EL1:
 
     //config SPSR_EL2
     mov x0, #0x5		//set next EL to EL1 and SP to SP_EL1
-    orr x0, x0, #0xc0		//set IRQ and FIRQ mask
     orr x0, x0, #0x300		//set Debug exception and SError mask
     msr spsr_el2, x0
     
