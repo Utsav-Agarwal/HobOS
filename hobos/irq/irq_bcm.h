@@ -18,7 +18,7 @@
 #define DISABLE_IRQS_2		0x220
 #define DISABLE_BASIC_IRQS	0x224
 
-#define BCM_DEFAULT_IRQ_TIMER	0x0
+#define BCM_DEFAULT_IRQ_TIMER	0x1
 
 void bcm_irq_controller_init(struct irq_controller *irq);
 

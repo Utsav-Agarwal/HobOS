@@ -10,7 +10,7 @@ static void bcm_irq_enable_interrupt (void *priv,
 	struct irq_bcm_priv *bcm_priv = (struct irq_bcm_priv *) priv;
 	struct irq_controller *ctrl = bcm_priv->ctrl;
 	uint8_t *base = (uint8_t *)(ctrl->base);
-	uint32_t *basic_interrupts = (uint32_t *)(base + ENABLE_BASIC_IRQS);
+	uint32_t *basic_interrupts = (uint32_t *)(base + ENABLE_IRQS_1);
 
 	iowrite32(basic_interrupts, (uint32_t) BITP(int_nr));
 }
@@ -45,7 +45,7 @@ void bcm_irq_controller_init(struct irq_controller *irq)
 	memcpy(irq->name, name, 128);
 	irq->base = (uint64_t *) ioremap((uint64_t)mmio_base + base);
 	irq->enable_interrupt = bcm_irq_enable_interrupt;
-	irq->enable_interrupt = bcm_irq_disable_interrupt;
+	irq->disable_interrupt = bcm_irq_disable_interrupt;
 
 	priv->ctrl = irq;
 	irq->priv = (void *) priv;

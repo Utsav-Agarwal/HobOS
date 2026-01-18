@@ -28,6 +28,7 @@ struct timer {
 	void (*disable_interrupts) (struct timer *t);
 
 	void (*set_timer) (struct timer *t, uint32_t val);
+	void (*reset_timer) (struct timer *t);
 
 	void *plat_feats;
 };
