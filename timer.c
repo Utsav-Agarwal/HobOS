@@ -37,6 +37,13 @@ static void write_timer64(uint64_t val, struct timer *t)
 	mmio_write(t->msb, ((val >> 32) & 0xFFFF));
 }
 
+//TODO: extract these register addresses from a priv structure
+static void set_timer (struct timer *t, uint32_t val) 
+{
+	mmio_write(BCM2835(C3), 0x1);
+	t->set_timer_val64(0, t);
+}
+
 /*
  * We dont want just 1 global timer, since each core can 
  * have individual timers. As a result, we let the user/
@@ -63,13 +70,21 @@ void init_timer(struct timer *t)
 
 	/* populate the remaining functions with generic implementations IF 
 	 * no user/platform specific functions. */
-	if (!t->read_timer32)
+	if (!t->read_timer32) {
 		t->read_timer32 = read_timer32; 
 		t->read_timer64 = read_timer64;
+	}
 
-	if (!t->set_timer32)
-		t->set_timer32 = write_timer32; 
-		t->set_timer64 = write_timer64; 
+	if (!t->set_timer_val32) {
+		t->set_timer_val32 = write_timer32; 
+		t->set_timer_val64 = write_timer64;
+	}
+
+	t->set_timer = set_timer;
+	//t->enable_interrupts = enable_interrupts;
+	//t->disable_interrupts = disable_interrupts;
+
+	write_timer64(0, t);
 
 	return;	
 }

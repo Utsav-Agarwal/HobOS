@@ -82,7 +82,7 @@
 
 //Generic smp barriers
 #define smp_store_mb(x, val)	do {	\
-		csan_mb();	\
+		csan_mb();		\
 		WRITE_ONCE(x, val);	\
 	} while (0) 
 

@@ -39,35 +39,35 @@ inline void get_rpi_version(void)
 
 void mmio_write(uint32_t offset, uint32_t val)
 {
-	dmb(ish);
+	dmb(osh);
 	*(volatile uint32_t *)((uint64_t) mmio_base + offset) = val;
-	dmb(ish);
+	dmb(osh);
 }
 
 uint32_t mmio_read(uint32_t offset)
 {
 	uint32_t val;
 
-	dmb(ish);
+	dmb(osh);
 	val = *(volatile uint32_t *)((uint64_t) mmio_base + offset);
-	dmb(ish);
+	dmb(osh);
 	return val;
 }
 
 void mmio_write_long(uint64_t offset, uint64_t val)
 {
-	dmb(ish);
+	dmb(osh);
 	*(volatile uint64_t *)((uint64_t) mmio_base + offset) = val;
-	dmb(ish);
+	dmb(osh);
 }
 
 uint64_t mmio_read_long(uint64_t offset)
 {
 	uint64_t val;
 
-	dmb(ish);
+	dmb(osh);
 	val = *(volatile uint64_t *)((uint64_t) mmio_base + offset);
-        dmb(ish);
+        dmb(osh);
 
 	return val;
 }

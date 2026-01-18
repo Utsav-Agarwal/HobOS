@@ -20,6 +20,9 @@
 	*(u##reg_size *) reg_addr
 
 
+extern uint8_t rpi_version;
+extern uint64_t *mmio_base;
+
 void get_rpi_version(void);
 void *ioremap (uint64_t addr);
 void mmio_init(void);
