@@ -28,20 +28,28 @@ _start:
     b       5b
 
 
-handle_irq:
-    bl save_curr_context
-    bl test
-    bl resume_from_context
-    eret
-
-.align 11
-vector_table:
-	b sync_exception_handler
-	b handle_irq
-	b 0x200	//FIQ
-	b 0x200	//SError
-
 .align 11
 sync_exception_handler:
 	bl kernel_panic
 	eret
+
+.macro ventry label
+    .align 7
+    b \label
+.endm
+
+dummy_vector:
+    b 0x200
+
+.align 11
+vector_table:
+    ventry sync_exception_handler
+    ventry dummy_vector 
+    ventry dummy_vector 
+    ventry dummy_vector 
+    
+    //EL1h
+    ventry dummy_vector 
+    ventry handle_irq
+    ventry dummy_vector 
+    ventry dummy_vector 

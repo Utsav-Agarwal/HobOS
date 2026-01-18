@@ -8,10 +8,12 @@ void init_irq_controller(struct irq_controller *irq, uint8_t type)
 {
 	switch (type) {
 		case IRQ_BCM_SOC:
+			kprintf("BCM IRQ Selected\n");
 			bcm_irq_controller_init(irq);
 			break;
 		//TODO:
 		case IRQ_ARM_GENERIC:	
+			kprintf("ARM GENERIC IRQ Selected\n");
 			return;
 		default:
 			kprintf("Unrecognized IRQ controller type\n");

@@ -8,26 +8,23 @@
 extern struct char_device uart_dev;
 extern void enable_global_interrupts(void);
 
-void test()
+struct irq_controller soc_irq;
+struct irq_bcm_priv priv;
+
+void kernel_test()
 {
-	kprintf("Hello\n");
+	kprintf("Hello from irq\n");
+	
+	global_timer.reset_timer(&global_timer);
+	global_timer.set_timer(&global_timer, 0x200000);
 }
 
-void setup_console() 
+static void setup_console() 
 {
 	struct gpio_controller ctrl;
 
 	init_gpio(&ctrl);
 	init_console(&uart_dev, (void *)&ctrl);
-}
-
-/* I'm alive */
-void static heartbeat(void)
-{
-	kprintf("%d\n", read_timer(1, &global_timer));
-	kprintf("Hello from vmem\n");
-	global_timer.set_timer(&global_timer, 0xFFFFFFFF);
-	kprintf("%d\n", read_timer(1, &global_timer));
 }
 
 //TODO:
@@ -39,8 +36,7 @@ void kernel_panic(void)
 
 static void enable_interrupts(void)
 {
-	struct irq_controller soc_irq;
-	struct irq_bcm_priv priv;
+	enable_global_interrupts();
 
 	soc_irq.priv = &priv;
 	init_irq_controller(&soc_irq, IRQ_BCM_SOC);
@@ -48,10 +44,20 @@ static void enable_interrupts(void)
 	soc_irq.enable_interrupt(soc_irq.priv, BCM_DEFAULT_IRQ_TIMER);
 }
 
-void init_device_drivers(void)
+static void init_device_drivers(void)
 {
-	enable_interrupts();
 	init_timer(&global_timer);
+	enable_interrupts();
+}
+
+/* I'm alive */
+static void heartbeat(void)
+{
+
+	kprintf("\n\n** Welcome to HobOS! **\n\n");
+
+	kprintf("Hello from vmem\n");
+	global_timer.set_timer(&global_timer, 0x200000);
 }
 
 void main()
@@ -60,7 +66,6 @@ void main()
 	init_mmu();
 	setup_console();
 
-	enable_global_interrupts();
 	init_device_drivers();
 	
 	init_smp();
@@ -69,7 +74,8 @@ void main()
 	heartbeat();
 
 	while (1) {
-			//start shell here
-			asm volatile("wfe");
+		//start shell here
+		kprintf("waiting\n");
+		delay(0x20000000);
 	}
 }

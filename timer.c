@@ -23,25 +23,18 @@ static uint64_t read_timer64(struct timer *t)
 	return val;
 }
 
-static void write_timer32(bool msb, uint32_t val, struct timer *t)
-{
-	if (msb) 
-		mmio_write(t->msb, val);
-
-	mmio_write(t->lsb, val);
-}
-
-static void write_timer64(uint64_t val, struct timer *t)
-{
-	mmio_write(t->lsb, (val & 0xFFFF));
-	mmio_write(t->msb, ((val >> 32) & 0xFFFF));
-}
-
 //TODO: extract these register addresses from a priv structure
 static void set_timer (struct timer *t, uint32_t val) 
 {
-	mmio_write(BCM2835(C3), 0x1);
-	t->set_timer_val64(0, t);
+	uint32_t target_val = read_timer32(0, t);
+
+	target_val += val;
+	mmio_write(BCM2835(C1), target_val);
+}
+
+static void reset_timer (struct timer *t)
+{
+	mmio_write(BCM2835(BASE_OFF), BITP(1));
 }
 
 /*
@@ -75,16 +68,10 @@ void init_timer(struct timer *t)
 		t->read_timer64 = read_timer64;
 	}
 
-	if (!t->set_timer_val32) {
-		t->set_timer_val32 = write_timer32; 
-		t->set_timer_val64 = write_timer64;
-	}
-
 	t->set_timer = set_timer;
+	t->reset_timer = reset_timer;
 	//t->enable_interrupts = enable_interrupts;
 	//t->disable_interrupts = disable_interrupts;
-
-	write_timer64(0, t);
 
 	return;	
 }
