@@ -1,7 +1,5 @@
 #include "hobos/gpio.h"
 
-extern uint8_t rpi_version;
-
 uint64_t gpio_reg(uint64_t base, uint32_t offset)
 {
 	return (base + offset);

@@ -57,7 +57,6 @@ static void push_worker_job(struct worker_job *jobs, struct worker_job *n)
 		tail->job_pos = 0;
 	
 	n->job_pos = JOBS_TAIL;
-
 	meta->tail = n;
 }
 

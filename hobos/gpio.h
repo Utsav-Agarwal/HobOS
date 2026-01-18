@@ -2,11 +2,9 @@
 #define __GPIO_H
 
 #include "chardev.h"
-#include "mmio.h"
 #include "gpio/bcm2712.h"
 #include "gpio/bcm2835.h"
-
-extern uint64_t *mmio_base;
+#include "mmio.h"
 
 struct gpio_controller {
 	uint64_t *base;

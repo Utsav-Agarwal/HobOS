@@ -1,8 +1,6 @@
 #include "hobos/uart.h"
 #include "hobos/asm/barrier.h"
 
-extern uint64_t rpi_version;
-
 static void uart_init(void *priv);
 
 struct char_device uart_dev = {

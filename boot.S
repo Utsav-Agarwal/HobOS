@@ -28,11 +28,18 @@ _start:
     b       5b
 
 
+handle_irq:
+    bl save_curr_context
+    bl test
+    bl resume_from_context
+    eret
+
 .align 11
 vector_table:
 	b sync_exception_handler
-	b 0x200
-	b 0x200
+	b handle_irq
+	b 0x200	//FIQ
+	b 0x200	//SError
 
 .align 11
 sync_exception_handler:
