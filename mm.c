@@ -1,7 +1,7 @@
-#include "hobos/lib/pt_lib.h"
-#include "hobos/lib/stdlib.h"
-#include "hobos/mmio.h"
-#include "hobos/mmu.h"
+#include <hobos/lib/pt_lib.h>
+#include <hobos/lib/stdlib.h>
+#include <hobos/mmio.h>
+#include <hobos/mmu.h>
 
 extern struct page_table_desc *global_page_tables[10];
 

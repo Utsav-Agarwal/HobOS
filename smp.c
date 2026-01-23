@@ -1,7 +1,7 @@
-#include "hobos/smp.h"
-#include "hobos/mmu.h"
-#include "hobos/asm/barrier.h"
-#include "hobos/kstdio.h"
+#include <hobos/smp.h>
+#include <hobos/mmu.h>
+#include <hobos/asm/barrier.h>
+#include <hobos/kstdio.h>
 
 extern void setup_stack(void);
 extern void jump_to_EL1(void);

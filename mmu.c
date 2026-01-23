@@ -1,7 +1,7 @@
-#include "hobos/asm/barrier.h"
-#include "hobos/mmu/bcm2835.h"
-#include "hobos/mmu.h"
-#include "hobos/smp.h"
+#include <hobos/asm/barrier.h>
+#include <hobos/mmu/bcm2835.h>
+#include <hobos/mmu.h>
+#include <hobos/smp.h>
 
 #define map_sz		512
 #define ID_PG_SZ	PAGE_SIZE

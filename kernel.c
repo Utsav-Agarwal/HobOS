@@ -1,9 +1,9 @@
-#include "hobos/kstdio.h"
-#include "hobos/mmu.h"
-#include "hobos/smp.h"
-#include "hobos/timer.h"
-#include "hobos/irq/irq_bcm.h"
-#include "hobos/asm/barrier.h"
+#include <hobos/kstdio.h>
+#include <hobos/mmu.h>
+#include <hobos/smp.h>
+#include <hobos/timer.h>
+#include <hobos/irq/irq_bcm.h>
+#include <hobos/asm/barrier.h>
 
 extern struct char_device uart_dev;
 extern void enable_global_interrupts(void);

@@ -1,6 +1,6 @@
-#include "hobos/kstdio.h"
-#include "hobos/lib/pt_lib.h"
-#include "hobos/asm/barrier.h"
+#include <hobos/kstdio.h>
+#include <hobos/lib/pt_lib.h>
+#include <hobos/asm/barrier.h>
 
 //global list of page tables
 //TODO: make size dynamic
