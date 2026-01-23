@@ -1,4 +1,4 @@
-#include "hobos/gpio.h"
+#include <hobos/gpio.h>
 
 uint64_t gpio_reg(uint64_t base, uint32_t offset)
 {

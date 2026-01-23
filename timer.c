@@ -1,6 +1,6 @@
-#include "hobos/timer.h"
-#include "hobos/lib/stdlib.h"
-#include "hobos/kstdio.h"
+#include <hobos/timer.h>
+#include <hobos/lib/stdlib.h>
+#include <hobos/kstdio.h>
 
 extern uint8_t rpi_version;
 struct timer global_timer;

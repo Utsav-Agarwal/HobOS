@@ -1,6 +1,6 @@
-#include "hobos/mmio.h"
-#include "hobos/kstdio.h"
-#include "hobos/asm/barrier.h"
+#include <hobos/mmio.h>
+#include <hobos/kstdio.h>
+#include <hobos/asm/barrier.h>
 
 uint8_t rpi_version;
 uint64_t *mmio_base;

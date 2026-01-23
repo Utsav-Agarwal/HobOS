@@ -1,5 +1,5 @@
-#include "hobos/uart.h"
-#include "hobos/asm/barrier.h"
+#include <hobos/uart.h>
+#include <hobos/asm/barrier.h>
 
 static void uart_init(void *priv);
 

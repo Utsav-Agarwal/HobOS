@@ -1,8 +1,8 @@
-#include "hobos/io.h"
-#include "hobos/irq/irq_bcm.h"
-#include "hobos/lib/stdlib.h"
-#include "hobos/mmio.h"
-#include "hobos/kstdio.h"
+#include <hobos/io.h>
+#include <hobos/irq/irq_bcm.h>
+#include <hobos/lib/stdlib.h>
+#include <hobos/mmio.h>
+#include <hobos/kstdio.h>
 
 static void bcm_irq_enable_interrupt (void *priv, 
 		uint64_t int_nr)
