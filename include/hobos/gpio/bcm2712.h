@@ -10,10 +10,10 @@
 #define RP1_NR_GPIO_PINS	27
 
 #define RP1_GPIO_STATUS_ADDR(pin_nr) \
-	(gpio_base + 0x08*pin_nr) 
+	(gpio_base + 0x08 * pin_nr)
 
 #define RP1_GPIO_CTRL_ADDR(pin_nr) \
-	(RP1_GPIO_STATUS_ADDR(pin_nr) + 0x04) 
+	(RP1_GPIO_STATUS_ADDR(pin_nr) + 0x04)
 
 #define RP1_RW_OFFSET			0x0000
 #define RP1_XOR_OFFSET			0x1000
@@ -39,7 +39,6 @@
 #define RP1_GPIO_CTRL_IRQRESET		BIT(28)
 #define RP1_GPIO_CTRL_IRQOVER_LSB	30
 #define RP1_GPIO_CTRL_IRQOVER_MASK	0xc0000000
-
 
 /*
  * RP1 uses the RIO interface to manipulate GPIO

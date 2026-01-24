@@ -4,12 +4,11 @@
 #include "lib/pt_lib.h"
 #include "lib/stdlib.h"
 
-
 struct ttbr_cfg {
-	uint64_t table_base_addr;
-	uint16_t asid;
-	uint8_t	skl;
-	uint8_t cnp;
+	unsigned long table_base_addr;
+	unsigned short asid;
+	unsigned char	skl;
+	unsigned char cnp;
 };
 
 //		BADDR = TTBR0_EL1 [87:80] [47:5]
@@ -24,30 +23,29 @@ struct ttbr_cfg {
 
 //		SKL [2:1]
 //		==========================
-//skips the regular start level when starting to walk from 
+//skips the regular start level when starting to walk from
 //TTBR0_EL1
 #define SKIP_LEVEL(n)	n
 
-
-//		CnP (common not private) [0] 
+//		CnP (common not private) [0]
 //		==========================
 // Indicates TTBR0_EL1 is a member of a common set
 
-#define CNP_PRIVATE 		0x0
-#define CNP_COMMON 		0x1
+#define CNP_PRIVATE		0x0
+#define CNP_COMMON		0x1
 
 //
 //NOTE: By convention, kernel is mapped on the higher phyiscal address range
 
 //-----
-//TCR_EL1 : 
+//TCR_EL1 :
 //-----
 struct tcr_el1_cfg {
-	uint8_t	t0_sz;
-	uint8_t t1_sz;
-	uint8_t tg0;
-	uint8_t tg1;
-	uint8_t ips_sz;
+	unsigned char	t0_sz;
+	unsigned char t1_sz;
+	unsigned char tg0;
+	unsigned char tg1;
+	unsigned char ips_sz;
 };
 
 #define EPD0_POS	7
@@ -78,7 +76,6 @@ struct tcr_el1_cfg {
 #define TG0_POS			14
 #define TG1_POS			30
 
-
 #define TG0_GRANULE_SZ_4KB		0b00LL
 #define TG0_GRANULE_SZ_16KB		0b10LL
 #define TG0_GRANULE_SZ_64KB		0b01LL
@@ -96,18 +93,17 @@ struct tcr_el1_cfg {
 #define NORMAL_DEVICE_MEM	0b0000
 #define NORMAL_NON_CACHEABLE	0b0100
 
-
 //MAIR
 
 #define	NO_ALLOC	0b0
 #define ALLOC		0b1
 
 //Device memory
-#define MAIR_DEV(g, r, e)	((g + r + e) << 2) 
+#define MAIR_DEV(g, r, e)	((g + r + e) << 2)
 
 //Normal memory
 
-#define MAIR_MEM_RW(msb_2, r, w)	((msb_2 << 2) | (r < 1) | w)  
+#define MAIR_MEM_RW(msb_2, r, w)	((msb_2 << 2) | (r < 1) | w)
 
 //Outer cache
 #define MAIR_MEM_O_NC	0b0100
@@ -140,15 +136,13 @@ struct mair {
 	struct mair_attr attr3;
 };
 
-
 extern volatile unsigned char __data_start;
 extern volatile unsigned char __end;
 extern volatile unsigned char __core0_stack;
 
 void init_mmu(void);
-uint64_t switch_vmem(void);
-void map_pa_to_va_pg(uint64_t pa, uint64_t va, struct page_table_desc *pt_top,
-		uint64_t flags);
-
+unsigned long switch_vmem(void);
+void map_pa_to_va_pg(unsigned long pa, unsigned long va, struct page_table_desc *pt_top,
+		     unsigned long flags);
 
 #endif

@@ -17,26 +17,26 @@
 #define JOBS_TAIL	0xAF
 
 struct jobs_meta {
-	struct worker_job *head;		
-	struct worker_job *tail;		
+	struct worker_job *head;
+	struct worker_job *tail;
 };
 
 struct worker_job {
-	volatile uint64_t *fn_addr;
+	volatile unsigned long *fn_addr;
 	struct worker_job *next;
 	struct jobs_meta *meta;	//only applicable for head
-	uint8_t job_pos;
+	unsigned char job_pos;
 };
 
 struct worker {
-	uint8_t core_id;
-	volatile uint32_t mutex[2];
-	volatile uint64_t queue_lock; //TODO
-	volatile uint64_t *exec_addr;  //spin table entry
+	unsigned char core_id;
+	volatile unsigned mutex[2];
+	volatile unsigned long queue_lock; //TODO
+	volatile unsigned long *exec_addr;  //spin table entry
 	struct worker_job *jobs;
 };
 
-extern int curr_core_id(void);
+int curr_core_id(void);
 
 void init_smp(void);
 void smp_switch_vmem(void);

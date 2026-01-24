@@ -3,10 +3,9 @@
 
 #include "barrier.h"
 
-
 void inline acquire_mutex(uint32_t *lock)
 {
-	uint32_t tmp, val;
+	unsigned tmp, val;
 
 	val = 1;
 	asm volatile(
@@ -28,11 +27,11 @@ void inline acquire_mutex(uint32_t *lock)
 //being released
 void inline release_mutex(uint32_t *m)
 {
-	asm volatile("stlr %w1, %0;\n"	
-		     "sev;\n"		
-		     :"=Q"(*(m))	
-		     :"r"(0)		
-		     :"memory");	
+	asm volatile("stlr %w1, %0;\n"
+		     "sev;\n"
+ : "=Q"(*(m))
+ : "r"(0)
+ : "memory");
 }
 
 #endif

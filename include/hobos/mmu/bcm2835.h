@@ -5,15 +5,15 @@
 
 //TODO: use linker script definitions
 #define PAGE_SIZE	KB(4)
-#define TABLE_BADDR	(uint64_t)(&__end)
+#define TABLE_BADDR	(unsigned long)(&__end)
 #define TTBR1_OFFSET_B	0
 #define TTBR1_OFFSET	0
 #define MMU_TSZ		25
 
 //default magic value required for rpi3
-#define SCTLR_QUIRKS	
+#define SCTLR_QUIRKS
 
-__inline__ void handle_sctlr_quirks(uint64_t *sctlr)
+inline void handle_sctlr_quirks(unsigned long *sctlr)
 {
 	*sctlr = 0xC00800;
 }
@@ -23,14 +23,14 @@ struct ttbr_cfg ttbr0_el1 = {
 	.asid = 0,
 	.skl = 0,
 	.cnp = 1,
-}; 
+};
 
 struct ttbr_cfg ttbr1_el1 = {
 	.table_base_addr =  TABLE_BADDR + TTBR1_OFFSET_B,
 	.asid = 0,
 	.skl = 0,
 	.cnp = 1,
-}; 
+};
 
 struct tcr_el1_cfg tcr_el1 = {
 	.t0_sz = 25,	//addresses 2^39 = 512GB
@@ -40,18 +40,18 @@ struct tcr_el1_cfg tcr_el1 = {
 	.ips_sz = 2,	//TODO: Autodetect
 };
 
-const static struct mair_attr at[] = {
+static const struct mair_attr at[] = {
 	{
-		.outer_cache = MAIR_MEM_O_WB_NT(ALLOC,ALLOC), 
-		.inner_cache = MAIR_MEM_I_WB_NT(ALLOC,ALLOC),
+		.outer_cache = MAIR_MEM_O_WB_NT(ALLOC, ALLOC),
+		.inner_cache = MAIR_MEM_I_WB_NT(ALLOC, ALLOC),
 	}, //Device memory
 	{
-		.outer_cache = MAIR_DEV(0,0,1) >> 4, 
-		.inner_cache = MAIR_DEV(0,0,1),
+		.outer_cache = MAIR_DEV(0, 0, 1) >> 4,
+		.inner_cache = MAIR_DEV(0, 0, 1),
 	}, //Uncacheable memory
 	{
-		.outer_cache = MAIR_DEV(0,0,0) >> 4,
-		.inner_cache = MAIR_DEV(0,0,0),
+		.outer_cache = MAIR_DEV(0, 0, 0) >> 4,
+		.inner_cache = MAIR_DEV(0, 0, 0),
 	},
 };
 

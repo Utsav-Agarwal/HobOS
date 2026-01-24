@@ -1,4 +1,4 @@
-#ifdef 	__NOSTDLIBC_ARG_H
+#ifdef	__NOSTDLIBC_ARG_H
 #define __NOSTDLIBC_ARG_H
 
 #include <stdarg.h>
