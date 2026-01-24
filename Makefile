@@ -1,8 +1,8 @@
-VM=qemu-system-aarch64
-TOOLS=tools
-SCRIPTS=${TOOLS}/scripts
-TOOLCHAIN_PATH=${TOOLS}/aarch64-toolchain
-TOOLCHAIN=${TOOLCHAIN_PATH}/bin/aarch64-none-elf-
+VM = qemu-system-aarch64
+TOOLS = tools
+SCRIPTS = ${TOOLS}/scripts
+TOOLCHAIN_PATH = ${TOOLS}/aarch64-toolchain
+TOOLCHAIN ?= ${TOOLCHAIN_PATH}/bin/aarch64-none-elf-
 CC = ${TOOLCHAIN}gcc
 AS = ${TOOLCHAIN}as
 LD = ${TOOLCHAIN}ld
