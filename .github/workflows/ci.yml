@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  prerequisites:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: install dependencies
+      run: make install
+
+  compile_kernel:
+    
+    needs: prerequisites
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: install dependencies
+      run: make install
+    - name: compile kernel
+      run: make
+  
+  checkpatch:
+    
+    needs: prerequisites
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - uses: actions/checkout@v4
+    - name: install dependencies
+      run: make install-ci
+    - name: code quality
+      run: make ci
