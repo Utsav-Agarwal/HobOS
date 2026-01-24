@@ -1,4 +1,5 @@
 VM=qemu-system-aarch64
+SCRIPTS=scripts
 TOOLCHAIN_PATH=aarch64-toolchain
 TOOLCHAIN=${TOOLCHAIN_PATH}/bin/aarch64-none-elf-
 CC = ${TOOLCHAIN}gcc
@@ -14,7 +15,7 @@ install: install-packages install-toolchain install-ci
 
 #debian only
 install-packages:
-	sudo apt install make git gcc -y
+	sudo apt install make git gcc perl -y
 
 install-toolchain:
 	wget https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-x86_64-aarch64-none-elf.tar.xz
@@ -27,6 +28,12 @@ install-toolchain:
 
 install-vm:
 	sudo apt install ${VM}
+
+install-ci: install-toolchain
+	rm -f checkpatch.pl
+	wget -P ${SCRIPTS}/ https://raw.githubusercontent.com/torvalds/linux/master/scripts/checkpatch.pl 
+	chmod +x ${SCRIPTS}/checkpatch.pl
+	chmod +x ${SCRIPTS}/checkpatch.sh
 
 boot.o: boot.S
 	${CC} ${CFLAGS} -c boot.S -o boot.o 
@@ -52,3 +59,11 @@ run_no_kernel: all
 
 clean:
 	rm -rf *.o *.img *.elf
+
+cleanall: clean
+	rm -rf *.log
+
+run_checkpatch:
+	./${SCRIPTS}/checkpatch.sh ${SCRIPTS}
+
+ci: kernel8.img run_checkpatch
