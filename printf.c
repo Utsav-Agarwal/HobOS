@@ -1,18 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0-only
 #include <hobos/lib/stdlib.h>
 #include <hobos/nostdlibc_arg.h>
 #include <hobos/kstdio.h>
 #include <stdarg.h>
-
-
-#define DEBUG_PRINT_C(c) \
-	puts("\nDEBUG_START\n"); \
-	putc(c); \
-	puts("\nDEBUG_END\n");
-
-#define DEBUG_PRINT_S(s) \
-	puts("\nDEBUG_START\n"); \
-	puts(s); \
-	puts("\nDEBUG_END\n");
 
 #define D_BUF_SZ	128
 
@@ -22,7 +12,7 @@ union data {
 	char *s;
 };
 
-char *d_to_s(int i, char *c, uint8_t sz) 
+char *d_to_s(int i, char *c, uint8_t sz)
 {
 
 	//keep shifting the next digit to the units place

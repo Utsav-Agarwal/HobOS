@@ -5,7 +5,7 @@
 #include "gpio.h"
 #include "uart.h"
 
-extern uint64_t *mmio_base;
+extern unsigned long *mmio_base;
 
 /*
  * NOTE: This currently only implements mini UART - which is supported upto
@@ -14,7 +14,7 @@ extern uint64_t *mmio_base;
  * For RPI 5, PLL01 UART is needed, which is currently being worked on.
  * */
 
-#define AUX_IO_BASE 	0x215000
+#define AUX_IO_BASE	0x215000
 
 #define AUX_ENABLES     0x04
 #define AUX_MU_IO       0x40

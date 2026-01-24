@@ -1,7 +1,7 @@
 #ifndef __BCM2836_TIMER
 #define	__BCM2836_TIMER
 
-// 64-bit core timer 
+// 64-bit core timer
 #define	CTRL				0x00
 #define TIMER_PRESCALER			0x08
 
@@ -17,11 +17,9 @@
 #define	CORE2_TIMER_CTRL		0x48
 #define	CORE3_TIMER_CTRL		0x4C
 
-
 struct bcm2835_timer {
-	void (*set_timer_inc) (bool inc_by_2);
-	void (*set_timer_src) (bool apb);	
+	void (*set_timer_inc)(bool inc_by_2);
+	void (*set_timer_src)(bool apb);
 };
-
 
 #endif

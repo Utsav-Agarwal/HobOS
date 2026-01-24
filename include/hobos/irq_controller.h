@@ -9,12 +9,12 @@
 struct irq_controller {
 	char name[128];
 	void *priv;
-	
-	uint8_t type;
-	uint64_t *base;	
-	
-	void (*enable_interrupt) (void *priv, uint64_t interrupt_nr);
-	void (*disable_interrupt) (void *priv, uint64_t interrupt_nr);
+
+	unsigned char type;
+	unsigned long *base;
+
+	void (*enable_interrupt)(void *priv, unsigned long interrupt_nr);
+	void (*disable_interrupt)(void *priv, unsigned long interrupt_nr);
 };
 
 void init_irq_controller(struct irq_controller *irq, uint8_t type);

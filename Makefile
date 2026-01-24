@@ -1,6 +1,7 @@
 VM=qemu-system-aarch64
-SCRIPTS=scripts
-TOOLCHAIN_PATH=aarch64-toolchain
+TOOLS=tools
+SCRIPTS=${TOOLS}/scripts
+TOOLCHAIN_PATH=${TOOLS}/aarch64-toolchain
 TOOLCHAIN=${TOOLCHAIN_PATH}/bin/aarch64-none-elf-
 CC = ${TOOLCHAIN}gcc
 AS = ${TOOLCHAIN}as
@@ -21,7 +22,7 @@ install-toolchain:
 	wget https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-x86_64-aarch64-none-elf.tar.xz
 	mkdir -p ${TOOLCHAIN_PATH}
 	tar -xvf arm-gnu-toolchain-15.2.rel1-x86_64-aarch64-none-elf.tar.xz -C ${TOOLCHAIN_PATH}
-	mv aarch64-toolchain/arm-gnu-toolchain-15.2.rel1-x86_64-aarch64-none-elf/ tmp
+	mv ${TOOLCHAIN_PATH}/arm-gnu-toolchain-15.2.rel1-x86_64-aarch64-none-elf/ tmp
 	rm -rf ${TOOLCHAIN_PATH}
 	mv tmp ${TOOLCHAIN_PATH}
 	rm -rf *.xz
