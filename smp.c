@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
 #include <hobos/smp.h>
 #include <hobos/mmu.h>
 #include <hobos/asm/barrier.h>
@@ -9,30 +11,31 @@ extern void jump_to_EL1(void);
 #define declare_smp_worker_jobs(fn) \
 	struct worker_job fn##_jobs[] = {			\
 		{					\
-			.fn_addr = (uint64_t *)fn,	\
+			.fn_addr = (unsigned long *)fn,	\
 		},					\
 		{					\
-			.fn_addr = (uint64_t *)fn,	\
+			.fn_addr = (unsigned long *)fn,	\
 		},					\
 		{					\
-			.fn_addr = (uint64_t *)fn,	\
+			.fn_addr = (unsigned long *)fn,	\
 		},					\
 		{					\
-			.fn_addr = (uint64_t *)fn,	\
+			.fn_addr = (unsigned long *)fn,	\
 		},					\
 	}
 
-struct worker_job smp_worker_jobs[MAX_REMOTE_CORE_ID+1]; //just one job per 
-							 //proc for now
-struct jobs_meta smp_worker_jobs_meta[MAX_REMOTE_CORE_ID+1]; //only need 1
-struct worker smp_worker[MAX_REMOTE_CORE_ID+1];
+//just one job per proc for now
+struct worker_job smp_worker_jobs[MAX_REMOTE_CORE_ID + 1];
+//only need 1
+struct jobs_meta smp_worker_jobs_meta[MAX_REMOTE_CORE_ID + 1];
+struct worker smp_worker[MAX_REMOTE_CORE_ID + 1];
 
 static inline void pop_worker_job(struct worker *w)
 {
 	struct worker_job *head = w->jobs;
 	struct worker_job *next_job = head->next;
 	struct jobs_meta *meta = head->meta;
-	
+
 	next_job->meta = meta;
 	meta->head = next_job;
 
@@ -49,13 +52,12 @@ static void push_worker_job(struct worker_job *jobs, struct worker_job *n)
 	struct worker_job *tail = jobs->meta->tail;
 	struct jobs_meta *meta = jobs->meta;
 
-	
 	tail->next = n;
 
 	//make sure its not a single element list
 	if (tail->job_pos != JOBS_HEAD)
 		tail->job_pos = 0;
-	
+
 	n->job_pos = JOBS_TAIL;
 	meta->tail = n;
 }
@@ -71,18 +73,17 @@ static void push_worker_job(struct worker_job *jobs, struct worker_job *n)
 //essentially the entire purpose of this worker process is to flush the jobs
 //that have been queued on it. Let yield be called with an interrupt and the job will
 //be flushed.
-void __park_and_wait (void);
+void __park_and_wait(void);
 static void worker_process(void)
 {
-	uint8_t core = curr_core_id();
-	struct worker *w = &smp_worker[core]; 
-	void (*execute) (void);
+	u8 core = curr_core_id();
+	struct worker *w = &smp_worker[core];
+	void (*execute)(void);
 
 	//TODO: Add locking to queue so that it can be dynamically
 	//be modified by another core. This would result in us not having
 	//to go back to __park_and_wait. This will be critical once processes
 	//come into the picture.
-	
 
 	while (1) {
 		execute = (void (*)(void)) (w->jobs->fn_addr);
@@ -90,29 +91,29 @@ static void worker_process(void)
 
 		if (!w->jobs->next)
 			break;
-		
+
 		pop_worker_job(w);
 	}
 
 	__park_and_wait();
 }
 
-static void set_job_queue_head(struct worker_job *job, uint64_t fn_addr)
+static void set_job_queue_head(struct worker_job *job, unsigned long fn_addr)
 {
 	//TODO:
 	//job.job_meta = malloc(sizeof(struct jobs_meta));
 
 	job->job_pos = JOBS_HEAD;
-	job->fn_addr = (uint64_t *)fn_addr;
+	job->fn_addr = (unsigned long *)fn_addr;
 	job->next = 0;
 
 	job->meta->head = job;
 	job->meta->tail = job;
 }
 
-static void __init_worker(uint8_t core)
+static void __init_worker(char core)
 {
-	uint64_t *spin_table = (volatile uint64_t *) SPIN_TABLE_BASE;
+	u64 *spin_table = (volatile unsigned long *)SPIN_TABLE_BASE;
 	struct worker *w = &smp_worker[core];
 
 	w->exec_addr = &spin_table[core];
@@ -123,42 +124,42 @@ static void __init_worker(uint8_t core)
 }
 
 //kickstart the core to flush the job queue
-static int __run_core(uint8_t core)
+static int __run_core(char core)
 {
 	if (core > MAX_REMOTE_CORE_ID)
-	    return -1;
-	
+	return -1;
+
 	struct worker *w = &smp_worker[core];
-	volatile uint32_t *m0 = &w->mutex[0];
-	volatile uint32_t *m1 = &w->mutex[1];
-	uint64_t *exec_addr = w->exec_addr;
+	volatile u32 *m0 = &w->mutex[0];
+	volatile u32 *m1 = &w->mutex[1];
+	u64 *exec_addr = w->exec_addr;
 
 	//we need some sync/ordering here since 2 processors
 	//are competing to write to a common memory location (semaphores[..])
 	//i.e - the scheduler(master) and the worker(slave)
-	acquire_mutex(m0); 
-	smp_store_mb(*exec_addr, (uint64_t) worker_process); 
+	acquire_mutex(m0);
+	smp_store_mb(*exec_addr, (unsigned long)worker_process);
 	acquire_mutex(m1);
 
 	asm volatile("sev");
 	return 0;
 }
 
-static int __setup_core(uint8_t core)
+static int __setup_core(char core)
 {
 	if (core > MAX_REMOTE_CORE_ID)
-	    return -1;
-	
+	return -1;
+
 	struct worker *w = &smp_worker[core];
-	volatile uint32_t *m0 = &w->mutex[0];
-	volatile uint32_t *m1 = &w->mutex[1];
-	volatile uint64_t *exec_addr = w->exec_addr;
+	volatile u32 *m0 = &w->mutex[0];
+	volatile u32 *m1 = &w->mutex[1];
+	volatile u64 *exec_addr = w->exec_addr;
 
 	//we need some sync/ordering here since 2 processors
 	//are competing to write to a common memory location (semaphores[..])
 	//i.e - the scheduler(master) and the worker(slave)
-	acquire_mutex(m0); 
-	smp_store_mb(*exec_addr, (uint64_t) setup_stack); 
+	acquire_mutex(m0);
+	smp_store_mb(*exec_addr, (unsigned long)setup_stack);
 	acquire_mutex(m1);
 
 	asm volatile("sev");
@@ -167,23 +168,22 @@ static int __setup_core(uint8_t core)
 
 //core has nothing to do, so sleep
 //TODO: maybe we can hardcode now instead of using trigger?
-void __park_and_wait (void)
+void __park_and_wait(void)
 {
-
-	uint8_t core = curr_core_id();
+	u8 core = curr_core_id();
 	struct worker *w = &smp_worker[core];
-	volatile uint64_t *exec_addr = w->exec_addr;
-	volatile uint32_t *m0 = &w->mutex[0];
-	volatile uint32_t *m1 = &w->mutex[1];
-	void (*trigger) (void);
+	volatile u64 *exec_addr = w->exec_addr;
+	volatile u32 *m0 = &w->mutex[0];
+	volatile u32 *m1 = &w->mutex[1];
+	void (*trigger)(void);
 
-	release_mutex(m1);	
+	release_mutex(m1);
 	release_mutex(m0);
 	//keep waiting until you see something new
 	while (1) {
 		while (!READ_ONCE(*m1))
 			asm volatile ("wfe");
-		
+
 		trigger = (void (*)(void)) *(exec_addr);
 		trigger();
 	}
@@ -195,12 +195,12 @@ void init_smp(void)
 {
 	int i;
 
-	for(i=1; i<=MAX_REMOTE_CORE_ID; i++) {
+	for (i = 1; i <= MAX_REMOTE_CORE_ID; i++) {
 		smp_worker_jobs[i].meta = &smp_worker_jobs_meta[i];
-		set_job_queue_head(&smp_worker_jobs[i], (uint64_t) jump_to_EL1);
+		set_job_queue_head(&smp_worker_jobs[i], (unsigned long)jump_to_EL1);
 		push_worker_job(&smp_worker_jobs[i], &init_mmu_jobs[i]);
 		push_worker_job(&smp_worker_jobs[i], &switch_vmem_jobs[i]);
-		
+
 		__init_worker(i);
 		__setup_core(i);
 		__run_core(i);

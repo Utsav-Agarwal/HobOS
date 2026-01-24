@@ -1,34 +1,29 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+
 #ifndef __MMIO_H_
 #define __MMIO_H_
 
-#include "lib/stdlib.h"
-#include "lib/pt_lib.h"
-
-
-#define u64	uint64_t
-#define u32	uint32_t
-#define u16	uint16_t
-#define u8	uint8_t
+#include <hobos/io.h>
+#include <hobos/types.h>
+#include <hobos/lib/pt_lib.h>
 
 #define write_reg(reg_addr, reg_size, val) \
-	*(u##reg_size *) reg_addr = val
+	iowrite##reg_size((unsigned char *)(reg_addr), val)
 
-#define clear_reg(reg_addr, reg_size) \
-	*(u##reg_size *) reg_addr = 0
+#define clear_reg(reg_addr, reg_size) write_reg(reg_addr, reg_size, 0)
 
 #define read_reg(reg_addr, reg_size) \
-	*(u##reg_size *) reg_addr
+	ioread##reg_size((unsigned char *) (reg_addr))
 
-
-extern uint8_t rpi_version;
-extern uint64_t *mmio_base;
+extern u8 rpi_version;
+extern u64 *mmio_base;
 
 void get_rpi_version(void);
-void *ioremap (uint64_t addr);
+void *ioremap(unsigned long addr);
 void mmio_init(void);
-void mmio_write(uint32_t offset, uint32_t val);
-void mmio_write_long(uint64_t offset, uint64_t val);
-uint32_t mmio_read(uint32_t offset);
-uint64_t mmio_read_long(uint64_t offset);
+void mmio_write(u32 offset, unsigned val);
+void mmio_write_long(u64 offset, unsigned long val);
+unsigned mmio_read(unsigned offset);
+unsigned long mmio_read_long(unsigned long offset);
 
 #endif

@@ -1,8 +1,13 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+
 #ifndef __MMU_H
 #define __MMU_H
 
-#include "lib/pt_lib.h"
-#include "lib/stdlib.h"
+#include <hobos/lib/pt_lib.h>
+#include <hobos/lib/stdlib.h>
+
+extern struct page_table_desc *global_page_tables[10];
+extern u8 pt_ctr;
 
 struct ttbr_cfg {
 	unsigned long table_base_addr;
@@ -125,8 +130,8 @@ struct tcr_el1_cfg {
 #define KERNEL_START	0xFFFFFF8000000000
 
 struct mair_attr {
-	uint8_t outer_cache: 4;
-	uint8_t inner_cache: 4;
+	char outer_cache: 4;
+	char inner_cache: 4;
 };
 
 struct mair {

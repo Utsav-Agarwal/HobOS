@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+
 #ifndef PROCESS_H
 #define PROCESS_H
 
@@ -15,7 +17,7 @@ struct ctxt {
 
 //TODO: maybe consider shared memory processes
 struct process {
-	unsigned pid;
+	unsigned int pid;
 	unsigned long tcr;				//save mmu config
 	struct page_table_desc *pt_baddr;	//page tables
 	struct ctxt *proc_state;			//context

@@ -1,7 +1,8 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+
 #ifndef SMP_H
 #define SMP_H
 
-#include <stdint.h>
 #include "asm/barrier.h"
 #include "asm/mutex.h"
 
@@ -30,7 +31,7 @@ struct worker_job {
 
 struct worker {
 	unsigned char core_id;
-	volatile unsigned mutex[2];
+	volatile unsigned int mutex[2];
 	volatile unsigned long queue_lock; //TODO
 	volatile unsigned long *exec_addr;  //spin table entry
 	struct worker_job *jobs;
