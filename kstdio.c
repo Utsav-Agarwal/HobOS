@@ -1,7 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
 #include <hobos/kstdio.h>
-
-
-extern uint8_t rpi_version;
 
 /*
  * This library links the serial drivers to commonly
@@ -18,7 +17,7 @@ extern uint8_t rpi_version;
 // write_console
 //
 // TODO: Establish locks when accessing peripherals
-// TODO: Establish a device registration layer, 
+// TODO: Establish a device registration layer,
 // enabling more code reuse, maybe use ifdefs and override function
 // names with selective compilation
 
@@ -26,9 +25,9 @@ struct char_device *_console;
 
 void init_console(struct char_device *console, void *priv)
 {
-    _console = console; 
+    _console = console;
     _console->init(priv);
-    
+
     //any extra init?
     if (_console->quirks)
 	_console->quirks(priv);
@@ -38,7 +37,6 @@ void putc(char c)
 {
     _console->putc(c);
 }
-
 
 char getc(void)
 {
@@ -59,5 +57,4 @@ int kprintf(const char *format, ...)
 	printed = vprintf(format, args);
 	va_end(args);
 	return printed;
-
 }

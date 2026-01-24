@@ -1,15 +1,16 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+
 #ifndef MUTEX_H
 #define MUTEX_H
 
-#include "barrier.h"
+#include <hobos/asm/barrier.h>
 
-void inline acquire_mutex(uint32_t *lock)
+inline void acquire_mutex(unsigned int *lock)
 {
-	unsigned tmp, val;
+	unsigned int tmp, val;
 
 	val = 1;
-	asm volatile(
-		"1: ldaxr  %w0, [%2]\n"    // load current value
+	asm volatile("1: ldaxr  %w0, [%2]\n"    // load current value
 		"   cbnz   %w0, 2f\n"      // if != 0, somebody else holds it
 		"   stxr   %w0, %w1, [%2]\n" // try to store 1
 		"   cbnz   %w0, 1b\n"      // if store failed, retry
@@ -25,13 +26,13 @@ void inline acquire_mutex(uint32_t *lock)
 //at this point we already own the mutex, so we dont really care
 //about exclusive access for writing. It will only be contested after
 //being released
-void inline release_mutex(uint32_t *m)
+inline void release_mutex(unsigned int *m)
 {
 	asm volatile("stlr %w1, %0;\n"
 		     "sev;\n"
- : "=Q"(*(m))
- : "r"(0)
- : "memory");
+		     : "=Q"(*(m))
+		     : "r"(0)
+		     : "memory");
 }
 
 #endif

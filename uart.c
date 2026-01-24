@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
 #include <hobos/uart.h>
 #include <hobos/asm/barrier.h>
 
@@ -7,26 +9,33 @@ struct char_device uart_dev = {
     .init = uart_init,
 };
 
-static inline uint64_t uart_reg(uint32_t offset)
+static inline unsigned long uart_reg(unsigned offset)
 {
-	return ((uint64_t)uart_dev.base + offset);	
+	return ((unsigned long)uart_dev.base + offset);
 }
 
 //TODO: return error codes
 /* Mini UART */
 static void mini_uart_init(void *priv)
 {
-	
 	struct gpio_controller *ctrl = (struct gpio_controller *)priv;
+	unsigned long r = 0;
 
 	//gpio not initialized
 	if (!ctrl->base)
 		return;
 
 	/* enable and halt uart peripheral */
-	read_reg(gpio_reg((uint64_t)ctrl->base, GPFSEL1), 32) &= ~(BITP(14)|BITP(15));
-	read_reg(uart_reg(AUX_ENABLES), 8) |= 0x1;
-	clear_reg(uart_reg(AUX_MU_CNTL), 8); 
+
+	r = read_reg(gpio_reg((unsigned long)ctrl->base, GPFSEL1), 32);
+	r &= ~(BITP(14) | BITP(15));
+	write_reg(gpio_reg((unsigned long)ctrl->base, GPFSEL1), 32, r);
+
+	r = read_reg(uart_reg(AUX_ENABLES), 8);
+	r |= 0x1;
+	write_reg(uart_reg(AUX_ENABLES), 8, r);
+
+	clear_reg(uart_reg(AUX_MU_CNTL), 8);
 
 	/* Disable all features for now */
 	clear_reg(uart_reg(AUX_MU_IER), 8);
@@ -34,18 +43,22 @@ static void mini_uart_init(void *priv)
 
 	/* set baud and enable 8 bit data */
 	//NOTE: for some reason BITP(2) also needs to be set in LCR
-	write_reg(uart_reg(AUX_MU_LCR), 8, 0x3); 
-	write_reg(uart_reg(AUX_MU_BAUD), 16, MINI_UART_BAUD); 
-	
+	write_reg(uart_reg(AUX_MU_LCR), 8, 0x3);
+	write_reg(uart_reg(AUX_MU_BAUD), 16, MINI_UART_BAUD);
+
 	/* get GPIO pins ready */
 	gpio_set_fn(14, GPF_ALT0, ctrl);
 	gpio_set_fn(15, GPF_ALT0, ctrl);
 
-	clear_reg(gpio_reg((uint64_t)ctrl->base, GPPUD), 32);
+	clear_reg(gpio_reg((unsigned long)ctrl->base, GPPUD), 32);
 	delay(150);
-	read_reg(gpio_reg((uint64_t)ctrl->base, GPPUDCLK0), 32) |= ((BITP(14) | BITP(15)));
+
+	r = read_reg(gpio_reg((unsigned long)ctrl->base, GPPUDCLK0), 32);
+	r |= ((BITP(14) | BITP(15)));
+	write_reg(gpio_reg((unsigned long)ctrl->base, GPPUDCLK0), 32, r);
+
 	delay(150);
-	clear_reg(gpio_reg((uint64_t)ctrl->base, GPPUDCLK0), 32);
+	clear_reg(gpio_reg((unsigned long)ctrl->base, GPPUDCLK0), 32);
 
 	/* enable transmit and recieve */
 	write_reg(uart_reg(AUX_MU_CNTL), 8, 0x3);
@@ -54,7 +67,7 @@ static void mini_uart_init(void *priv)
 static void mini_uart_wait_for_idle(void)
 {
 	/* wait for transmitter to idle */
-	while(!(read_reg(uart_reg(AUX_MU_LSR), 8) & BITP(6))) 
+	while (!(read_reg(uart_reg(AUX_MU_LSR), 8) & BITP(6)))
 		asm volatile("nop");
 }
 
@@ -64,13 +77,13 @@ static void mini_uart_putc(char c)
 	dma_mb();
 	write_reg(uart_reg(AUX_MU_IO), 8, c);
 	dma_mb();
-
 }
 
 static void mini_uart_puts(char *c)
 {
 	char *s = c;
-	while(*s)
+
+	while (*s)
 		mini_uart_putc(*s++);
 }
 
@@ -80,13 +93,14 @@ static char mini_uart_getc(void)
 	return 0;
 }
 
-static void uart_wait_for_idle(uint8_t tx_rx)
+static void uart_wait_for_idle(char tx_rx)
 {
 	if (tx_rx)
-		while (read_reg(uart_reg(FR), 8) & BITP(5)); //TX is FULL
+		while (read_reg(uart_reg(FR), 8) & BITP(5))
+			; //TX is FULL
 	else
-		while (read_reg(uart_reg(FR), 8) & BITP(4)); //RX is EMPTY
-
+		while (read_reg(uart_reg(FR), 8) & BITP(4))
+			; //RX is EMPTY
 }
 
 static void uart_putc(char c)
@@ -98,8 +112,8 @@ static void uart_putc(char c)
 static void uart_puts(char *c)
 {
 	char *s = c;
-	
-	while(*s)
+
+	while (*s)
 		uart_putc(*s++);
 }
 
@@ -111,27 +125,27 @@ static char uart_getc(void)
 
 static void uart_init(void *priv)
 {
-	uint64_t base;
+	u64 base;
 
-        if (rpi_version == 5) {
-    		base = RPI_5_UART0_BASE;
-    		
-    		uart_dev.getc = uart_getc;
-    		uart_dev.putc = uart_putc;
-    		uart_dev.puts = uart_puts;
-        } else {
-    		base = AUX_IO_BASE;
-    		uart_dev.priv = priv;
-    
-    		uart_dev.quirks = mini_uart_init;
-    		uart_dev.getc = mini_uart_getc;
-    		uart_dev.putc = mini_uart_putc;
-    		uart_dev.puts = mini_uart_puts;
-        }
+	if (rpi_version == 5) {
+		base = RPI_5_UART0_BASE;
 
-    	uart_dev.base = (uint64_t *)ioremap(base + (uint64_t)mmio_base);
+		uart_dev.getc = uart_getc;
+		uart_dev.putc = uart_putc;
+		uart_dev.puts = uart_puts;
+	} else {
+		base = AUX_IO_BASE;
+		uart_dev.priv = priv;
 
-	/* 
+		uart_dev.quirks = mini_uart_init;
+		uart_dev.getc = mini_uart_getc;
+		uart_dev.putc = mini_uart_putc;
+		uart_dev.puts = mini_uart_puts;
+	}
+
+	uart_dev.base = (unsigned long *)ioremap(base + (unsigned long)mmio_base);
+
+	/*
 	* NOTE: Current implementation is not complete and is assisted
 	* by the EEPROM enable_rp1_uart option.
 	*/

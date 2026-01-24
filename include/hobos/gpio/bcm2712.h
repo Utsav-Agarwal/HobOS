@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+
 #ifndef __BCM2712_GPIO_H
 #define __BCM2712_GPIO_H
 

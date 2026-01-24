@@ -1,4 +1,6 @@
-#ifdef	__NOSTDLIBC_ARG_H
+/* SPDX-License-Identifier: GPL-2.0-only */
+
+#ifndef	__NOSTDLIBC_ARG_H
 #define __NOSTDLIBC_ARG_H
 
 #include <stdarg.h>

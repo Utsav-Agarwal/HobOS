@@ -1,9 +1,12 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
+#include <hobos/lib/stdlib.h>
 #include <hobos/mmio.h>
 #include <hobos/kstdio.h>
 #include <hobos/asm/barrier.h>
 
-uint8_t rpi_version;
-uint64_t *mmio_base;
+u8 rpi_version;
+u64 *mmio_base;
 
 inline void get_rpi_version(void)
 {
@@ -17,79 +20,56 @@ inline void get_rpi_version(void)
 #endif
 
 	switch ((reg >> 4) & 0xFFF) {
-		case 0xB76: 
-			rpi_version=1;
-			break;
-		case 0xC07: 
-			rpi_version=2;
-			break;
-		case 0xD03: 
-			rpi_version=3; 
-			break;
-		case 0xD08: 
-			rpi_version=4; 
-			break;
-		case 0xD0B:
-			rpi_version=5;
-		default: 
-			rpi_version=0;
-			break;
+	case 0xB76:
+		rpi_version = 1;
+		break;
+	case 0xC07:
+		rpi_version = 2;
+		break;
+	case 0xD03:
+		rpi_version = 3;
+		break;
+	case 0xD08:
+		rpi_version = 4;
+		break;
+	case 0xD0B:
+		rpi_version = 5;
+	default:
+		rpi_version = 0;
+		break;
 	}
 }
 
-void mmio_write(uint32_t offset, uint32_t val)
+void mmio_write(u32 offset, unsigned val)
 {
-	dmb(osh);
-	*(volatile uint32_t *)((uint64_t) mmio_base + offset) = val;
-	dmb(osh);
+	iowrite32(((unsigned char *)mmio_base + offset), val);
 }
 
-uint32_t mmio_read(uint32_t offset)
+unsigned mmio_read(unsigned offset)
 {
-	uint32_t val;
+	u32 val;
 
-	dmb(osh);
-	val = *(volatile uint32_t *)((uint64_t) mmio_base + offset);
-	dmb(osh);
-	return val;
-}
-
-void mmio_write_long(uint64_t offset, uint64_t val)
-{
-	dmb(osh);
-	*(volatile uint64_t *)((uint64_t) mmio_base + offset) = val;
-	dmb(osh);
-}
-
-uint64_t mmio_read_long(uint64_t offset)
-{
-	uint64_t val;
-
-	dmb(osh);
-	val = *(volatile uint64_t *)((uint64_t) mmio_base + offset);
-        dmb(osh);
-
+	val = ioread32(((unsigned long)mmio_base + offset));
 	return val;
 }
 
 void mmio_init(void)
 {
 	get_rpi_version();
-	switch(rpi_version)
-	{
-		case 3:
-			mmio_base = (uint64_t *)0x3f000000;
-			break;
-		case 4:
-			mmio_base = (uint64_t *)0xfe000000;
-			break;
-		case 5:
-			//uart offset: 0x30000
-			//uart address: 0x107d001000
-			//uart address = BAR + offset
-			mmio_base = (uint64_t *)0x107cfd1000;
-			break;
-		default:
-			mmio_base = (uint64_t *)0x20000000;
+	switch (rpi_version) {
+	case 3:
+		mmio_base = (unsigned long *)0x3f000000;
+		break;
+	case 4:
+		mmio_base = (unsigned long *)0xfe000000;
+		break;
+	case 5:
+		//uart offset: 0x30000
+		//uart address: 0x107d001000
+		//uart address = BAR + offset
+		mmio_base = (unsigned long *)0x107cfd1000;
+		break;
+	default:
+		mmio_base = (unsigned long *)0x20000000;
 	}
 }

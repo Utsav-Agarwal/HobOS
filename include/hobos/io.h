@@ -1,14 +1,13 @@
-#include <stdint.h>
+/* SPDX-License-Identifier: GPL-2.0-only */
+
 #include "asm/barrier.h"
 
-void iowrite32(unsigned *addr, uint32_t val)
-{
-	dma_mb();
-	WRITE_ONCE(*addr, val);
-}
+void iowrite8(unsigned char *addr, unsigned val);
+void iowrite16(unsigned char *addr, unsigned val);
+void iowrite32(unsigned char *addr, unsigned val);
+void iowrite64(unsigned char *addr, unsigned val);
 
-uint32_t ioread32(unsigned long addr)
-{
-	dma_mb();
-	return READ_ONCE(addr);
-}
+unsigned char ioread8(unsigned long addr);
+unsigned short ioread16(unsigned long addr);
+unsigned int ioread32(unsigned long addr);
+unsigned long ioread64(unsigned long addr);

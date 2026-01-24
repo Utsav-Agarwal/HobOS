@@ -1,25 +1,25 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
 #include <hobos/kstdio.h>
 #include <hobos/mmu.h>
 #include <hobos/smp.h>
 #include <hobos/timer.h>
+#include <hobos/lib/stdlib.h>
 #include <hobos/irq/irq_bcm.h>
 #include <hobos/asm/barrier.h>
-
-extern struct char_device uart_dev;
-extern void enable_global_interrupts(void);
 
 struct irq_controller soc_irq;
 struct irq_bcm_priv priv;
 
-void kernel_test()
+void kernel_test(void)
 {
 	kprintf("Hello from irq\n");
-	
+
 	global_timer.reset_timer(&global_timer);
 	global_timer.set_timer(&global_timer, 0x200000);
 }
 
-static void setup_console() 
+static void setup_console(void)
 {
 	struct gpio_controller ctrl;
 
@@ -31,7 +31,8 @@ static void setup_console()
 void kernel_panic(void)
 {
 	kprintf("Kernel panicked!\n");
-	while (1);
+	while (1)
+		;
 }
 
 static void enable_interrupts(void)
@@ -40,7 +41,7 @@ static void enable_interrupts(void)
 
 	soc_irq.priv = &priv;
 	init_irq_controller(&soc_irq, IRQ_BCM_SOC);
-	
+
 	soc_irq.enable_interrupt(soc_irq.priv, BCM_DEFAULT_IRQ_TIMER);
 }
 
@@ -53,24 +54,23 @@ static void init_device_drivers(void)
 /* I'm alive */
 static void heartbeat(void)
 {
-
 	kprintf("\n\n** Welcome to HobOS! **\n\n");
 
 	kprintf("Hello from vmem\n");
 	global_timer.set_timer(&global_timer, 0x200000);
 }
 
-void main()
+void main(void)
 {
 	mmio_init();
 	init_mmu();
 	setup_console();
 
 	init_device_drivers();
-	
+
 	init_smp();
 	switch_vmem();
-	
+
 	heartbeat();
 
 	while (1) {

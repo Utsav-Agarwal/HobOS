@@ -1,7 +1,8 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+
 #ifndef CHARDEV_H
 #define CHARDEV_H
 
-#include <stdint.h>
 
 struct char_device {
 	unsigned long *base;
