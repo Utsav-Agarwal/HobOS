@@ -20,7 +20,7 @@ ignore_if_valid() {
 	fi
 }
 
-for i in $(find . -type f \( -name "*.c" -o -name "*.h" \) -o \( -path *tools/* \) -prune ); do
+for i in $(find . -type f \( -name "*.c" -o -name "*.h" \) -o \( -path "./tools/*" \) -prune ); do
 	
 	CHECKPATCH_EXTRA_FLAGS=$2
 	
