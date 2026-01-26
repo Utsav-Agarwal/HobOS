@@ -31,7 +31,7 @@ install-vm:
 	sudo apt install ${VM}
 
 install-ci: install-toolchain
-	rm -f checkpatch.pl
+	rm -f ${SCRIPTS}/checkpatch.pl
 	wget -P ${SCRIPTS}/ https://raw.githubusercontent.com/torvalds/linux/master/scripts/checkpatch.pl 
 	chmod +x ${SCRIPTS}/checkpatch.pl
 	chmod +x ${SCRIPTS}/checkpatch.sh

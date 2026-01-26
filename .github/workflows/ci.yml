@@ -13,30 +13,52 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+
     - name: install dependencies
       run: make install
 
   compile_kernel:
-    
+
     needs: prerequisites
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
+
     - name: install dependencies
       run: make install
+
     - name: compile kernel
       run: make
   
   checkpatch:
-    
-    needs: prerequisites
+
     runs-on: ubuntu-latest
 
     steps:
 
     - uses: actions/checkout@v4
+
     - name: install dependencies
       run: make install-ci
-    - name: code quality
-      run: make ci
+
+    - name: Run checkpatch on PR commits
+      run: |
+        BASE_SHA="${{ github.event.pull_request.base.sha }}"
+        HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+
+        # Fetch the base commit explicitly
+        git fetch origin "$BASE_SHA" || true
+
+        # Ensure HEAD exists locally (it does via checkout)
+        git fetch origin "$HEAD_SHA" || true
+
+        echo "Generating patch for PR commits..."
+        git format-patch --stdout "$BASE_SHA".."$HEAD_SHA" > pr.patch
+
+        tools/scripts/checkpatch.pl \
+          --no-tree \
+          --strict \
+          --show-types \
+          --color=never \
+          pr.patch
