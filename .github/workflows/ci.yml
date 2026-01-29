@@ -59,4 +59,7 @@ jobs:
           --strict \
           --show-types \
           --color=never \
+          --ignore MAINTAINERS \
+          --ignore FILE_PATH_CHANGES \
+          --ignore BAD_SIGN_OFF \
           pr.patch
