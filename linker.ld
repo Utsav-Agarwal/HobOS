@@ -82,6 +82,9 @@ SECTIONS
      */
     . += 0x1000;
 
+    /*
+     * This is where heap starts
+     */
     __end = . ;
 }
 
