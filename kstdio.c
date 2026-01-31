@@ -25,27 +25,29 @@ struct char_device *_console;
 
 void init_console(struct char_device *console, void *priv)
 {
-    _console = console;
-    _console->init(priv);
+	_console = console;
+	_console->init(priv);
 
-    //any extra init?
-    if (_console->quirks)
-	_console->quirks(priv);
+	//any extra init?
+	if (_console->quirks)
+		_console->quirks(priv);
 }
 
 void putc(char c)
 {
-    _console->putc(c);
+	if (_console)
+		_console->putc(c);
 }
 
 char getc(void)
 {
-    return _console->getc();
+	return _console->getc();
 }
 
 void puts(char *s)
 {
-    _console->puts(s);
+	if (_console)
+		_console->puts(s);
 }
 
 int kprintf(const char *format, ...)

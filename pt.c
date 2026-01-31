@@ -6,7 +6,7 @@
 
 //global list of page tables
 //TODO: make size dynamic
-struct page_table_desc *global_page_tables[10];
+struct page_table_desc *global_page_tables[10] __attribute__((section(".misc"))) ;
 u8 pt_ctr;
 
 // for simplicity, we will assume that this OS only cares about
@@ -14,7 +14,7 @@ u8 pt_ctr;
 //
 // create an entry based on the address given
 // TODO: Add support for more granule sizes
-unsigned long pt_entry(unsigned long paddr, unsigned long flags)
+u64 pt_entry(u64 paddr, u64 flags)
 {
 	return (paddr | flags);
 }
@@ -26,9 +26,9 @@ unsigned long pt_entry(unsigned long paddr, unsigned long flags)
 //		-- for now we dont really care about granularity about
 //		permissions for io, so we can just allocate a big block for
 //		io based memory ops
-void place_pt_entry(struct page_table_desc *pt_desc, unsigned long pte, int index)
+void place_pt_entry(struct page_table_desc *pt_desc, u64 pte, int index)
 {
-	volatile unsigned long *pt = pt_desc->pt;
+	volatile u64 *pt = pt_desc->pt;
 
 	if (index == -1) {
 		dmb(ish);
@@ -52,13 +52,13 @@ void place_pt_entry(struct page_table_desc *pt_desc, unsigned long pte, int inde
 //
 //
 //returns: the first new page table entry created
-unsigned long *create_pt_entries(
-		struct page_table_desc *pt_desc,
-		unsigned long start_paddr, unsigned long end_paddr, unsigned long flags)
+u64 *create_pt_entries(struct page_table_desc *pt_desc,
+		       u64 start_paddr, u64 end_paddr,
+		       u64 flags)
 {
-	unsigned long *pt = pt_desc->pt;
-	unsigned long *start_pte, pte;
-	unsigned long offset = KB(4);	//should be separated by 1 page atleast
+	u64 *pt = pt_desc->pt;
+	u64 *start_pte, pte;
+	u64 offset = KB(4);	//should be separated by 1 page atleast
 
 	pte = pt_entry(start_paddr, flags);
 	start_pte = &pt[pt_desc->pt_len];
@@ -67,11 +67,11 @@ unsigned long *create_pt_entries(
 	//more than one addresses?
 	//are they separated enough for another entry?
 	if (((end_paddr - start_paddr) < offset) ||
-	    (start_paddr == end_paddr))
+	    start_paddr == end_paddr)
 		return start_pte;
 
 	//else
-	for (unsigned long i = start_paddr + offset; i <= end_paddr; i += offset) {
+	for (u64 i = start_paddr + offset; i <= end_paddr; i += offset) {
 		pte = pt_entry(i, flags);
 		place_pt_entry(pt_desc, pte, -1);
 	}
@@ -81,26 +81,24 @@ unsigned long *create_pt_entries(
 
 //if 0 is provided, new address should be given automatically
 //NOTE: first time usage MUST provide a base address
-struct page_table_desc *create_pt(unsigned long pt_baddr, char level)
+struct page_table_desc *create_pt(u64 pt_baddr, char level)
 {
 	struct page_table_desc *pt_desc;
-	volatile unsigned long *pt;
+	volatile u64 *pt;
 
 	if (pt_baddr != 0) {
 		dmb(ish);
-		pt = (unsigned long *)pt_baddr;
+		pt = (u64 *)pt_baddr;
 	} else {
 		//if no arg, just move to the next available space
 		dmb(ish);
-		pt = (unsigned long *)
-		     ((unsigned long) global_page_tables[pt_ctr - 1]->pt +
+		pt = (u64 *)
+		     ((u64)global_page_tables[pt_ctr - 1]->pt +
 		     NEXT_PT_OFFSET);
 	}
 
 	memset(pt, 0, 0x1000);	//512 entries * 8 B
 	pt_desc = (struct page_table_desc *)&pt[512];
-
-	wmb();
 	pt_desc->pt = pt;
 	pt_desc->level = level;
 	pt_desc->pt_len = 0;
@@ -110,7 +108,7 @@ struct page_table_desc *create_pt(unsigned long pt_baddr, char level)
 	return pt_desc;
 }
 
-void reserve_block(unsigned long baddr)
+void reserve_block(u64 baddr)
 {
 	void *addr;
 	u16 i = 0;
@@ -120,7 +118,7 @@ void reserve_block(unsigned long baddr)
 }
 
 //traverse the page table and validate this vaddr range
-void validate_pt(unsigned long baddr, unsigned long start, unsigned long end)
+void validate_pt(u64 baddr, u64 start, u64 end)
 {
 }
 
