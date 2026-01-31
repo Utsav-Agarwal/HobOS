@@ -3,10 +3,9 @@
 #ifndef __TIMER_H
 #define	__TIMER_H
 
-#include "mmio.h"
-#include "timer/bcm2835.h"
-
-#include <stdbool.h>
+#include <hobos/mmio.h>
+#include <hobos/timer/bcm2835.h>
+#include <hobos/types.h>
 
 //use the SoC timer by default for now
 extern struct timer global_timer;
