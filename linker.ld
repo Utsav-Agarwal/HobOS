@@ -5,7 +5,7 @@ BSS_SIZE = 0x4000;
 CORE_STACK_SIZE = 0x1000;
 PAGE_SIZE = 0x1000;
 /* 1MB memory */
-PHY_MEM_SIZE = PAGE_SIZE*256; 
+PHY_MEM_SIZE = PAGE_SIZE*512*10;
 
 SECTIONS
 {
@@ -19,13 +19,13 @@ SECTIONS
         KEEP(*(.text.proc))
         *(.text)
     }
-    . = ALIGN(PAGE_SIZE); 
+    . = ALIGN(PAGE_SIZE);
     .rodata :
     {
         *(.rodata)
     }
 
-    . = ALIGN(PAGE_SIZE); 
+    . = ALIGN(PAGE_SIZE);
     __data_start = .;
     .data :
     {
@@ -51,9 +51,9 @@ SECTIONS
     {
 	. = . + CORE_STACK_SIZE;
 	*(.core0_stack)
-	__core0_stack = .;	
+	__core0_stack = .;
     }
-    . = ALIGN(PAGE_SIZE); 
+    . = ALIGN(PAGE_SIZE);
 
     .core1_stack :
     {
@@ -61,36 +61,36 @@ SECTIONS
         *(.core1_stack)
         __core1_stack = .;
     }
-    . = ALIGN(PAGE_SIZE); 
-    
+    . = ALIGN(PAGE_SIZE);
+
     .core2_stack :
     {
         . = . + CORE_STACK_SIZE;
         *(.core2_stack)
         __core2_stack = .;
     }
-    . = ALIGN(PAGE_SIZE); 
-    
+    . = ALIGN(PAGE_SIZE);
+
     .core3_stack :
     {
         . = . + CORE_STACK_SIZE;
         *(.core3_stack)
         __core3_stack = .;
     }
-    . = ALIGN(PAGE_SIZE); 
-    
-    /* 
+    . = ALIGN(PAGE_SIZE);
+
+    /*
      * Leave some buffer for misc
      * components such as exception vector tables
      */
-    .misc : 
+    .misc :
     {
 	*(.misc)
 	. = . + PAGE_SIZE*100;
     }
-    . = ALIGN(PAGE_SIZE); 
+    . = ALIGN(PAGE_SIZE);
 
-    /* 
+    /*
      * Leave some space for physical accessible memory
      * management metadata
      *
@@ -104,8 +104,8 @@ SECTIONS
 	. = . + (10*PAGE_SIZE);
 	__phymem_meta_end = .;
     }
-    . = ALIGN(PAGE_SIZE); 
-    
+    . = ALIGN(PAGE_SIZE);
+
     /*
      * This is where heap starts, grows downwards
      */
@@ -116,8 +116,8 @@ SECTIONS
 	. = . + PHY_MEM_SIZE;
 	__phymem_end = .;
     }
-    . = ALIGN(PAGE_SIZE); 
-    
+    . = ALIGN(PAGE_SIZE);
+
     __end = . ;
 }
 

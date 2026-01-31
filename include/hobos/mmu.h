@@ -6,9 +6,6 @@
 #include <hobos/lib/pt_lib.h>
 #include <hobos/lib/stdlib.h>
 
-extern struct page_table_desc *global_page_tables[10];
-extern u8 pt_ctr;
-
 struct ttbr_cfg {
 	unsigned long table_base_addr;
 	unsigned short asid;
@@ -145,9 +142,13 @@ extern volatile unsigned char __data_start;
 extern volatile unsigned char __end;
 extern volatile unsigned char __core0_stack;
 
+extern struct page_table_desc *global_page_tables[10];
+extern u8 pt_ctr;
+
 void init_mmu(void);
 unsigned long switch_vmem(void);
-void map_pa_to_va_pg(unsigned long pa, unsigned long va, struct page_table_desc *pt_top,
+void map_pa_to_va_pg(unsigned long pa, unsigned long va,
+		     struct page_table_desc *pt_top,
 		     unsigned long flags);
 
 #endif
