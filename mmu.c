@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
 #include <hobos/asm/barrier.h>
+#include <hobos/kstdio.h>
 #include <hobos/mmu/bcm2835.h>
 #include <hobos/mmu.h>
 #include <hobos/smp.h>
@@ -11,8 +12,8 @@
 //default MMU characteristics
 //#define KERNEL_START	(~(BITM(64-MMU_TSZ)))
 
-void create_id_mapping(u64 start_paddr, unsigned long end_paddr,
-			unsigned long pt)
+void create_id_mapping(u64 start_paddr, u64 end_paddr,
+			u64 pt)
 {
 	//for now lets assume T0/1_SZ is constant at 25, so we
 	//only care about 3 levels
@@ -21,7 +22,7 @@ void create_id_mapping(u64 start_paddr, unsigned long end_paddr,
 	struct page_table_desc *pt_desc;
 
 	pt_desc = create_pt(pt, 1);
-	end_addr = (unsigned long)(pt_desc->pt) + NEXT_PT_OFFSET;
+	end_addr = (u64)(pt_desc->pt) + NEXT_PT_OFFSET;
 	create_pt_entries(pt_desc, end_addr, end_addr, flags);
 
 	pt_desc = create_pt(end_addr, 2);
@@ -46,13 +47,13 @@ static inline void extract_va_metadata(u64 va, struct va_metadata *meta)
 	meta->index[2] = (va >> 12) & mask;
 }
 
-static inline unsigned long pte_is_empty(unsigned long pte)
+static inline u64 pte_is_empty(u64 pte)
 {
 	return !(pte);
 }
 
-void map_pa_to_va_pg(u64 pa, unsigned long va, struct page_table_desc *pt_top,
-		     unsigned long flags)
+void map_pa_to_va_pg(u64 pa, u64 va, struct page_table_desc *pt_top,
+		     u64 flags)
 {
 	struct page_table_desc *pt_desc = pt_top;
 	u64 volatile *pt, pte;
@@ -85,7 +86,7 @@ void map_pa_to_va_pg(u64 pa, unsigned long va, struct page_table_desc *pt_top,
 
 			//we create next level
 			new_pt_desc = create_pt(0, level + 1);
-			pte = pt_entry((unsigned long)new_pt_desc->pt,
+			pte = pt_entry((u64)new_pt_desc->pt,
 				       PTE_FLAGS_GENERIC);
 
 			place_pt_entry(pt_desc, pte, pt_index);
@@ -98,34 +99,36 @@ void map_pa_to_va_pg(u64 pa, unsigned long va, struct page_table_desc *pt_top,
 	}
 }
 
-static unsigned long set_id_translation_table(void)
+volatile char pt __attribute__((section(".misc"))) = 0;
+static u64 set_id_translation_table(void)
 {
-	create_id_mapping(0, 0x1000 * 512, (unsigned long)&__end);
-	return (unsigned long)(global_page_tables[0]->pt);
+	kprintf("pt: %x\n", &pt);
+	create_id_mapping(0, 0x1000 * 512, (u64)&pt);
+	return (u64)(global_page_tables[0]->pt);
 }
 
-static unsigned long set_kernel_translation_table(void)
+static u64 set_kernel_translation_table(void)
 {
 	//we can just reuse the id_map for now as we only
 	//really care about it being mapped to high memory
-	return (unsigned long)(global_page_tables[0]->pt);
+	return (u64)(global_page_tables[0]->pt);
 }
 
-static inline void set_ttbr1_el1(unsigned long x)
+static inline void set_ttbr1_el1(u64 x)
 {
 	asm("msr ttbr1_el1, %0"::"r"(x));
 }
 
-static inline void set_ttbr0_el1(unsigned long x)
+static inline void set_ttbr0_el1(u64 x)
 {
 	asm("msr ttbr0_el1, %0"::"r"(x));
 }
 
-unsigned long switch_vmem(void)
+u64 switch_vmem(void)
 {
 	u64 tcr, reg;
 
-	set_ttbr1_el1((unsigned long)set_kernel_translation_table());
+	set_ttbr1_el1((u64)set_kernel_translation_table());
 
 	asm("mrs %0, tcr_el1" : "=r"(tcr));
 
@@ -138,7 +141,7 @@ unsigned long switch_vmem(void)
 	//at this point the table should be active, so in theory
 	//we should be able to just set the next instruction
 
-	reg = ((unsigned long)&__core0_stack) + KERNEL_START;
+	reg = ((u64)&__core0_stack) + KERNEL_START;
 	asm("mov sp, %0"::"r"(reg));
 
 	asm("mov %0, lr" : "=r"(reg));
@@ -158,7 +161,7 @@ void init_mmu(void)
 	if (!curr_core_id())
 		set_ttbr0_el1(set_id_translation_table() + CNP_COMMON);
 	else
-		set_ttbr0_el1((unsigned long)global_page_tables[0]->pt + CNP_COMMON);
+		set_ttbr0_el1((u64)global_page_tables[0]->pt + CNP_COMMON);
 
 	asm("msr mair_el1, %0"::"r"(mair_el1));
 

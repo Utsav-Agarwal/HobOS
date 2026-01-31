@@ -6,15 +6,13 @@
 #include <hobos/mmu.h>
 #include <hobos/page_alloc.h>
 
-extern struct page_table_desc *global_page_tables[10];
-
 void *ioremap(unsigned long addr)
 {
 	//all of this is going to be before switching to high memory addressing
 	//so we dont mind if we get an identity mapped pointer.
 	//
 	//TODO: make it so that its compatible after high mem switch has taken
-	//place so we can add data during runtime (loadable drivers for instace).
+	//place so we can add data during runtime (loadable drivers for instace)
 	u64 vaddr = addr;
 
 	map_pa_to_va_pg(addr, vaddr, global_page_tables[0], PTE_FLAGS_NC);

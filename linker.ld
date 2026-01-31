@@ -4,6 +4,8 @@ BSS_SIZE = 0x4000;
 
 CORE_STACK_SIZE = 0x1000;
 PAGE_SIZE = 0x1000;
+/* 1MB memory */
+PHY_MEM_SIZE = PAGE_SIZE*256; 
 
 SECTIONS
 {
@@ -40,7 +42,7 @@ SECTIONS
     __bss_end = .;
 
 
-    /* NOTE: ARM stack grows downwards */
+    /* NOTE: ARM stack grows upwards */
 
     /* SMP Stack */
     /* start translation tables here */
@@ -76,15 +78,46 @@ SECTIONS
         __core3_stack = .;
     }
     . = ALIGN(PAGE_SIZE); 
-   
-    /* Leave some buffer for misc
+    
+    /* 
+     * Leave some buffer for misc
      * components such as exception vector tables
      */
-    . += 0x1000;
+    .misc : 
+    {
+	*(.misc)
+	. = . + PAGE_SIZE*100;
+    }
+    . = ALIGN(PAGE_SIZE); 
 
-    /*
-     * This is where heap starts
+    /* 
+     * Leave some space for physical accessible memory
+     * management metadata
+     *
+     * TODO: add a more dynamic size, the max entries can only
+     * be: total size / min block size
      */
+    .phymem_meta :
+    {
+	__phymem_meta_start = .;
+	*(.__phymem_meta);
+	. = . + (10*PAGE_SIZE);
+	__phymem_meta_end = .;
+    }
+    . = ALIGN(PAGE_SIZE); 
+    
+    /*
+     * This is where heap starts, grows downwards
+     */
+    .phymem :
+    {
+	__phymem_start = .;
+	*(.phymem);
+	. = . + PHY_MEM_SIZE;
+	__phymem_end = .;
+    }
+    . = ALIGN(PAGE_SIZE); 
+    
     __end = . ;
 }
 
