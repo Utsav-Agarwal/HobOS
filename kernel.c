@@ -5,6 +5,7 @@
 #include <hobos/smp.h>
 #include <hobos/timer.h>
 #include <hobos/lib/stdlib.h>
+#include <hobos/page_alloc.h>
 #include <hobos/irq/irq_bcm.h>
 #include <hobos/asm/barrier.h>
 
@@ -60,12 +61,14 @@ static void heartbeat(void)
 	global_timer.set_timer(&global_timer, 0x200000);
 }
 
+char *mem __attribute__((section(".phymem")));
 void main(void)
 {
 	mmio_init();
 	init_mmu();
 	setup_console();
 
+	init_free_list((u64)&mem, PAGE_SIZE * 512 * 10);
 	init_device_drivers();
 
 	init_smp();
