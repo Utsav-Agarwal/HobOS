@@ -4,7 +4,6 @@
 #include <hobos/lib/stdlib.h>
 #include <hobos/kstdio.h>
 
-extern char rpi_version;
 struct timer global_timer;
 
 static unsigned int read_timer32(bool msb, struct timer *t)
