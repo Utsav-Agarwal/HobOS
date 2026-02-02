@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
 #include <hobos/page_alloc.h>
+#include <hobos/compiler_types.h>
 #include <hobos/kstdio.h>
 
 /*
@@ -23,8 +24,8 @@
  * This way, free simply has to find the block with the same pfn as the argument
  * and remove/add it back.
  */
-static struct free_list_header fl_meta __attribute__((section(".phymem_meta")));
-static struct free_list_header ul_meta __attribute__((section(".phymem_meta")));
+static struct free_list_header fl_meta __section(".phymem_meta");
+static struct free_list_header ul_meta __section(".phymem_meta");
 
 static inline struct free_list *get_block_free_list(int order)
 {
