@@ -8,14 +8,14 @@
 #define MAX_PAGE_ORDER	11
 
 // 2^order = number of pages in block
-#define PAGE_BLOCK(order)	(1 << ((order) + 1))
+#define PAGE_BLOCK(order)	(1 << (order))
 #define MAX_PAGE_BLOCK	PAGE_BLOCK(MAX_PAGE_ORDER)
 
 #define PAGE_SIZE	4096UL
 
 struct page_block {
-	unsigned int buddy_id;
 	void *page;
+	int order;
 	struct page_block *next;
 };
 
@@ -26,8 +26,8 @@ struct free_list {
 };
 
 struct free_list_header {
-	struct free_list list[MAX_PAGE_ORDER];
-	struct page_block *last_entry;
+	volatile struct free_list list[MAX_PAGE_ORDER + 1];
+	volatile struct page_block *last_entry;
 };
 
 void *page_alloc(unsigned int nr_pages);
