@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
+#include <hobos/compiler_types.h>
 #include <hobos/kstdio.h>
 #include <hobos/mmu.h>
 #include <hobos/smp.h>
@@ -61,7 +62,7 @@ static void heartbeat(void)
 	global_timer.set_timer(&global_timer, 0x200000);
 }
 
-char *mem __attribute__((section(".phymem")));
+char *mem __section(".phymem");
 void main(void)
 {
 	mmio_init();
@@ -75,11 +76,6 @@ void main(void)
 	switch_vmem();
 
 	heartbeat();
-
-	void *x = page_alloc(1);
-	kprintf("back to main %x\n", (u64) x);
-	//x = page_alloc(1);
-	//kprintf("back to main %x\n", (u64) x);
 
 	while (1) {
 		//start shell here

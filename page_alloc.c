@@ -20,31 +20,85 @@
  */
 
 /*
- * We need a free list and a used list to track operations when they are freed.
- * This way, free simply has to find the block with the same pfn as the argument
- * and remove/add it back.
+ * Free list contains all page blocks. Each block has a used flag. If this
+ * is enabled, the block cannot be merged with its buddy. Once it is freed,
+ * this flag is cleared.
+ *
+ * We maintain a list of page blocks which are acquired to decrease search time.
  */
+static struct page_block *used_blocks __section(".phymem_meta");
 static struct free_list_header fl_meta __section(".phymem_meta");
-static struct free_list_header ul_meta __section(".phymem_meta");
 
 static inline struct free_list *get_block_free_list(int order)
 {
 	return &fl_meta.list[order];
 }
 
-static void print_page_block(struct page_block *pb)
+static inline size_t get_list_size(int order)
 {
-	kprintf("|addr:\t|0x%x|\n", (u64)pb->page, pb->next);
-}
+	struct free_list *list = get_block_free_list(order);
 
-static inline size_t get_free_size(int order, unsigned int count)
-{
-	return (PAGE_BLOCK(order) * count * PAGE_SIZE);
+	return (PAGE_BLOCK(order) * list->count * PAGE_SIZE);
 }
 
 static inline size_t block_phy_offset(int order)
 {
-	return get_free_size(order, 0);
+	return get_list_size(order);
+}
+
+static inline bool block_is_used(struct page_block *pb)
+{
+	return !!(pb->flags & BLOCK_USED);
+}
+
+static inline bool block_is_free(struct page_block *pb)
+{
+	return !block_is_used(pb);
+}
+
+static inline bool page_block_exists(int order)
+{
+	if (get_block_free_list(order)->count == 0)
+		return 0;
+
+	return 1;
+}
+
+static bool list_has_free_block(int order)
+{
+	struct free_list *list = get_block_free_list(order);
+	struct page_block *pb = list->first;
+	int i = 0;
+
+	if (!page_block_exists(order))
+		return 0;
+
+	while ((i < list->count)) {
+		if (!pb) {
+			kprintf("WARNING: count and actual list not aligned!\n");
+			kprintf("count: [%d], elements: [%d]\n", list->count, i);
+			return 0;
+		}
+
+		if (block_is_free(pb))
+			return 1;
+
+		pb = pb->next;
+		i++;
+	}
+
+	return 0;
+}
+
+static void print_page_block(struct page_block *pb)
+{
+	kprintf("|addr:\t|0x%x|", (u64)pb->page);
+	if (block_is_free(pb))
+		kprintf("[free]");
+	else
+		kprintf("[used]");
+
+	kprintf("\n");
 }
 
 static void print_block_list(struct free_list *list)
@@ -58,9 +112,7 @@ static void print_block_list(struct free_list *list)
 		return;
 
 	curr_order = pb->order;
-	blk_sz_kb = get_free_size(curr_order,
-				  fl_meta.list[curr_order].count);
-
+	blk_sz_kb = get_list_size(curr_order);
 	blk_sz_kb = blk_sz_kb / 1024;
 	kprintf("O[%d][%x pages]:\t%d blocks\t(%d KiB)\n",
 		curr_order,
@@ -69,11 +121,12 @@ static void print_block_list(struct free_list *list)
 		blk_sz_kb);
 
 	for (i = 0; i < list->count; i++) {
-		print_page_block(pb + i);
+		print_page_block(pb);
+		pb = pb->next;
 	}
 }
 
-static void print_free_lists(void)
+void print_free_lists(void)
 {
 	int i = 0;
 
@@ -94,6 +147,7 @@ static struct page_block *new_page_block(void *page_addr)
 
 	pb->page = page_addr;
 	pb->next = 0;
+	pb->flags = 0;
 
 	fl_meta.last_entry = pb;
 	return pb;
@@ -102,26 +156,80 @@ static struct page_block *new_page_block(void *page_addr)
 static void add_block_to_order(struct page_block *pb, int order)
 {
 	struct free_list *order_list = get_block_free_list(order);
+	struct page_block *cb = 0;
 
 	pb->order = order;
 	if (!order_list->first)
 		order_list->first = pb;
+	else {
+		cb = order_list->first;
+		while (cb->next)
+			cb = cb->next;
+
+		cb->next = pb;
+	}
 
 	order_list->count++;
+}
+
+static inline struct page_block *get_nth_block(int order, int index)
+{
+	struct free_list *list = get_block_free_list(order);
+	struct page_block *pb = list->first;
+	int i = index;
+
+	if (index >= list->count)
+		return 0;
+
+	while (i > 0) {
+		pb = pb->next;
+		i--;
+	}
+
+	return pb;
+}
+
+static inline void delete_block(struct page_block *pb)
+{
+	memset((void *)pb, 0, sizeof(struct page_block));
 }
 
 /*
  * We can simply ignore removing alot of meta data and just decrement
  * the counter
  */
-static void remove_next_free_block(int order)
+static int remove_next_free_block(int order)
 {
 	struct free_list *list = get_block_free_list(order);
-	struct page_block *pb = list->first;
+	struct page_block *pb = 0;
+	int ret = 0;
+	int i = 0;
 
-	pb += list->count - 1;
-	pb->next = 0;
-	list->count--;
+	if (list->count <= 0)
+		return 1;
+
+	if (list->count == 1)
+		if (block_is_used(list->first)) {
+			return 1;
+		} else {
+			//kprintf("removed %x\n", list->first->page);
+			list->count--;
+			list->first = 0;
+			return 0;
+		}
+
+	for (i = list->count - 1; i > 0; i--) {
+		pb = get_nth_block(list->first->order, i - 1);
+
+		if (block_is_free(pb->next)) {
+			//kprintf("removed %x\n", pb->page);
+			pb->next = 0;
+			list->count--;
+			return 0;
+		}
+	}
+
+	return 1;
 }
 
 /*
@@ -130,39 +238,55 @@ static void remove_next_free_block(int order)
 static struct page_block *get_next_free_block(int order)
 {
 	struct free_list *list = get_block_free_list(order);
-	struct page_block *pb = fl_meta.last_entry;
+	volatile struct page_block *pb = fl_meta.last_entry;
+	int i = list->count;
 
-	// if the last added block was from the same order, just use that
-	if (pb->order == order)
+	if ((pb->order == order) && block_is_free(pb))
 		return pb;
 
-	pb = list->first;
-	pb += list->count;
+	while (i > 0) {
+		pb = get_nth_block(order, i - 1);
+		if (!pb)
+			return 0;
 
-	return pb;
+		if (block_is_free(pb))
+			return pb;
+
+		i--;
+	}
+
+	return 0;
 }
 
 /*
  * Split the next free block in a given order
  */
-static void split_page_block(int order)
+static int split_page_block(int order)
 {
 	struct page_block *pb = get_next_free_block(order);
 	u64 page_offset = 0;
-	u64 base_addr = (u64)pb->page;
+	u64 base_addr = 0;
 	int curr_order = order;
 
-	remove_next_free_block(curr_order);
+	if (pb)
+		base_addr = (u64)pb->page;
 
+	if (remove_next_free_block(curr_order))
+		return 1;
+
+	//kprintf("%x = ", pb->page);
 	// Next order buddy creation
 	page_offset = PAGE_BLOCK(order - 1) * PAGE_SIZE;
 
 	pb = new_page_block((void *)base_addr);
 	add_block_to_order(pb, order - 1);
+	//kprintf("%x + ", pb->page);
 
-	dmb(ish);
+	barrier();
 	pb = new_page_block((void *)(base_addr + page_offset));
 	add_block_to_order(pb, order - 1);
+	//kprintf("%x (%x)\n", pb->page, page_offset);
+	return 0;
 }
 
 /*
@@ -176,7 +300,10 @@ static struct page_block *reduce_to_order(int order, int target_order)
 
 	// Keep splitting the last block until target + 1 order block is split
 	while (curr_order > target_order) {
-		split_page_block(curr_order);
+		dmb(ish);
+		if (split_page_block(curr_order))
+			return 0;
+
 		curr_order--;
 	}
 
@@ -204,6 +331,37 @@ static void create_free_list(u64 start_addr, int order, size_t size)
 		add_block_to_order(cb, order);
 		curr_addr += block_phy_offset(order);
 	}
+}
+
+static void simple_page_alloc_test(void)
+{
+	volatile void *x = 0;
+	int i = 0;
+	int j = 0;
+
+	kprintf("\n\n** Running simple page alloc test **\n\n");
+	print_free_lists();
+
+	do {
+		// Test both buddies
+		while (j < 2) {
+			x = page_alloc(PAGE_BLOCK(i));
+			if (x == 0) {
+				kprintf("Test failed at order: %d\n", i);
+				return;
+			}
+
+			kprintf("Allocated [0x%x]\n", (u64)x);
+			j++;
+		}
+		i++;
+		j = 0;
+	} while (i < 7);
+
+	//TODO: free memory
+
+	print_free_lists();
+	kprintf("\n\n** Test completed successfully **\n\n");
 }
 
 /*
@@ -234,7 +392,7 @@ void init_free_list(u64 addr, size_t size)
 		curr_order--;
 	}
 
-	print_free_lists();
+	simple_page_alloc_test();
 }
 
 static int get_page_order(size_t nr_pages)
@@ -249,27 +407,19 @@ static int get_page_order(size_t nr_pages)
 	return i;
 }
 
-static bool free_page_block_exists(int order)
-{
-	if (get_block_free_list(order)->count == 0)
-		return 0;
-
-	return 1;
-}
-
 /*
  * Return last free block. If none, split and create
  */
 static struct page_block *get_block(int order)
 {
-	struct free_list *fl = get_block_free_list(order);
 	volatile int curr_order = order;
 	struct page_block *pb = 0;
+	int i = 0;
 
 	// find the closest order to get block from
 	while (curr_order < MAX_PAGE_ORDER) {
-		if (free_page_block_exists(curr_order))
-				break;
+		if (list_has_free_block(curr_order))
+			break;
 
 		curr_order++;
 	}
@@ -284,8 +434,9 @@ static struct page_block *get_block(int order)
 /*
  * Send block to used list
  */
-static void mark_block_used(struct page_block *pb)
+static inline void mark_block_used(struct page_block *pb)
 {
+	pb->flags = BLOCK_USED;
 }
 
 /*
@@ -293,17 +444,21 @@ static void mark_block_used(struct page_block *pb)
  */
 void *page_alloc(unsigned int nr_pages)
 {
+	volatile struct page_block *pb = 0;
 	int order = 0;
-	struct page_block *pb = 0;
 
+	if (!nr_pages)
+		return 0;
+
+	barrier();
 	if (nr_pages > MAX_PAGE_BLOCK)
 		return 0;
 
 	order = get_page_order(nr_pages);
 	pb = get_block(order);
-	mark_block_used(pb);
-	// TODO: map to va
+	if (!pb)
+		return 0;
 
-	print_free_lists();
+	mark_block_used(pb);
 	return pb->page;
 }
