@@ -13,9 +13,12 @@
 
 #define PAGE_SIZE	4096UL
 
+#define BLOCK_USED	0xDEDE
+
 struct page_block {
 	void *page;
 	int order;
+	unsigned int flags;
 	struct page_block *next;
 };
 
@@ -32,5 +35,6 @@ struct free_list_header {
 
 void *page_alloc(unsigned int nr_pages);
 void init_free_list(u64 addr, size_t size);
+void print_free_lists(void);
 
 #endif
