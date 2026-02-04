@@ -22,15 +22,15 @@ void *ioremap(unsigned long addr)
 
 void *kmalloc(unsigned int size)
 {
-	//TODO: write a memory allocator
+	//TODO: Add support for scatterlists
 	unsigned int pages = size / PAGE_SIZE;
 
 	return page_alloc(pages);
 }
 
-void kfree(unsigned long addr)
+void kfree(void *p)
 {
-//TODO: impl depends on kmalloc
+	page_free(p);
 }
 
 void memcpy(void *dst, void *src, unsigned int size)
