@@ -33,7 +33,10 @@ struct free_list_header {
 	volatile struct page_block *last_entry;
 };
 
+extern volatile unsigned char __phymem_end;
+
 void *page_alloc(unsigned int nr_pages);
+void page_free(void *pfn);
 void init_free_list(u64 addr, size_t size);
 void print_free_lists(void);
 

@@ -41,6 +41,16 @@ static inline size_t get_list_size(int order)
 	return (PAGE_BLOCK(order) * list->count * PAGE_SIZE);
 }
 
+static u64 block_pfn(struct page_block *pb)
+{
+	return (u64)(pb->page);
+}
+
+static inline u64 get_buddy_pfn(struct page_block *pb)
+{
+	return (PAGE_SIZE << pb->order) ^ block_pfn(pb);
+}
+
 static inline size_t block_phy_offset(int order)
 {
 	return get_list_size(order);
@@ -194,6 +204,31 @@ static inline void delete_block(struct page_block *pb)
 	memset((void *)pb, 0, sizeof(struct page_block));
 }
 
+static int remove_page_block(struct page_block *pb)
+{
+	struct free_list *list = get_block_free_list(pb->order);
+	struct page_block *cb = list->first;
+
+	if (list->count == 1) {
+		list->count--;
+		list->first = 0;
+		return 0;
+	}
+
+	while (cb) {
+		if (cb->next == pb) {
+			list->count--;
+			cb->next = pb->next;
+			pb->next = 0;
+			return 0;
+		}
+
+		cb = cb->next;
+	}
+
+	return 1;
+}
+
 /*
  * We can simply ignore removing alot of meta data and just decrement
  * the counter
@@ -283,7 +318,7 @@ static int split_page_block(int order)
 	//kprintf("%x + ", pb->page);
 
 	barrier();
-	pb = new_page_block((void *)(base_addr + page_offset));
+	pb = new_page_block((void *)get_buddy_pfn(pb));
 	add_block_to_order(pb, order - 1);
 	//kprintf("%x (%x)\n", pb->page, page_offset);
 	return 0;
@@ -340,28 +375,30 @@ static void simple_page_alloc_test(void)
 	int j = 0;
 
 	kprintf("\n\n** Running simple page alloc test **\n\n");
+	kprintf("\nStarting page block map:\n");
 	print_free_lists();
 
-	do {
+	while (i < 8) {
 		// Test both buddies
 		while (j < 2) {
 			x = page_alloc(PAGE_BLOCK(i));
 			if (x == 0) {
-				kprintf("Test failed at order: %d\n", i);
+				kprintf("Test failed at alloc order: %d\n", i);
 				return;
 			}
 
-			kprintf("Allocated [0x%x]\n", (u64)x);
+			page_free(x);
 			j++;
 		}
+
 		i++;
 		j = 0;
-	} while (i < 7);
+	};
 
-	//TODO: free memory
-
+	kprintf("\nFinal page block map:\n");
 	print_free_lists();
-	kprintf("\n\n** Test completed successfully **\n\n");
+
+	kprintf("\n\n** Test finished **\n\n");
 }
 
 /*
@@ -377,9 +414,7 @@ void init_free_list(u64 addr, size_t size)
 
 	fl_meta.last_entry = 0;
 
-	kprintf("Starting memory management from addr 0x%x\n", addr);
-	kprintf("Available size: %d\n", size);
-
+	kprintf("Starting memory management from addr 0x%x\n", addr - size);
 	// We want to distribute per order
 	while (curr_order >= 0) {
 		curr_order_pages = total_pages / PAGE_BLOCK(curr_order);
@@ -392,7 +427,7 @@ void init_free_list(u64 addr, size_t size)
 		curr_order--;
 	}
 
-	simple_page_alloc_test();
+	print_free_lists();
 }
 
 static int get_page_order(size_t nr_pages)
@@ -432,11 +467,21 @@ static struct page_block *get_block(int order)
 }
 
 /*
- * Send block to used list
+ * Mark block used
  */
 static inline void mark_block_used(struct page_block *pb)
 {
+	barrier();
 	pb->flags = BLOCK_USED;
+}
+
+/*
+ * Mark block free
+ */
+static inline void mark_block_free(struct page_block *pb)
+{
+	barrier();
+	pb->flags = 0;
 }
 
 /*
@@ -461,4 +506,94 @@ void *page_alloc(unsigned int nr_pages)
 
 	mark_block_used(pb);
 	return pb->page;
+}
+
+static struct page_block *find_pfn_in_order(void *pfn, int order)
+{
+	struct free_list *list = get_block_free_list(order);
+	struct page_block *pb = list->first;
+
+	while (pb) {
+		if (pb->page == pfn)
+			return pb;
+
+		pb = pb->next;
+	}
+
+	return 0;
+}
+
+/*
+ * Start looking from the lowest order since programs
+ * would usually not request large memory sizes.
+ */
+static struct page_block *find_block_by_pfn(void *pfn)
+{
+	struct page_block *pb = 0;
+	int order = 0;
+
+	for (order = 0; order <= MAX_PAGE_ORDER; order++) {
+		pb = find_pfn_in_order(pfn, order);
+		if (pb)
+			break;
+	}
+
+	return pb;
+}
+
+static struct page_block *get_block_buddy(struct page_block *pb)
+{
+	struct free_list *list = get_block_free_list(pb->order);
+	void *buddy_pfn = (void *)get_buddy_pfn(pb);
+
+	return find_pfn_in_order(buddy_pfn, pb->order);
+}
+
+static void merge_buddy(struct page_block *pb)
+{
+	struct page_block *buddy_pb = 0;
+	void *final_pfn = pb->page;
+	int order = pb->order;
+
+	buddy_pb = get_block_buddy(pb);
+
+	if (!buddy_pb)
+		return;
+
+	/*
+	 * Seconday block or buddy is always created at a higher
+	 * address
+	 */
+	if (block_pfn(pb) > block_pfn(buddy_pb))
+		final_pfn = (void *)block_pfn(buddy_pb);
+
+	if (block_is_used(pb) || block_is_used(buddy_pb))
+		return;
+
+	if (remove_page_block(pb))
+		return;
+
+	if (remove_page_block(buddy_pb))
+		return;
+
+	buddy_pb = new_page_block(final_pfn);
+	add_block_to_order(buddy_pb, order + 1);
+
+	// Recursively try and merge as much as possible
+	merge_buddy(buddy_pb);
+}
+
+/*
+ * Given a physical frame number, free the associated block
+ * and merge buddies
+ */
+void page_free(void *pfn)
+{
+	struct page_block *pb = find_block_by_pfn(pfn);
+
+	if (!pb)
+		return;
+
+	mark_block_free(pb);
+	merge_buddy(pb);
 }

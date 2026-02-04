@@ -62,14 +62,13 @@ static void heartbeat(void)
 	global_timer.set_timer(&global_timer, 0x200000);
 }
 
-char *mem __section(".phymem");
 void main(void)
 {
 	mmio_init();
 	init_mmu();
 	setup_console();
 
-	init_free_list((u64)&mem, PAGE_SIZE * 256);
+	init_free_list((u64)&__phymem_end, PAGE_SIZE * 256);
 	init_device_drivers();
 
 	init_smp();
