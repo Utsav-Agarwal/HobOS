@@ -10,11 +10,10 @@
 #define ID_PG_SZ	PAGE_SIZE
 
 void create_id_mapping(u64 start_paddr, u64 end_paddr,
-			u64 pt)
+			u64 pt, u64 flags)
 {
 	//for now lets assume T0/1_SZ is constant at 25, so we
 	//only care about 3 levels
-	u64 flags = PTE_FLAGS_KERNEL_GENERIC;
 	u64 end_addr;
 	struct page_table_desc *pt_desc;
 
@@ -99,7 +98,7 @@ volatile char pt __attribute__((section(".misc"))) = 0;
 static u64 set_id_translation_table(void)
 {
 	kprintf("pt: %x\n", &pt);
-	create_id_mapping(0, 0x1000 * 512, (u64)&pt);
+	create_id_mapping(0, 0x1000 * 512, (u64)&pt, PTE_FLAGS_KERNEL_GENERIC);
 	return (u64)(global_page_tables[0]->pt);
 }
 
