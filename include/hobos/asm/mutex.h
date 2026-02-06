@@ -5,7 +5,7 @@
 
 #include <hobos/asm/barrier.h>
 
-inline void acquire_mutex(unsigned int *lock)
+inline void acquire_mutex(volatile unsigned int *lock)
 {
 	unsigned int tmp, val;
 
@@ -26,7 +26,7 @@ inline void acquire_mutex(unsigned int *lock)
 //at this point we already own the mutex, so we dont really care
 //about exclusive access for writing. It will only be contested after
 //being released
-inline void release_mutex(unsigned int *m)
+inline void release_mutex(volatile unsigned int *m)
 {
 	asm volatile("stlr %w1, %0;\n"
 		     "sev;\n"
