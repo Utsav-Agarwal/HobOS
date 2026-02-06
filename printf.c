@@ -20,7 +20,7 @@ char *d_to_s(int i, char *c, char sz)
 	 * convert unit to ascii and store in the buffer
 	 */
 
-	char index = sz - 1;
+	int index = sz - 1;
 	int d = i;
 
 	//d is always 0-9
@@ -42,7 +42,7 @@ char *x_to_s(int i, char *c, char sz)
 	 * keep shifting the next digit to the units place
 	 * convert unit to ascii and store in the buffer
 	 */
-	char index = sz - 1;
+	int index = sz - 1;
 	int res, d = i;
 
 	//d is always 0-9
@@ -77,7 +77,7 @@ int vprintf(const char *format, va_list args)
 	 * converstion to ASCII chars)
 	 */
 
-	char *c = format;
+	const char *c = format;
 	union data arg;
 	char buf[D_BUF_SZ];
 
@@ -94,7 +94,7 @@ int vprintf(const char *format, va_list args)
 				puts(arg.s);
 				break;
 			case 'c':
-				arg.c = va_arg(args, char);
+				arg.c = va_arg(args, int);
 				putc(arg.c);
 				break;
 			case 'd':
