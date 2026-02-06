@@ -111,9 +111,9 @@ static void set_job_queue_head(struct worker_job *job, unsigned long fn_addr)
 	job->meta->tail = job;
 }
 
-static void __init_worker(char core)
+static void __init_worker(unsigned char core)
 {
-	u64 *spin_table = (volatile unsigned long *)SPIN_TABLE_BASE;
+	volatile u64 *spin_table = (volatile unsigned long *)SPIN_TABLE_BASE;
 	struct worker *w = &smp_worker[core];
 
 	w->exec_addr = &spin_table[core];
@@ -124,7 +124,7 @@ static void __init_worker(char core)
 }
 
 //kickstart the core to flush the job queue
-static int __run_core(char core)
+static int __run_core(unsigned char core)
 {
 	if (core > MAX_REMOTE_CORE_ID)
 	return -1;
@@ -132,7 +132,7 @@ static int __run_core(char core)
 	struct worker *w = &smp_worker[core];
 	volatile u32 *m0 = &w->mutex[0];
 	volatile u32 *m1 = &w->mutex[1];
-	u64 *exec_addr = w->exec_addr;
+	volatile u64 *exec_addr = w->exec_addr;
 
 	//we need some sync/ordering here since 2 processors
 	//are competing to write to a common memory location (semaphores[..])
@@ -145,7 +145,7 @@ static int __run_core(char core)
 	return 0;
 }
 
-static int __setup_core(char core)
+static int __setup_core(unsigned char core)
 {
 	if (core > MAX_REMOTE_CORE_ID)
 	return -1;
