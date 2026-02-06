@@ -9,6 +9,7 @@
 #include <hobos/page_alloc.h>
 #include <hobos/irq/irq_bcm.h>
 #include <hobos/asm/barrier.h>
+#include <hobos/entry.h>
 
 struct irq_controller soc_irq;
 struct irq_bcm_priv priv;
@@ -59,8 +60,9 @@ static void heartbeat(void)
 	kprintf("\n\n** Welcome to HobOS! **\n\n");
 
 	kprintf("Hello from vmem\n");
-	global_timer.set_timer(&global_timer, 0x200000);
 }
+
+void (*usr_entry)(void) = (void (*)(void)) (USR_INIT + PAGE_SIZE); 
 
 void main(void)
 {
@@ -75,10 +77,10 @@ void main(void)
 	switch_vmem();
 
 	heartbeat();
+	
+	usr_init();
+	jump_to_usr();
 
-	while (1) {
-		//start shell here
-		kprintf("waiting\n");
-		delay(0x20000000);
-	}
+	while (1)
+		;
 }

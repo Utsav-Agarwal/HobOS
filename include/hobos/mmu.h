@@ -131,8 +131,6 @@ struct mair {
 	struct mair_attr attr3;
 };
 
-extern volatile unsigned char __data_start;
-extern volatile unsigned char __end;
 extern volatile unsigned char __core0_stack;
 
 extern struct page_table_desc *global_page_tables[10];
@@ -143,5 +141,7 @@ void switch_vmem(void);
 void map_pa_to_va_pg(unsigned long pa, unsigned long va,
 		     struct page_table_desc *pt_top,
 		     unsigned long flags);
+void create_id_mapping(u64 start_paddr, u64 end_paddr,
+			u64 pt, u64 flags);
 
 #endif
