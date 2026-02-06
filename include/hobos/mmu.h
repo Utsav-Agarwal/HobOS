@@ -6,13 +6,6 @@
 #include <hobos/lib/pt_lib.h>
 #include <hobos/lib/stdlib.h>
 
-struct ttbr_cfg {
-	unsigned long table_base_addr;
-	unsigned short asid;
-	unsigned char	skl;
-	unsigned char cnp;
-};
-
 //		BADDR = TTBR0_EL1 [87:80] [47:5]
 //		==========================
 //Base address of the stage 1 translation table
