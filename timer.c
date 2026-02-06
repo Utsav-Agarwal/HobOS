@@ -19,7 +19,7 @@ static unsigned long read_timer64(struct timer *t)
 	unsigned long val = 0;
 
 	val = mmio_read(t->lsb);
-	val |= (mmio_read(t->msb) << 32);
+	val |= ((u64)mmio_read(t->msb) << 32);
 
 	return val;
 }
