@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/github/languages/code-size/Utsav-Agarwal/HobOS"/>
   <img src="https://img.shields.io/github/stars/Utsav-Agarwal/HobOS"/>
   <img src="https://img.shields.io/github/forks/Utsav-Agarwal/HobOS"/>
-  <a href="https://github.com/Utsav-Agarwal/HobOS/blob/master/LICENSE">
+  <a href="https://github.com/Utsav-Agarwal/HobOS/blob/main/LICENSE">
     <img src="https://img.shields.io/github/license/Utsav-Agarwal/HobOS"/>
   </a>
   <img src="https://img.shields.io/github/issues/Utsav-Agarwal/HobOS"/>
