@@ -25,14 +25,14 @@ static void bcm_irq_disable_interrupt(void *priv,
 	struct irq_controller *ctrl = bcm_priv->ctrl;
 
 	char *base = (char *)(ctrl->base);
-	char *basic_interrupts = (char *)(base + DISABLE_BASIC_IRQS);
+	unsigned char *basic_interrupts = (unsigned char *)(base + DISABLE_BASIC_IRQS);
 
 	iowrite32(basic_interrupts, (unsigned int)BITP(int_nr));
 }
 
 void bcm_irq_controller_init(struct irq_controller *irq)
 {
-	struct irq_bcm_priv *priv;
+	struct irq_bcm_priv *priv = irq->priv;
 	char name[128] = "bcm-irq";
 	u64 base;
 
@@ -49,7 +49,5 @@ void bcm_irq_controller_init(struct irq_controller *irq)
 	irq->base = (unsigned long *)ioremap((unsigned long)mmio_base + base);
 	irq->enable_interrupt = bcm_irq_enable_interrupt;
 	irq->disable_interrupt = bcm_irq_disable_interrupt;
-
 	priv->ctrl = irq;
-	irq->priv = (void *)priv;
 }
