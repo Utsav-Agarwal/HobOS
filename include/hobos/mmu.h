@@ -112,7 +112,7 @@ struct tcr_el1_cfg {
 
 #define MAIR_MEM_O_WT_T(r, w)	MAIR_MEM_RW(0b00, r, w)
 #define MAIR_MEM_O_WB_T(r, w)	MAIR_MEM_RW(0b01, r, w)
-#define MAIR_MEM_O_WT_T(r, w)	MAIR_MEM_RW(0b10, r, w)
+#define MAIR_MEM_O_WT_NT(r, w)	MAIR_MEM_RW(0b10, r, w)
 #define MAIR_MEM_O_WB_NT(r, w)	MAIR_MEM_RW(0b11, r, w)
 
 //Inner cache
@@ -120,7 +120,7 @@ struct tcr_el1_cfg {
 
 #define MAIR_MEM_I_WT_T(r, w)	MAIR_MEM_RW(0b00, r, w)
 #define MAIR_MEM_I_WB_T(r, w)	MAIR_MEM_RW(0b01, r, w)
-#define MAIR_MEM_I_WT_T(r, w)	MAIR_MEM_RW(0b10, r, w)
+#define MAIR_MEM_I_WT_NT(r, w)	MAIR_MEM_RW(0b10, r, w)
 #define MAIR_MEM_I_WB_NT(r, w)	MAIR_MEM_RW(0b11, r, w)
 
 //kernel offset after switch to high memory addressing
