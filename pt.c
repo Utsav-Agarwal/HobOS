@@ -52,12 +52,13 @@ void place_pt_entry(struct page_table_desc *pt_desc, u64 pte, int index)
 //
 //
 //returns: the first new page table entry created
-u64 *create_pt_entries(struct page_table_desc *pt_desc,
+volatile u64 *create_pt_entries(struct page_table_desc *pt_desc,
 		       u64 start_paddr, u64 end_paddr,
 		       u64 flags)
 {
-	u64 *pt = pt_desc->pt;
-	u64 *start_pte, pte;
+	volatile u64 *pt = pt_desc->pt;
+	volatile u64 *start_pte;
+	u64 pte;
 	u64 offset = KB(4);	//should be separated by 1 page atleast
 
 	pte = pt_entry(start_paddr, flags);
@@ -97,7 +98,7 @@ struct page_table_desc *create_pt(u64 pt_baddr, char level)
 		     NEXT_PT_OFFSET);
 	}
 
-	memset(pt, 0, 0x1000);	//512 entries * 8 B
+	memset((void *)pt, 0, 0x1000);	//512 entries * 8 B
 	pt_desc = (struct page_table_desc *)&pt[512];
 	pt_desc->pt = pt;
 	pt_desc->level = level;

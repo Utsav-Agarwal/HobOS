@@ -99,7 +99,7 @@ struct va_metadata {
 unsigned long pt_entry(unsigned long paddr, unsigned long flags);
 void place_pt_entry(struct page_table_desc *pt_desc, unsigned long pte, int index);
 struct page_table_desc *create_pt(unsigned long pt_baddr, char level);
-unsigned long *create_pt_entries(
+volatile u64 *create_pt_entries(
 		struct page_table_desc *pt_desc,
 		unsigned long start_paddr, unsigned long end_paddr, unsigned long flags);
 #endif
