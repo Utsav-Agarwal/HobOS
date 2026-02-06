@@ -19,17 +19,17 @@ struct page_block {
 	void *page;
 	int order;
 	unsigned int flags;
-	struct page_block *next;
+	volatile struct page_block *next;
 };
 
 // a list per order
 struct free_list {
-	struct page_block *first;
+	volatile struct page_block *first;
 	unsigned int count;
 };
 
 struct free_list_header {
-	volatile struct free_list list[MAX_PAGE_ORDER + 1];
+	struct free_list list[MAX_PAGE_ORDER + 1];
 	volatile struct page_block *last_entry;
 };
 
