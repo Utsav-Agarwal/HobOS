@@ -108,15 +108,6 @@ struct page_table_desc *create_pt(u64 pt_baddr, char level)
 	return pt_desc;
 }
 
-void reserve_block(u64 baddr)
-{
-	void *addr;
-	u16 i = 0;
-
-	for (i = 0; i < 512; i++)
-		addr = ioremap(baddr + 0x1000 * i);
-}
-
 //traverse the page table and validate this vaddr range
 void validate_pt(u64 baddr, u64 start, u64 end)
 {

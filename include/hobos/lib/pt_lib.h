@@ -102,8 +102,4 @@ struct page_table_desc *create_pt(unsigned long pt_baddr, char level);
 unsigned long *create_pt_entries(
 		struct page_table_desc *pt_desc,
 		unsigned long start_paddr, unsigned long end_paddr, unsigned long flags);
-
-//TODO: remove
-void reserve_block(unsigned long baddr);
-
 #endif
