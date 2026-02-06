@@ -153,13 +153,12 @@ static int __setup_core(unsigned char core)
 	struct worker *w = &smp_worker[core];
 	volatile u32 *m0 = &w->mutex[0];
 	volatile u32 *m1 = &w->mutex[1];
-	volatile u64 *exec_addr = w->exec_addr;
 
 	//we need some sync/ordering here since 2 processors
 	//are competing to write to a common memory location (semaphores[..])
 	//i.e - the scheduler(master) and the worker(slave)
 	acquire_mutex(m0);
-	smp_store_mb(*exec_addr, (unsigned long)setup_stack);
+	smp_store_mb(*w->exec_addr, (unsigned long)setup_stack);
 	acquire_mutex(m1);
 
 	asm volatile("sev");
