@@ -1,6 +1,6 @@
 # HobOS 
 
-<p align="center"> <img alt="image" src="https://github.com/user-attachments/assets/05c76a2e-a861-465c-8091-8a2e8d05b215" width="25%"/> </p>
+<p align="center"> <img alt="image" src="https://i.ibb.co/k21hynVd/hobos.webp" width="25%"/> </p>
 
 
 <p align="center">
