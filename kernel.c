@@ -16,8 +16,6 @@ struct irq_bcm_priv priv;
 
 void kernel_test(void)
 {
-	kprintf("Hello from irq\n");
-
 	global_timer.reset_timer(&global_timer);
 	global_timer.set_timer(&global_timer, 0x200000);
 }
@@ -62,8 +60,6 @@ static void heartbeat(void)
 	kprintf("Hello from vmem\n");
 }
 
-void (*usr_entry)(void) = (void (*)(void)) (USR_INIT + PAGE_SIZE); 
-
 void main(void)
 {
 	mmio_init();
@@ -73,12 +69,13 @@ void main(void)
 	init_free_list((u64)&__phymem_end, PAGE_SIZE * 256);
 	init_device_drivers();
 
-	init_smp();
+	//init_smp();
 	switch_vmem();
 
 	heartbeat();
 	
 	usr_init();
+	kprintf("\nStarting userspace...\n");
 	jump_to_usr();
 
 	while (1)

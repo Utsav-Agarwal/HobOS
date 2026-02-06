@@ -144,4 +144,5 @@ void map_pa_to_va_pg(unsigned long pa, unsigned long va,
 void create_id_mapping(u64 start_paddr, u64 end_paddr,
 			u64 pt, u64 flags);
 
+void set_ttbr0_el1(u64 x);
 #endif

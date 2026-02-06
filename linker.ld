@@ -118,6 +118,14 @@ SECTIONS
     }
     . = ALIGN(PAGE_SIZE);
 
+    . = 0x201000;
+    .user_test :
+    {
+	*(.user_test);
+	. = . + 0x1000;
+    }
+
     __end = . ;
+
 }
 

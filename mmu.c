@@ -27,6 +27,7 @@ void create_id_mapping(u64 start_paddr, u64 end_paddr,
 
 	pt_desc = create_pt(end_addr, 3);
 	create_pt_entries(pt_desc, start_paddr, end_paddr, flags); //2GB
+	mb();
 }
 
 static inline void extract_va_metadata(u64 va, struct va_metadata *meta)
@@ -114,7 +115,7 @@ static inline void set_ttbr1_el1(u64 x)
 	asm volatile ("msr ttbr1_el1, %0"::"r"(x));
 }
 
-static inline void set_ttbr0_el1(u64 x)
+void set_ttbr0_el1(u64 x)
 {
 	asm volatile ("msr ttbr0_el1, %0"::"r"(x));
 }
