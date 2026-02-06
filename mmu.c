@@ -124,7 +124,7 @@ static inline void set_ttbr0_el1(u64 x)
 	asm volatile ("msr ttbr0_el1, %0"::"r"(x));
 }
 
-u64 switch_vmem(void)
+void switch_vmem(void)
 {
 	u64 tcr, reg;
 
