@@ -20,28 +20,6 @@ inline void handle_sctlr_quirks(unsigned long *sctlr)
 	*sctlr = 0xC00800;
 }
 
-struct ttbr_cfg ttbr0_el1 = {
-	.table_base_addr = TABLE_BADDR,
-	.asid = 0,
-	.skl = 0,
-	.cnp = 1,
-};
-
-struct ttbr_cfg ttbr1_el1 = {
-	.table_base_addr =  TABLE_BADDR + TTBR1_OFFSET_B,
-	.asid = 0,
-	.skl = 0,
-	.cnp = 1,
-};
-
-struct tcr_el1_cfg tcr_el1 = {
-	.t0_sz = 25,	//addresses 2^39 = 512GB
-	.t1_sz = 25,	//addresses 2^39 = 512GB
-	.tg0 = TG0_GRANULE_SZ_4KB,
-	.tg1 = TG1_GRANULE_SZ_4KB,
-	.ips_sz = 2,	//TODO: Autodetect
-};
-
 static const struct mair_attr at[] = {
 	{
 		.outer_cache = MAIR_MEM_O_WB_NT(ALLOC, ALLOC),
