@@ -116,12 +116,12 @@ static u64 set_kernel_translation_table(void)
 
 static inline void set_ttbr1_el1(u64 x)
 {
-	asm("msr ttbr1_el1, %0"::"r"(x));
+	asm volatile ("msr ttbr1_el1, %0"::"r"(x));
 }
 
 static inline void set_ttbr0_el1(u64 x)
 {
-	asm("msr ttbr0_el1, %0"::"r"(x));
+	asm volatile ("msr ttbr0_el1, %0"::"r"(x));
 }
 
 u64 switch_vmem(void)
@@ -130,30 +130,31 @@ u64 switch_vmem(void)
 
 	set_ttbr1_el1((u64)set_kernel_translation_table());
 
-	asm("mrs %0, tcr_el1" : "=r"(tcr));
+	asm volatile ("mrs %0, tcr_el1" : "=r"(tcr));
 
 	tcr |= TG1_GRANULE_SZ_4KB << TG1_POS;
 	tcr |= MMU_TSZ << T1SZ_POS;
 	tcr |= EPD_WALK << EPD1_POS;
 
-	asm("msr tcr_el1, %0"::"r"(tcr));
+	asm volatile ("msr tcr_el1, %0"::"r"(tcr));
 
 	//at this point the table should be active, so in theory
 	//we should be able to just set the next instruction
 
 	reg = ((u64)&__core0_stack) + KERNEL_START;
-	asm("mov sp, %0"::"r"(reg));
+	asm volatile ("mov sp, %0"::"r"(reg));
 
-	asm("mov %0, lr" : "=r"(reg));
+	asm volatile ("mov %0, lr" : "=r"(reg));
 	reg += KERNEL_START;
-	asm("mov lr, %0"::"r"(reg));
+	asm volatile ("mov lr, %0"::"r"(reg));
 
-	asm("tlbi vmalle1; dsb sy; isb");
+	asm volatile ("tlbi vmalle1; dsb sy; isb");
 }
 
 void init_mmu(void)
 {
-	u64 tcr, sctlr, spsr;
+	u64 tcr = 0;
+	u64 sctlr = 0;
 
 	//page table set
 	//we want to share the page tables from core 0 to others, to start
@@ -163,7 +164,7 @@ void init_mmu(void)
 	else
 		set_ttbr0_el1((u64)global_page_tables[0]->pt + CNP_COMMON);
 
-	asm("msr mair_el1, %0"::"r"(mair_el1));
+	asm volatile ("msr mair_el1, %0"::"r"(mair_el1));
 
 	//translation control TCR_EL1
 
@@ -174,11 +175,11 @@ void init_mmu(void)
 	tcr |= 0b00 << ORGN0_POS;
 	tcr |= 0b00 << SH0_POS;
 
-	asm("msr tcr_el1, %0"::"r"(tcr));
+	asm volatile ("msr tcr_el1, %0"::"r"(tcr));
 
 	//system control SCTLR_EL1
 
-	asm("mrs %0, sctlr_el1" : "=r"(sctlr));
+	asm volatile ("mrs %0, sctlr_el1" : "=r"(sctlr));
 
 #ifdef SCTLR_QUIRKS
 	handle_sctlr_quirks(&sctlr);
@@ -189,9 +190,9 @@ void init_mmu(void)
 	//enable mmu
 	sctlr |= 1;
 
-	asm("msr sctlr_el1, %0"::"r"(sctlr));
-	asm("dsb sy; isb");
+	asm volatile ("msr sctlr_el1, %0"::"r"(sctlr));
+	asm volatile ("dsb sy; isb");
 
 	//invalidate tlb
-	asm("tlbi vmalle1; dsb sy; isb");
+	asm volatile ("tlbi vmalle1; dsb sy; isb");
 }
