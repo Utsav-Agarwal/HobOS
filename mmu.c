@@ -9,15 +9,12 @@
 #define map_sz		512
 #define ID_PG_SZ	PAGE_SIZE
 
-//default MMU characteristics
-//#define KERNEL_START	(~(BITM(64-MMU_TSZ)))
-
 void create_id_mapping(u64 start_paddr, u64 end_paddr,
 			u64 pt)
 {
 	//for now lets assume T0/1_SZ is constant at 25, so we
 	//only care about 3 levels
-	u16 flags = PTE_FLAGS_GENERIC;
+	u64 flags = PTE_FLAGS_KERNEL_GENERIC;
 	u64 end_addr;
 	struct page_table_desc *pt_desc;
 
@@ -59,6 +56,7 @@ void map_pa_to_va_pg(u64 pa, u64 va, struct page_table_desc *pt_top,
 	u64 volatile *pt, pte;
 	struct va_metadata meta;
 	u16 pt_index;
+	u64 pte_flags = flags;
 	u8 level, i;
 
 	extract_va_metadata(va, &meta);
@@ -72,11 +70,9 @@ void map_pa_to_va_pg(u64 pa, u64 va, struct page_table_desc *pt_top,
 		//L3
 		if (i == PT_LVL_MAX) {
 			if (!flags)
-				pt[pt_index] = pt_entry(meta.offset,
-							PTE_FLAGS_GENERIC);
-			else
-				pt[pt_index] = pt_entry(meta.offset, flags);
+				pte_flags = PTE_FLAGS_KERNEL_GENERIC;
 
+			pt[pt_index] = pt_entry(meta.offset, pte_flags);
 			break;
 		}
 
@@ -87,7 +83,7 @@ void map_pa_to_va_pg(u64 pa, u64 va, struct page_table_desc *pt_top,
 			//we create next level
 			new_pt_desc = create_pt(0, level + 1);
 			pte = pt_entry((u64)new_pt_desc->pt,
-				       PTE_FLAGS_GENERIC);
+				       PTE_FLAGS_KERNEL_GENERIC);
 
 			place_pt_entry(pt_desc, pte, pt_index);
 			pt_desc = new_pt_desc;

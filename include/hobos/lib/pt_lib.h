@@ -56,17 +56,21 @@
 
 #define KB(x)	(x * (1 << 10))
 
-#define PTE_FLAGS_GENERIC   \
+#define PTE_FLAGS_KERNEL_GENERIC   \
 		(PT_PAGE | PT_AP_RW | PT_AF_ACCESSED \
-		 | PT_SH_I | PT_INDEX_MEM)
+		 | PT_UXN_NX | PT_SH_I | PT_INDEX_MEM)
+
+#define PTE_FLAGS_USER_GENERIC   \
+		(PT_PAGE | PT_AP_RW | PT_AF_ACCESSED \
+		 | PT_PXN_NX | PT_SH_I | PT_INDEX_MEM)
 
 #define PTE_FLAGS_IO   \
 		(PT_PAGE | PT_AF_ACCESSED \
-		| PT_PXN_NX | PT_UXN_NX | PT_SH_O | PT_INDEX_DEV)
+		| PT_UXN_NX | PT_SH_O | PT_INDEX_DEV)
 
 #define PTE_FLAGS_NC   \
 		(PT_PAGE | PT_AF_ACCESSED \
-		| PT_PXN_NX | PT_UXN_NX | PT_SH_O | PT_INDEX_NC)
+		| PT_UXN_NX | PT_SH_O | PT_INDEX_NC)
 
 //the actual structures are on the heap, appended just under the tables
 //that they describe. to retrieve them, just read after the last table entry
