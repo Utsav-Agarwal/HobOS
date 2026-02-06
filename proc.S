@@ -1,5 +1,3 @@
-/* SPDX-License-Identifier: GPL-2.0-only */
-
 .section ".text.proc"
 
 .global setup_stack
