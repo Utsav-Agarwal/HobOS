@@ -11,8 +11,6 @@
 #define PAGE_BLOCK(order)	(1 << (order))
 #define MAX_PAGE_BLOCK	PAGE_BLOCK(MAX_PAGE_ORDER)
 
-#define PAGE_SIZE	4096UL
-
 #define BLOCK_USED	0xDEDE
 
 struct page_block {
