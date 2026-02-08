@@ -4,5 +4,6 @@
 
 #define __section(section)	__attribute__((__section__(section)))
 #define __unused		__attribute__((unused))
+#define __noreturn		__attribute__((noreturn))
 
 #endif
