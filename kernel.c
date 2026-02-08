@@ -11,6 +11,8 @@
 #include <hobos/asm/barrier.h>
 #include <hobos/entry.h>
 
+extern __noreturn void jump_to_usr(void);
+
 struct irq_controller soc_irq;
 struct irq_bcm_priv priv;
 
@@ -58,29 +60,22 @@ static void init_device_drivers(void)
 static void heartbeat(void)
 {
 	kprintf("\n\n** Welcome to HobOS! **\n\n");
-
-	kprintf("Hello from vmem\n");
 }
 
-void (*usr_entry)(void) = (void (*)(void)) (USR_INIT + PAGE_SIZE); 
-
-void main(void)
+__noreturn void main(void)
 {
 	mmio_init();
 	init_mmu();
 	setup_console();
-
 	init_free_list((u64)&__phymem_end, PAGE_SIZE * 256);
+	heartbeat();
+
 	init_device_drivers();
 
 	init_smp();
+
 	switch_vmem();
-
-	heartbeat();
-	
-	usr_init();
 	jump_to_usr();
-
 	while (1)
 		;
 }
