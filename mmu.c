@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
 #include <hobos/asm/barrier.h>
-#include <hobos/kstdio.h>
+#include <hobos/compiler_types.h>
 #include <hobos/mmu/bcm2835.h>
 #include <hobos/mmu.h>
 #include <hobos/smp.h>
@@ -9,95 +9,9 @@
 #define map_sz		512
 #define ID_PG_SZ	PAGE_SIZE
 
-void create_id_mapping(u64 start_paddr, u64 end_paddr,
-			u64 pt, u64 flags)
-{
-	//for now lets assume T0/1_SZ is constant at 25, so we
-	//only care about 3 levels
-	u64 end_addr;
-	struct page_table_desc *pt_desc;
-
-	pt_desc = create_pt(pt, 1);
-	end_addr = (u64)(pt_desc->pt) + NEXT_PT_OFFSET;
-	create_pt_entries(pt_desc, end_addr, end_addr, flags);
-
-	pt_desc = create_pt(end_addr, 2);
-	end_addr += NEXT_PT_OFFSET;
-	create_pt_entries(pt_desc, end_addr, end_addr, flags);
-
-	pt_desc = create_pt(end_addr, 3);
-	create_pt_entries(pt_desc, start_paddr, end_paddr, flags); //2GB
-}
-
-static inline void extract_va_metadata(u64 va, struct va_metadata *meta)
-{
-	u64 mask = 0xFFF;
-
-	meta->offset = va & mask;	//offset is calculated with last
-					//12 bits
-
-	mask = BITM(9);		//9 bits bitmask
-
-	meta->index[0] = (va >> 30) & mask;
-	meta->index[1] = (va >> 21) & mask;
-	meta->index[2] = (va >> 12) & mask;
-}
-
-static inline u64 pte_is_empty(u64 pte)
-{
-	return !(pte);
-}
-
-void map_pa_to_va_pg(u64 pa, u64 va, struct page_table_desc *pt_top,
-		     u64 flags)
-{
-	struct page_table_desc *pt_desc = pt_top;
-	u64 volatile *pt, pte;
-	struct va_metadata meta;
-	u16 pt_index;
-	u64 pte_flags = flags;
-	u8 level, i;
-
-	extract_va_metadata(va, &meta);
-	meta.offset += pa;	//we want physical address at the end
-
-	for (i = pt_desc->level; i <= PT_LVL_MAX; i++) {
-		level = pt_desc->level;
-		pt = pt_desc->pt;
-		pt_index = meta.index[level - 1];
-
-		//L3
-		if (i == PT_LVL_MAX) {
-			if (!flags)
-				pte_flags = PTE_FLAGS_KERNEL_GENERIC;
-
-			pt[pt_index] = pt_entry(meta.offset, pte_flags);
-			break;
-		}
-
-		pte = pt[pt_index];
-		if (pte_is_empty(pte)) {
-			struct page_table_desc *new_pt_desc;
-
-			//we create next level
-			new_pt_desc = create_pt(0, level + 1);
-			pte = pt_entry((u64)new_pt_desc->pt,
-				       PTE_FLAGS_KERNEL_GENERIC);
-
-			place_pt_entry(pt_desc, pte, pt_index);
-			pt_desc = new_pt_desc;
-		} else {
-			//extract next table
-			pt_desc = (struct page_table_desc *)
-				((pte & ~(0xF0000000000FFF)) + 0x1000);
-		}
-	}
-}
-
-volatile char pt __attribute__((section(".misc"))) = 0;
+volatile char pt __section(".misc") = 0;
 static u64 set_id_translation_table(void)
 {
-	kprintf("pt: %x\n", &pt);
 	create_id_mapping(0, 0x1000 * 512, (u64)&pt, PTE_FLAGS_KERNEL_GENERIC);
 	return (u64)(global_page_tables[0]->pt);
 }
@@ -114,9 +28,31 @@ static inline void set_ttbr1_el1(u64 x)
 	asm volatile ("msr ttbr1_el1, %0"::"r"(x));
 }
 
-static inline void set_ttbr0_el1(u64 x)
+static void disable_ttbr0_el1(void)
 {
+	u64 tcr;
+
+	asm volatile ("mrs %0, tcr_el1" : "=r"(tcr));
+	tcr |= EPD_FAULT << EPD0_POS;
+	asm volatile ("msr tcr_el1, %0"::"r"(tcr));
+}
+
+static void enable_ttbr0_el1(void)
+{
+	u64 tcr;
+
+	asm volatile ("mrs %0, tcr_el1" : "=r"(tcr));
+	tcr |= EPD_WALK << EPD0_POS;
+	asm volatile ("msr tcr_el1, %0"::"r"(tcr));
+}
+
+void set_ttbr0_el1(u64 x)
+{
+	disable_ttbr0_el1();
+	mb();
 	asm volatile ("msr ttbr0_el1, %0"::"r"(x));
+	asm volatile ("dmb ish; tlbi vmalle1; isb; dmb ish;");
+	enable_ttbr0_el1();
 }
 
 void switch_vmem(void)
@@ -142,6 +78,10 @@ void switch_vmem(void)
 	asm volatile ("mov %0, lr" : "=r"(reg));
 	reg += KERNEL_START;
 	asm volatile ("mov lr, %0"::"r"(reg));
+
+	asm volatile ("mrs %0, vbar_el1" : "=r"(reg));
+	reg += KERNEL_START;
+	asm volatile ("msr vbar_el1, %0"::"r"(reg));
 
 	asm volatile ("tlbi vmalle1; dsb sy; isb");
 }
@@ -171,9 +111,7 @@ void init_mmu(void)
 	tcr |= 0b00 << SH0_POS;
 
 	asm volatile ("msr tcr_el1, %0"::"r"(tcr));
-
 	//system control SCTLR_EL1
-
 	asm volatile ("mrs %0, sctlr_el1" : "=r"(sctlr));
 
 #ifdef SCTLR_QUIRKS

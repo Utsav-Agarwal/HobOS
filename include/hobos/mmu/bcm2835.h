@@ -6,7 +6,6 @@
 #include "../mmu.h"
 
 //TODO: use linker script definitions
-#define PAGE_SIZE	KB(4)
 #define TABLE_BADDR	(unsigned long)(&__end)
 #define TTBR1_OFFSET_B	0
 #define TTBR1_OFFSET	0

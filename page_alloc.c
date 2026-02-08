@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
 #include <hobos/page_alloc.h>
+#include <hobos/mmu.h>
 #include <hobos/compiler_types.h>
 #include <hobos/kstdio.h>
 
@@ -298,6 +299,7 @@ static int split_page_block(int order)
 {
 	volatile struct page_block *pb = get_next_free_block(order);
 	u64 base_addr = 0;
+
 	__unused u64 page_offset = 0;
 	int curr_order = order;
 
@@ -431,9 +433,8 @@ static int get_page_order(size_t nr_pages)
 	size_t val = nr_pages;
 	int i = 0;
 
-	while (val != PAGE_BLOCK(i)) {
+	while (val < PAGE_BLOCK(i))
 		i++;
-	}
 
 	return i;
 }
