@@ -118,6 +118,17 @@ SECTIONS
     }
     . = ALIGN(PAGE_SIZE);
 
+
+    /*
+     * This is where heap starts, grows downwards
+     */
+    . = 0x200000;
+    .usr_entry :
+    {
+	*(.usr_entry);
+    }
+    . = ALIGN(PAGE_SIZE);
+
     __end = . ;
 }
 

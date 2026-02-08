@@ -6,8 +6,9 @@ TOOLCHAIN ?= ${TOOLCHAIN_PATH}/bin/aarch64-none-elf-
 CC = ${TOOLCHAIN}gcc
 AS = ${TOOLCHAIN}as
 LD = ${TOOLCHAIN}ld
-SRCS = $(wildcard *.c)
-OBJS = $(SRCS:.c=.o)
+SRCS := $(wildcard *.c *.S)
+OBJS := $(SRCS:.c=.o)
+OBJS := $(OBJS:.S=.o)
 CFLAGS = -Wall -O2 -ffreestanding -g -march=armv8-a+nosimd -mgeneral-regs-only -Iinclude -std=gnu11
 
 all: clean kernel8.img
@@ -36,17 +37,14 @@ install-ci: install-toolchain
 	chmod +x ${SCRIPTS}/checkpatch.pl
 	chmod +x ${SCRIPTS}/checkpatch.sh
 
-boot.o: boot.S
-	${CC} ${CFLAGS} -c boot.S -o boot.o 
-
-proc.o: proc.S
-	${CC} ${CFLAGS} -c proc.S -o proc.o 
-
 %.o: %.c
 	${CC} ${CFLAGS} -c $< -o $@
 
-kernel8.img: boot.o proc.o ${OBJS}
-	${LD} boot.o proc.o ${OBJS} -T linker.ld -o kernel8.elf -g
+%.o: %.S
+	${CC} ${CFLAGS} -D__ASSEMBLY__ -c $< -o $@
+
+kernel8.img: ${OBJS}
+	${LD} ${OBJS} -T linker.ld -o kernel8.elf -g
 	${TOOLCHAIN}objcopy -O binary kernel8.elf kernel8.img
 
 run:	all

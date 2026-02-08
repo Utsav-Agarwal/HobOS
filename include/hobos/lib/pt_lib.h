@@ -23,7 +23,7 @@
 //AP Flag (Access permissions)
 
 #define PT_KERNEL	(0b00 << PT_AP_POS)
-#define PT_USER	(0b01 << PT_AP_POS)
+#define PT_USER		(0b01 << PT_AP_POS)
 #define PT_AP_RW	(0b00 << PT_AP_POS)
 #define PT_AP_RO	(0b10 << PT_AP_POS)
 
@@ -56,17 +56,21 @@
 
 #define KB(x)	(x * (1 << 10))
 
-#define PTE_FLAGS_GENERIC   \
+#define PTE_FLAGS_KERNEL_GENERIC   \
 		(PT_PAGE | PT_AP_RW | PT_AF_ACCESSED \
-		 | PT_SH_I | PT_INDEX_MEM)
+		 | PT_UXN_NX | PT_SH_I | PT_INDEX_MEM)
+
+#define PTE_FLAGS_USER_GENERIC   \
+		(PT_PAGE | PT_AP_RW | PT_AF_ACCESSED \
+		 | PT_PXN_NX | PT_SH_I | PT_INDEX_MEM)
 
 #define PTE_FLAGS_IO   \
 		(PT_PAGE | PT_AF_ACCESSED \
-		| PT_PXN_NX | PT_UXN_NX | PT_SH_O | PT_INDEX_DEV)
+		| PT_UXN_NX | PT_SH_O | PT_INDEX_DEV)
 
 #define PTE_FLAGS_NC   \
 		(PT_PAGE | PT_AF_ACCESSED \
-		| PT_PXN_NX | PT_UXN_NX | PT_SH_O | PT_INDEX_NC)
+		| PT_UXN_NX | PT_SH_O | PT_INDEX_NC)
 
 //the actual structures are on the heap, appended just under the tables
 //that they describe. to retrieve them, just read after the last table entry
@@ -93,13 +97,19 @@ struct va_metadata {
 	unsigned long offset;
 };
 
-//extract pte desc/meta data - more for debugging purposes
-//struct *unsigned long_desc get_pte(void *);
-
 unsigned long pt_entry(unsigned long paddr, unsigned long flags);
-void place_pt_entry(struct page_table_desc *pt_desc, unsigned long pte, int index);
+void place_pt_entry(struct page_table_desc *pt_desc, unsigned long pte,
+		    int index);
+
 struct page_table_desc *create_pt(unsigned long pt_baddr, char level);
-volatile u64 *create_pt_entries(
-		struct page_table_desc *pt_desc,
-		unsigned long start_paddr, unsigned long end_paddr, unsigned long flags);
+volatile u64 *create_pt_entries(struct page_table_desc *pt_desc,
+				unsigned long start_paddr,
+				unsigned long end_paddr,
+				unsigned long flags);
+
+void map_pa_to_va_pg(unsigned long pa, unsigned long va,
+		     struct page_table_desc *pt_top,
+		     unsigned long flags);
+
+void create_id_mapping(u64 start_paddr, u64 end_paddr, u64 pt, u64 flags);
 #endif
