@@ -102,7 +102,7 @@ static bool list_has_free_block(int order)
 
 static void print_page_block(volatile struct page_block *pb)
 {
-	kprintf("|addr:\t|0x%x|", (u64)pb->page);
+	kprintf("|addr: %x|\t", (u64)pb->page);
 	if (block_is_free(pb))
 		kprintf("[free]");
 	else
@@ -140,6 +140,7 @@ void print_free_lists(void)
 {
 	int i = 0;
 
+	kprintf("\n");
 	for (i = MAX_PAGE_ORDER; i >= 0; i--) {
 		print_block_list(get_block_free_list(i));
 	}
@@ -412,7 +413,7 @@ void init_free_list(u64 addr, size_t size)
 
 	fl_meta.last_entry = 0;
 
-	kprintf("Starting memory management from addr 0x%x\n", addr - size);
+	kprintf("Starting memory management from addr %x\n", addr - size);
 	// We want to distribute per order
 	while (curr_order >= 0) {
 		curr_order_pages = total_pages / PAGE_BLOCK(curr_order);

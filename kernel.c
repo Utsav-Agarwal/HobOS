@@ -16,6 +16,17 @@ extern __noreturn void jump_to_usr(void);
 struct irq_controller soc_irq;
 struct irq_bcm_priv priv;
 
+static inline void kernel_init_msg(void)
+{
+	kprintf("\nStarting kernel...\n");
+}
+
+/* I'm alive */
+static inline void kernel_splash_msg(void)
+{
+	kprintf("\n\n** Welcome to HobOS! **\n\n");
+}
+
 void kernel_test(void)
 {
 	kprintf("Hello from irq\n");
@@ -30,6 +41,7 @@ static void setup_console(void)
 
 	init_gpio(&ctrl);
 	init_console(&uart_dev, (void *)&ctrl);
+	kernel_init_msg();
 }
 
 //TODO:
@@ -56,25 +68,18 @@ static void init_device_drivers(void)
 	enable_interrupts();
 }
 
-/* I'm alive */
-static void heartbeat(void)
-{
-	kprintf("\n\n** Welcome to HobOS! **\n\n");
-}
-
 __noreturn void main(void)
 {
 	mmio_init();
 	init_mmu();
 	setup_console();
 	init_free_list((u64)&__phymem_end, PAGE_SIZE * 256);
-	heartbeat();
 
 	init_device_drivers();
-
 	init_smp();
 
 	switch_vmem();
+	kernel_splash_msg();
 	jump_to_usr();
 	while (1)
 		;
