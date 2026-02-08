@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
 #include <hobos/page_alloc.h>
+#include <hobos/mmu.h>
 #include <hobos/compiler_types.h>
 #include <hobos/kstdio.h>
 
@@ -101,7 +102,7 @@ static bool list_has_free_block(int order)
 
 static void print_page_block(volatile struct page_block *pb)
 {
-	kprintf("|addr:\t|0x%x|", (u64)pb->page);
+	kprintf("|addr: %x|\t", (u64)pb->page);
 	if (block_is_free(pb))
 		kprintf("[free]");
 	else
@@ -139,6 +140,7 @@ void print_free_lists(void)
 {
 	int i = 0;
 
+	kprintf("\n");
 	for (i = MAX_PAGE_ORDER; i >= 0; i--) {
 		print_block_list(get_block_free_list(i));
 	}
@@ -298,6 +300,7 @@ static int split_page_block(int order)
 {
 	volatile struct page_block *pb = get_next_free_block(order);
 	u64 base_addr = 0;
+
 	__unused u64 page_offset = 0;
 	int curr_order = order;
 
@@ -410,7 +413,7 @@ void init_free_list(u64 addr, size_t size)
 
 	fl_meta.last_entry = 0;
 
-	kprintf("Starting memory management from addr 0x%x\n", addr - size);
+	kprintf("Starting memory management from addr %x\n", addr - size);
 	// We want to distribute per order
 	while (curr_order >= 0) {
 		curr_order_pages = total_pages / PAGE_BLOCK(curr_order);
@@ -431,9 +434,8 @@ static int get_page_order(size_t nr_pages)
 	size_t val = nr_pages;
 	int i = 0;
 
-	while (val != PAGE_BLOCK(i)) {
+	while (val < PAGE_BLOCK(i))
 		i++;
-	}
 
 	return i;
 }

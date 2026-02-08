@@ -117,7 +117,8 @@ struct tcr_el1_cfg {
 #define MAIR_MEM_I_WB_NT(r, w)	MAIR_MEM_RW(0b11, r, w)
 
 //kernel offset after switch to high memory addressing
-#define KERNEL_START	0xFFFFFF8000000000
+#define KERNEL_START	0xFFFFFF8000000000UL
+#define PAGE_SIZE	KB(4)
 
 struct mair_attr {
 	char outer_cache: 4;
@@ -131,8 +132,6 @@ struct mair {
 	struct mair_attr attr3;
 };
 
-extern volatile unsigned char __data_start;
-extern volatile unsigned char __end;
 extern volatile unsigned char __core0_stack;
 
 extern struct page_table_desc *global_page_tables[10];
@@ -140,8 +139,6 @@ extern u8 pt_ctr;
 
 void init_mmu(void);
 void switch_vmem(void);
-void map_pa_to_va_pg(unsigned long pa, unsigned long va,
-		     struct page_table_desc *pt_top,
-		     unsigned long flags);
+void set_ttbr0_el1(u64 x);
 
 #endif

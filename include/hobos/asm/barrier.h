@@ -3,7 +3,7 @@
 #ifndef BARRIER_H
 #define BARRIER_H
 
-#include "../compiler.h"
+#include <hobos/compiler.h>
 
 //This is a compiler barrier which essentially marks all memory
 //to be used and volatile
@@ -27,7 +27,7 @@
 
 #define smp_mb()	mb()
 
-#define isb()	do {asm volatile ("isb")} while (0)
+#define isb()	do {asm volatile ("isb");} while (0)
 
 //CSAN - Concurrency Sanitizer
 #define __CSAN_mb	__ATOMIC_SEQ_CST
