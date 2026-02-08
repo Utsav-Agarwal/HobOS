@@ -41,7 +41,8 @@ sync_exception_handler:
 .endm
 
 dummy_vector:
-    b 0x200
+    wfe
+    b dummy_vector
 
 .align 11
 vector_table:
