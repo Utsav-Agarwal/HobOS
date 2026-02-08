@@ -25,7 +25,7 @@ static void map_to_usr(u64 start, u64 end)
 
 void usr_init(void)
 {
-	kprintf("User memory range: [0x%x, 0x%x] (%d KiB)\n",
+	kprintf("User memory range: [%x, %x] (%d KiB)\n",
 		USR_INIT, USR_END, USR_SZ_KB);
 
 	map_to_usr(USR_INIT, USR_END);
