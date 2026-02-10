@@ -81,6 +81,7 @@ __noreturn void main(void)
 	switch_vmem();
 	kernel_splash_msg();
 	jump_to_usr();
+
 	while (1)
 		;
 }

@@ -35,6 +35,11 @@ void usr_init(void)
 
 __section(".usr_entry") void usr_entry_pt(void)
 {
+	char buf[] = "Hello from user\n";
+
+	asm volatile ("mov x0, %0"::"r"(&buf));
+	asm volatile ("mov x8, #0x1");
+	asm volatile ("svc #0");
 	while (1)
 		;
 }

@@ -7,13 +7,19 @@
 .global curr_core_el
 .global core_stack_base
 .global jump_to_EL1
-.global enable_global_interrupts
 .global handle_irq
 
 #define CORE_STACK_SIZE		0x1000
 
+.global enable_global_interrupts
 enable_global_interrupts:
     msr daifclr, #2
+    dmb osh
+    ret
+
+.global disable_global_interrupts
+disable_global_interrupts:
+    msr daifset, #2
     dmb osh
     ret
 
