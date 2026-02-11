@@ -3,7 +3,7 @@
 #ifndef __STDLIB_H
 #define __STDLIB_H
 
-#define BITP(pos) 	(1UL << pos)
+#define BITP(pos) 	(1UL << (pos))
 #define BITM(pos)	((BITP(pos)) - 1UL)
 
 void *kmalloc(unsigned size);

@@ -5,13 +5,11 @@
 
 #include <hobos/types.h>
 
-#define SYSCALL_PUTS	(1UL)
-
 struct syscall_meta {
 	u64 fn_args[8];
 	u64 syscall_nr;
 };
 
-void do_syscall(void);
+typedef void (*syscall_t) (struct syscall_meta *sys_m);
 
 #endif

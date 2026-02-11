@@ -128,6 +128,11 @@ SECTIONS
 	*(.usr_entry);
     }
     . = ALIGN(PAGE_SIZE);
+    .usr_mem :
+    {
+	*(.usr_mem);
+    }
+    . = ALIGN(PAGE_SIZE);
 
     __end = . ;
 }
