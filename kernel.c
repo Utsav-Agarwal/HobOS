@@ -22,9 +22,9 @@ static inline void kernel_init_msg(void)
 }
 
 /* I'm alive */
-static inline void kernel_splash_msg(void)
+void kernel_splash_msg(void)
 {
-	kprintf("\n\n** Welcome to HobOS! **\n\n");
+	kprintf("\n** Welcome to HobOS! **\n");
 }
 
 void kernel_test(void)
@@ -79,7 +79,6 @@ __noreturn void main(void)
 	init_smp();
 
 	switch_vmem();
-	kernel_splash_msg();
 	jump_to_usr();
 
 	while (1)
