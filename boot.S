@@ -15,12 +15,12 @@ _start:
     str     xzr, [x1], #8
     sub     w2, w2, #1
     cbnz    w2, 3b
-    
-4: 
+
+4:
     bl jump_to_EL1
 
     mov sp, x0
-    adr	x0, vector_table 
+    adr	x0, vector_table
     msr vbar_el1, x0
     isb
 
@@ -58,7 +58,7 @@ dummy_vector:
 handle_el0_svc:
     save_fplr
     bl disable_global_interrupts
-    bl do_syscall
+    bl syscall_el0_common
     bl enable_global_interrupts
     restore_fplr
     eret
@@ -66,14 +66,14 @@ handle_el0_svc:
 .align 11
 vector_table:
     ventry sync_exception_handler
-    ventry dummy_vector 
-    ventry dummy_vector 
-    ventry dummy_vector 
-    
+    ventry dummy_vector
+    ventry dummy_vector
+    ventry dummy_vector
+
     //EL1h
-    ventry dummy_vector 
+    ventry dummy_vector
     ventry handle_irq
-    ventry dummy_vector 
+    ventry dummy_vector
     ventry dummy_vector
 
     ventry handle_el0_svc

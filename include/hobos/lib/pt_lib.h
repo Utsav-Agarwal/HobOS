@@ -108,11 +108,11 @@ volatile u64 *create_pt_entries(struct page_table_desc *pt_desc,
 				unsigned long flags);
 
 volatile void *map_pa_to_va_pg(unsigned long pa, unsigned long va,
-		     struct page_table_desc *pt_top,
+			       struct page_table_desc *pt_top,
 		     unsigned long flags,
 		     bool walk);
 
 void create_id_mapping(u64 start_paddr, u64 end_paddr, u64 pt, u64 flags);
-void va_set_attr(u64 va, struct page_table_desc *pt_desc, u64 pte_attr); 
+void va_set_attr(u64 va, struct page_table_desc *pt_desc, u64 pte_attr);
 void va_clear_attr(u64 va, struct page_table_desc *pt_desc, u64 pte_attr);
 #endif
