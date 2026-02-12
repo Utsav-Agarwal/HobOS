@@ -1,8 +1,10 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
+
 #ifndef TYPES_H
 #define TYPES_H
 
-typedef unsigned char	mutex_t;
+typedef volatile unsigned char	mutex_t;
+typedef unsigned int	pid_t;
 typedef unsigned int	size_t;
 
 typedef	unsigned long	u64;

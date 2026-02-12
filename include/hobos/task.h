@@ -6,7 +6,7 @@
 #include <hobos/lib/pt_lib.h>
 #include <hobos/compiler_types.h>
 
-extern unsigned char pid_cntr;
+extern pid_t pid_cntr;
 
 struct ctxt {
 	u64 x[21];
@@ -14,7 +14,7 @@ struct ctxt {
 
 //TODO: maybe consider shared memory processes
 struct task {
-	unsigned int pid;
+	pid_t pid;
 	struct page_table_desc *base_pt;		//memory map
 	struct ctxt ctxt;				//context
 };
