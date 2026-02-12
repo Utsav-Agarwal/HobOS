@@ -19,7 +19,7 @@ struct ctxt {
 struct process {
 	unsigned int pid;
 	unsigned long tcr;				//save mmu config
-	struct page_table_desc *pt_baddr;	//page tables
+	struct page_table_desc *pt_baddr;		//page tables
 	struct ctxt *proc_state;			//context
 };
 
