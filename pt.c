@@ -141,8 +141,8 @@ static u64 extract_addr(u64 pte)
 	return KERNEL_START + (addr & 0xFFFFFFFF);
 }
 
-void map_pa_to_va_pg(u64 pa, u64 va, struct page_table_desc *pt_top,
-		     u64 flags)
+volatile void *map_pa_to_va_pg(u64 pa, u64 va, struct page_table_desc *pt_top,
+			       u64 flags, bool walk_only)
 {
 	struct page_table_desc *pt_desc = pt_top;
 	volatile u64 *pt;
@@ -165,6 +165,9 @@ void map_pa_to_va_pg(u64 pa, u64 va, struct page_table_desc *pt_top,
 
 		//L3
 		if (i == PT_LVL_MAX) {
+			if (walk_only)
+				return &pt[pt_index];
+
 			pt[pt_index] = pt_entry(meta.offset, pte_flags);
 			break;
 		}
@@ -184,6 +187,8 @@ void map_pa_to_va_pg(u64 pa, u64 va, struct page_table_desc *pt_top,
 				(extract_addr(pte) + 0x1000);
 		}
 	}
+
+	return 0;
 }
 
 void create_id_mapping(u64 start_paddr, u64 end_paddr,
@@ -197,7 +202,36 @@ void create_id_mapping(u64 start_paddr, u64 end_paddr,
 	int i;
 
 	for (i = start_paddr; i < end_paddr; i += PAGE_SIZE)
-		map_pa_to_va_pg(i, i, pt_desc, flags);
+		map_pa_to_va_pg(i, i, pt_desc, flags, 0);
+}
+
+static inline void invalidate_tlb_va(u64 va)
+{
+	asm volatile ("tlbi vaae1, %0" :: "r"(va));
+}
+
+/*
+ * returns old flags to save and adds attribute provided
+ */
+void va_set_attr(u64 va, struct page_table_desc *pt_desc, u64 pte_attr)
+{
+	volatile u64 *pte = map_pa_to_va_pg(0, va, pt_desc, 0, 1);
+
+	*pte = (*pte | pte_attr);
+}
+
+/*
+ * returns old flags to save and adds attribute provided
+ */
+void va_clear_attr(u64 va, struct page_table_desc *pt_desc, u64 pte_attr)
+{
+	volatile u64 *pte = map_pa_to_va_pg(0, va, pt_desc, 0, 1);
+
+	*pte = (*pte & ~pte_attr);
+	wmb();
+	invalidate_tlb_va(va);
+	mb();
+	isb();
 }
 
 //traverse the page table and validate this vaddr range

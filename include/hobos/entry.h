@@ -12,6 +12,8 @@
 #define USR_SZ_KB	(USR_SZ / KB(1))
 #define USR_END		(USR_INIT + USR_SZ)
 
+//#define USR_INIT_APP		(0x300000)
+
 /*
  * map physical memory,
  * assign page table and jump to user code
