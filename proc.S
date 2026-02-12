@@ -48,6 +48,7 @@ jump_to_EL1:
     eret
 
 2:
+    bl	curr_core_el
     cmp	x0, #2
     bne 1f
    
@@ -156,10 +157,15 @@ setup_stack:
     sub x1, x1, x2
     mov sp, x1
 
+    dmb ish
+    isb
     //continue execution to main
     //for core 0
     cbnz x0, exec
     ret
+fail:
+	wfe
+	b fail
 
 exec:
     b __park_and_wait
