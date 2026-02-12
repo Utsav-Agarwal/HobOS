@@ -29,8 +29,6 @@ void kernel_splash_msg(void)
 
 void kernel_test(void)
 {
-	kprintf("Hello from irq\n");
-
 	global_timer.reset_timer(&global_timer);
 	global_timer.set_timer(&global_timer, 0x200000);
 }
