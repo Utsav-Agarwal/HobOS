@@ -45,7 +45,7 @@ static void setup_console(void)
 }
 
 //TODO:
-void kernel_panic(void)
+__noreturn void kernel_panic(void)
 {
 	kprintf("Kernel panicked!\n");
 	while (1)
