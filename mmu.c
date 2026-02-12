@@ -9,17 +9,28 @@
 #define map_sz		512
 #define ID_PG_SZ	PAGE_SIZE
 
-volatile char pt __section(".misc") = 0;
+/*
+ * This is the first id translation table created, it will always be the 1st page table
+ * created.
+ */
 static u64 set_id_translation_table(void)
 {
-	create_id_mapping(0, 0x1000 * 512, (u64)&pt, PTE_FLAGS_KERNEL_GENERIC);
+	create_id_mapping(0, 0x1000 * 512, 0, PTE_FLAGS_KERNEL_GENERIC);
+	if (!global_page_tables[0])
+		return 0;
+
 	return (u64)(global_page_tables[0]->pt);
 }
 
-static u64 set_kernel_translation_table(void)
+/*
+ * We can just reuse the id_map for now as we only
+ * really care about it being mapped to high memory
+ */
+static inline u64 get_kernel_translation_table(void)
 {
-	//we can just reuse the id_map for now as we only
-	//really care about it being mapped to high memory
+	if (!global_page_tables[0])
+		return 0;
+
 	return (u64)(global_page_tables[0]->pt);
 }
 
@@ -59,7 +70,7 @@ void switch_vmem(void)
 {
 	u64 tcr, reg;
 
-	set_ttbr1_el1((u64)set_kernel_translation_table());
+	set_ttbr1_el1((u64)get_kernel_translation_table());
 
 	asm volatile ("mrs %0, tcr_el1" : "=r"(tcr));
 
@@ -97,7 +108,10 @@ void init_mmu(void)
 	if (!curr_core_id())
 		set_ttbr0_el1(set_id_translation_table() + CNP_COMMON);
 	else
-		set_ttbr0_el1((u64)global_page_tables[0]->pt + CNP_COMMON);
+		set_ttbr0_el1(get_kernel_translation_table() + CNP_COMMON);
+
+	if (!get_kernel_translation_table())
+		return;
 
 	asm volatile ("msr mair_el1, %0"::"r"(mair_el1));
 

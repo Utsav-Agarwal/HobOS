@@ -80,17 +80,6 @@ SECTIONS
     . = ALIGN(PAGE_SIZE);
 
     /*
-     * Leave some buffer for misc
-     * components such as exception vector tables
-     */
-    .misc :
-    {
-	*(.misc)
-	. = . + PAGE_SIZE*100;
-    }
-    . = ALIGN(PAGE_SIZE);
-
-    /*
      * Leave some space for physical accessible memory
      * management metadata
      *
@@ -126,6 +115,11 @@ SECTIONS
     .usr_entry :
     {
 	*(.usr_entry);
+    }
+    . = ALIGN(PAGE_SIZE);
+    .usr_mem :
+    {
+	*(.usr_mem);
     }
     . = ALIGN(PAGE_SIZE);
 

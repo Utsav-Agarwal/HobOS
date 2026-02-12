@@ -7,20 +7,26 @@
 .global curr_core_el
 .global core_stack_base
 .global jump_to_EL1
-.global enable_global_interrupts
 .global handle_irq
 
 #define CORE_STACK_SIZE		0x1000
 
+.global enable_global_interrupts
 enable_global_interrupts:
     msr daifclr, #2
+    dmb osh
+    ret
+
+.global disable_global_interrupts
+disable_global_interrupts:
+    msr daifset, #2
     dmb osh
     ret
 
 jump_to_EL1:
     mov x16, lr
 
-    //We need to go to EL1 
+    //We need to go to EL1
     bl	curr_core_el
     cmp	x0, #1
     beq	1f
@@ -51,7 +57,7 @@ jump_to_EL1:
     bl	curr_core_el
     cmp	x0, #2
     bne 1f
-   
+
     //config CNTHCTL_EL2
     mrs x0, cnthctl_el2
     orr x0, x0, #0x1		//allow access to counter registers
@@ -77,7 +83,7 @@ jump_to_EL1:
     mov x0, #0x5		//set next EL to EL1 and SP to SP_EL1
     orr x0, x0, #0x300		//set Debug exception and SError mask
     msr spsr_el2, x0
-    
+
     //set EL1 stack pointer
     adr x1, 1f
     msr elr_el2, x16
@@ -142,7 +148,7 @@ setup_stack:
     //get core id
     mrs x0, mpidr_el1
     and x0, x0, #0x3
- 
+
     //core 0 does not need offset
     cbz	x0, 1f
 

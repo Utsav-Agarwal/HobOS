@@ -22,15 +22,13 @@ static inline void kernel_init_msg(void)
 }
 
 /* I'm alive */
-static inline void kernel_splash_msg(void)
+void kernel_splash_msg(void)
 {
-	kprintf("\n\n** Welcome to HobOS! **\n\n");
+	kprintf("\n** Welcome to HobOS! **\n");
 }
 
 void kernel_test(void)
 {
-	kprintf("Hello from irq\n");
-
 	global_timer.reset_timer(&global_timer);
 	global_timer.set_timer(&global_timer, 0x200000);
 }
@@ -45,7 +43,7 @@ static void setup_console(void)
 }
 
 //TODO:
-void kernel_panic(void)
+__noreturn void kernel_panic(void)
 {
 	kprintf("Kernel panicked!\n");
 	while (1)
@@ -71,16 +69,20 @@ static void init_device_drivers(void)
 __noreturn void main(void)
 {
 	mmio_init();
-	init_mmu();
-	setup_console();
 	init_free_list((u64)&__phymem_end, PAGE_SIZE * 256);
+	init_mmu();
+
+	if (!global_page_tables[0])
+		kernel_panic();
+
+	setup_console();
 
 	init_device_drivers();
 	init_smp();
 
 	switch_vmem();
-	kernel_splash_msg();
 	jump_to_usr();
+
 	while (1)
 		;
 }

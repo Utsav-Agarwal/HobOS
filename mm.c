@@ -15,7 +15,7 @@ void *ioremap(unsigned long addr)
 	//place so we can add data during runtime (loadable drivers for instace)
 	u64 vaddr = addr;
 
-	map_pa_to_va_pg(addr, vaddr, global_page_tables[0], PTE_FLAGS_NC);
+	map_pa_to_va_pg(addr, vaddr, global_page_tables[0], PTE_FLAGS_NC, 0);
 
 	return (void *)vaddr;
 }
@@ -33,12 +33,23 @@ void kfree(void *p)
 	page_free(p);
 }
 
+void strcpy(void *dst, void *src)
+{
+	volatile char *s = (volatile char *)src;
+	volatile char *d = (volatile char *)dst;
+
+	while (*s != '\0')
+		*d++ = *s++;
+}
+
 void memcpy(void *dst, void *src, unsigned int size)
 {
+	volatile char *s = (volatile char *)src;
+	volatile char *d = (volatile char *)dst;
 	int i;
 
 	for (i = 0; i < size; i++)
-		*((char *)dst + i) = *((char *)src + i);
+		*(d + i) = *(s + i);
 }
 
 void memset(void *buf, const char c, unsigned int size)
