@@ -88,8 +88,10 @@
 // that define the page tables in use
 struct page_table_desc {
 	u8 level;
+	u16 pt_len;
 	volatile unsigned long *pt;
-	u16 pt_len;	//max 512 elements, 9bits each level
+	struct page_table_desc *next;
+	struct page_table_desc *child_pt_desc;
 };
 
 struct va_metadata {
@@ -112,7 +114,7 @@ volatile void *map_pa_to_va_pg(unsigned long pa, unsigned long va,
 		     unsigned long flags,
 		     bool walk);
 
-void create_id_mapping(u64 start_paddr, u64 end_paddr, u64 pt, u64 flags);
+void create_id_mapping(u64 start_paddr, u64 end_paddr, u64 flags);
 void va_set_attr(u64 va, struct page_table_desc *pt_desc, u64 pte_attr);
 void va_clear_attr(u64 va, struct page_table_desc *pt_desc, u64 pte_attr);
 #endif

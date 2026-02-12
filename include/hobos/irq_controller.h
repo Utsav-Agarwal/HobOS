@@ -3,6 +3,8 @@
 #ifndef __IRQ_CONTROLLER
 #define __IRQ_CONTROLLER
 
+#include <hobos/types.h>
+
 #define IRQ_BCM_SOC	0xA
 #define IRQ_ARM_GENERIC	0xB
 
@@ -11,7 +13,7 @@ struct irq_controller {
 	void *priv;
 
 	unsigned char type;
-	unsigned long *base;
+	volatile u64 *base;
 
 	void (*enable_interrupt)(void *priv, unsigned long interrupt_nr);
 	void (*disable_interrupt)(void *priv, unsigned long interrupt_nr);
