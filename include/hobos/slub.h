@@ -3,6 +3,8 @@
 #ifndef SLUB_H
 #define SLUB_H
 
+#include <hobos/kstdio.h>
+#include <hobos/mmu.h>
 #include <hobos/page_alloc.h>
 #include <hobos/smp.h>
 #include <hobos/types.h>
@@ -23,6 +25,7 @@
 
 struct kmem_obj {
 	void *addr;
+	int order;
 	struct kmem_cache *parent_cache;
 	int parent_core_id;
 	struct kmem_obj *next;
@@ -33,7 +36,7 @@ struct kmem_cache {
 	struct kmem_fl *parent_fl;
 	void *parent_page;
 	struct kmem_obj *first;
-	bool empty;
+	bool status;
 	struct kmem_cache *next; /* if we have more than 1 parent page, 
 				    lets say if coming 
 				    from another processor or init is full*/

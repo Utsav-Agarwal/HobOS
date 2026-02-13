@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
+#include <hobos/compiler_types.h>
 #include <hobos/slub.h>
 
 static struct kmem_global_fls global_fls = {0};
@@ -34,8 +35,9 @@ static inline struct kmem_cache *kmem_get_curr_cache(int order)
 	return fl->cache[order];
 }
 
-static void kmem_set_curr_cache(struct kmem_cache *c, int order)
+__unused static void kmem_add_cache(struct kmem_cache *c)
 {
+	int order = c->order;
 	struct kmem_cache *fl_c = kmem_get_curr_cache(order);
 	struct kmem_fl *fl; 
 	
@@ -53,6 +55,10 @@ static void kmem_set_curr_cache(struct kmem_cache *c, int order)
 	fl_c->next = c;
 }
 
+static bool kmem_cache_is_available(struct kmem_cache *c)
+{
+	return !!(c->status == KMEM_CACHE_AVAIL);
+}
 
 /* for a given base address and order, create a new object 
  * for the current core.
@@ -62,19 +68,59 @@ static void kmem_set_curr_cache(struct kmem_cache *c, int order)
  * NOTE: we always create an object only for the native core. This
  * helps keep things simple
  */
-static struct kmem_obj *kmem_create_obj (int order, void *base_addr)
+static struct kmem_obj *kmem_create_obj (struct kmem_cache *c)
 {
-	return 0;
+	struct kmem_obj *n_obj;
+	struct kmem_obj *obj;
+	int order = c->order;
+	struct kmem_fl *fl = c->parent_fl;
+
+	if (!c)
+		return 0;
+
+	if (!kmem_cache_is_available(c))
+		return 0;
+
+	obj = (struct kmem_obj *) fl->end;
+	fl->end = (void *)((u64)fl->end + sizeof(struct kmem_obj));
+	obj->order = order;
+	obj->parent_core_id = curr_core_id();
+	obj->next = 0;
+
+	// new slab
+	if (!c->first) {
+		c->first = obj;
+		obj->addr = kmalloc(1);
+	}
+
+	n_obj = c->first;
+	while (n_obj->next)
+		n_obj = n_obj->next;
+
+	n_obj->next = obj;
+	obj->addr = (void *)((u64)n_obj->addr + KMEM_OBJECT_SIZE(order));
+
+	return obj;
 }
 
 static void kmem_populate_cache(struct kmem_cache *c)
 {
-	//
+	int nr_objs = PAGE_SIZE / KMEM_OBJECT_SIZE(c->order);
+	int i;
+
+	if (!c)
+		return;
+
+	for (i = 0; i < nr_objs; i++)
+		if (!kmem_create_obj(c))
+			kprintf("Error creating kobj!\n");
 }
 
 // NOTE: All create functions are responsible for the tail to be updated
-struct kmem_cache *kmem_create_cache(int order, struct kmem_fl *fl)
+// NOTE: creation is always done wrt local caches
+struct kmem_cache *kmem_create_cache(int order)
 {
+	struct kmem_fl *fl = kmem_get_curr_fl();
 	struct kmem_cache *c = fl->end;
 
 	fl->end = (void *) ((u64)fl->end + sizeof(struct kmem_cache));
@@ -82,7 +128,7 @@ struct kmem_cache *kmem_create_cache(int order, struct kmem_fl *fl)
 	c->parent_fl = fl;
 
 	c->parent_page = page_alloc(1);
-	c->empty = KMEM_CACHE_AVAIL;
+	c->status = KMEM_CACHE_AVAIL;
 	c->next = 0;
 	
 	kmem_populate_cache(c);
@@ -90,7 +136,7 @@ struct kmem_cache *kmem_create_cache(int order, struct kmem_fl *fl)
 	return c;
 }
 
-static void kmem_init_cache()
+static void kmem_init_caches()
 {
 	/*
 	 * initialize a cache for all order pages.
@@ -99,6 +145,13 @@ static void kmem_init_cache()
 	 * page allocator. This allows future objects to be 
 	 * distributed/allocated/freed much more easily 
 	 */
+	struct kmem_cache *c;
+	int i = 0;
+
+	for (i = 0; i < MAX_ORDER_KMEM; i++) {
+		c = kmem_create_cache(i);
+		kmem_add_cache(c);
+	}
 }
 
 void *slub_alloc(size_t size)
@@ -117,8 +170,9 @@ void *slub_alloc(size_t size)
 
 	struct kmem_fl *fl = kmem_get_curr_fl();
 
-	if (!fl)
-		kmem_init_cache();
+	// init as an when needed
+	if (!fl->cache[0])
+		kmem_init_caches();
 
 	return 0;
 }
