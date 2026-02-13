@@ -118,7 +118,7 @@ static void kmem_populate_cache(struct kmem_cache *c)
 
 // NOTE: All create functions are responsible for the tail to be updated
 // NOTE: creation is always done wrt local caches
-struct kmem_cache *kmem_create_cache(int order)
+struct kmem_cache *kmem_create_cache(int order, u64 flags)
 {
 	struct kmem_fl *fl = kmem_get_curr_fl();
 	struct kmem_cache *c = fl->end;
@@ -131,7 +131,8 @@ struct kmem_cache *kmem_create_cache(int order)
 	c->status = KMEM_CACHE_AVAIL;
 	c->next = 0;
 	
-	kmem_populate_cache(c);
+	if (flags != KMEM_CACHE_CREATE_ONLY)
+		kmem_populate_cache(c);
 
 	return c;
 }
@@ -149,7 +150,7 @@ static void kmem_init_caches()
 	int i = 0;
 
 	for (i = 0; i < MAX_ORDER_KMEM; i++) {
-		c = kmem_create_cache(i);
+		c = kmem_create_cache(i, 0);
 		kmem_add_cache(c);
 	}
 }

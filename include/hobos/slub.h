@@ -12,6 +12,8 @@
 /* 2^order B objects */
 #define MAX_ORDER_KMEM	9
 
+#define KMEM_CACHE_CREATE_ONLY		0xAB
+
 #define KMEM_CACHE_AVAIL		0x0
 #define KMEM_CACHE_N_AVAIL		0x1
 
