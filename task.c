@@ -14,10 +14,12 @@ struct task *clone(struct task *task)
 {
 	struct task *new_task;
 	
-	new_task = kmalloc(sizeof(struct task))
+	new_task = kmalloc(sizeof(struct task));
 
 	if (task)
 		memcpy(new_task, task, sizeof(struct task));
+
+	return new_task;
 }
 
 pid_t get_pid(void)

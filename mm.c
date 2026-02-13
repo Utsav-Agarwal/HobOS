@@ -5,6 +5,7 @@
 #include <hobos/mmio.h>
 #include <hobos/mmu.h>
 #include <hobos/page_alloc.h>
+#include <hobos/slub.h>
 
 void *ioremap(unsigned long addr)
 {
@@ -20,21 +21,6 @@ void *ioremap(unsigned long addr)
 	return (void *)vaddr;
 }
 
-static void *malloc(void)
-{
-	/* Keep a list of smaller occupied blocks
-	 * which can be freed. This can also contain 
-	 * metadata about the bigger block/chunk its being
-	 * allocated from. Essentially it needs to be a smaller
-	 * page allocator - SLUB allocation.
-	 *
-	 * Each slab must contain objects of a fixed len. This way,
-	 * allocations can be fast and different pages can serve different
-	 * lengths
-	 */
-	return 0;
-}
-
 /*
  * Return contiguous memory of len = size bytes
  */
@@ -48,7 +34,7 @@ void *kmalloc(unsigned int size)
 		return page_alloc(pages);
 	}
 
-	return malloc(size);
+	return slub_alloc(size);
 }
 
 /*
