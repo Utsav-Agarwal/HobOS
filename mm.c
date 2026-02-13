@@ -20,12 +20,43 @@ void *ioremap(unsigned long addr)
 	return (void *)vaddr;
 }
 
+static void *malloc(void)
+{
+	/* Keep a list of smaller occupied blocks
+	 * which can be freed. This can also contain 
+	 * metadata about the bigger block/chunk its being
+	 * allocated from. Essentially it needs to be a smaller
+	 * page allocator - SLUB allocation.
+	 *
+	 * Each slab must contain objects of a fixed len. This way,
+	 * allocations can be fast and different pages can serve different
+	 * lengths
+	 */
+	return 0;
+}
+
+/*
+ * Return contiguous memory of len = size bytes
+ */
 void *kmalloc(unsigned int size)
 {
-	//TODO: Add support for scatterlists
-	unsigned int pages = size / PAGE_SIZE;
+	unsigned int pages = (size / PAGE_SIZE);
 
-	return page_alloc(pages);
+	if (pages) {
+		/* If more than 1 page, just add another page to it */
+		pages += !!(size % PAGE_SIZE);
+		return page_alloc(pages);
+	}
+
+	return malloc(size);
+}
+
+/*
+ * Use for larger memory sizes which dont need to be contiguous
+ */
+void vmalloc(unsigned int size)
+{
+	// TODO
 }
 
 void kfree(void *p)
