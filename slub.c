@@ -14,7 +14,7 @@ static inline struct kmem_fl *kmem_get_curr_fl(void)
 {
 	int core_id = curr_core_id();
 	
-	return &global_fls.cache[core_id];
+	return &global_fls.fls[core_id];
 }
 
 static inline struct kmem_cache *kmem_get_cache(struct kmem_fl *fl, int order)
@@ -35,12 +35,55 @@ static inline struct kmem_cache *kmem_get_curr_cache(int order)
 	return fl->cache[order];
 }
 
-__unused static void kmem_add_cache(struct kmem_cache *c)
+void kmem_print_obj(volatile struct kmem_obj *obj)
+{
+	kprintf("order: %x\n", obj->order);
+	kprintf("addr: %x\n", obj->addr);
+	kprintf("parent_core_id: %x\n", obj->parent_core_id);
+	kprintf("next: %x\n", obj->next);
+}
+
+void kmem_print_cache(struct kmem_cache *c)
+{
+	struct kmem_obj *obj = c->first;
+
+	kprintf("fl: %x\n", c->parent_fl);
+	kprintf("order: %x\n", c->order);
+	kprintf("page: %x\n", c->parent_page);
+	kprintf("first: %x\n", c->first);
+	kprintf("next: %x\n", c->next);
+	kprintf("status: %x\n", c->status);
+
+	kprintf("\n------\n");
+	while (obj) {
+		kprintf("%x\n", obj);
+		kmem_print_obj(obj);
+		obj = obj->next;
+		kprintf("\n");
+	}
+	
+	kprintf("===xx===\n\n");
+}
+
+void kmem_print_fl (struct kmem_fl *fl)
+{
+	int i;
+
+	kprintf("core_id: %x\n", fl->core_id);
+	kprintf("end: %x\n", fl->end);
+
+	for (i = 0; i < MAX_ORDER_KMEM; i++) {
+		kmem_print_cache(fl->cache[i]);
+	}
+}
+
+static void kmem_add_cache(struct kmem_cache *c)
 {
 	int order = c->order;
 	struct kmem_cache *fl_c = kmem_get_curr_cache(order);
 	struct kmem_fl *fl; 
-	
+
+	kprintf("%d\n", __LINE__);
 	// first entry
 	if (!fl_c) {
 		fl = kmem_get_curr_fl();
@@ -48,10 +91,12 @@ __unused static void kmem_add_cache(struct kmem_cache *c)
 		return;
 	}
 
+	kprintf("%d\n", __LINE__);
 	// go to end
 	while (fl_c->next)
 		fl_c = fl_c->next;
 
+	kprintf("%d\n", __LINE__);
 	fl_c->next = c;
 }
 
@@ -68,12 +113,12 @@ static bool kmem_cache_is_available(struct kmem_cache *c)
  * NOTE: we always create an object only for the native core. This
  * helps keep things simple
  */
-static struct kmem_obj *kmem_create_obj (struct kmem_cache *c)
+static volatile struct kmem_obj *kmem_create_obj (volatile struct kmem_cache *c)
 {
-	struct kmem_obj *n_obj;
-	struct kmem_obj *obj;
-	int order = c->order;
-	struct kmem_fl *fl = c->parent_fl;
+	volatile struct kmem_obj *n_obj;
+	volatile struct kmem_obj *obj;
+	volatile int order = c->order;
+	volatile struct kmem_fl *fl = c->parent_fl;
 
 	if (!c)
 		return 0;
@@ -81,16 +126,19 @@ static struct kmem_obj *kmem_create_obj (struct kmem_cache *c)
 	if (!kmem_cache_is_available(c))
 		return 0;
 
-	obj = (struct kmem_obj *) fl->end;
+	obj = (struct kmem_obj *)fl->end;
 	fl->end = (void *)((u64)fl->end + sizeof(struct kmem_obj));
 	obj->order = order;
 	obj->parent_core_id = curr_core_id();
+	obj->parent_cache = c;
 	obj->next = 0;
 
 	// new slab
 	if (!c->first) {
 		c->first = obj;
-		obj->addr = kmalloc(1);
+		obj->addr = page_alloc(1);
+		obj->next = 0;
+		return obj;
 	}
 
 	n_obj = c->first;
@@ -99,31 +147,39 @@ static struct kmem_obj *kmem_create_obj (struct kmem_cache *c)
 
 	n_obj->next = obj;
 	obj->addr = (void *)((u64)n_obj->addr + KMEM_OBJECT_SIZE(order));
-
 	return obj;
 }
 
 static void kmem_populate_cache(struct kmem_cache *c)
 {
 	int nr_objs = PAGE_SIZE / KMEM_OBJECT_SIZE(c->order);
+	struct kmem_obj *obj;
 	int i;
 
 	if (!c)
 		return;
 
-	for (i = 0; i < nr_objs; i++)
-		if (!kmem_create_obj(c))
+	kprintf("populating... %x[%x] with %d objs\n", c, c->order, nr_objs);
+	for (i = 0; i < nr_objs; i++) {
+		obj = kmem_create_obj(c);
+		if (!obj)
 			kprintf("Error creating kobj!\n");
+	}
 }
 
 // NOTE: All create functions are responsible for the tail to be updated
 // NOTE: creation is always done wrt local caches
-struct kmem_cache *kmem_create_cache(int order, u64 flags)
+static struct kmem_cache *kmem_create_cache(volatile int order, u64 flags)
 {
 	struct kmem_fl *fl = kmem_get_curr_fl();
-	struct kmem_cache *c = fl->end;
+	struct kmem_cache *c;
 
+	if (!fl->end)
+		fl->end = page_alloc(1);
+
+	c = fl->end;
 	fl->end = (void *) ((u64)fl->end + sizeof(struct kmem_cache));
+	kprintf("%d %x\n", __LINE__, order);
 	c->order = order;
 	c->parent_fl = fl;
 
@@ -134,10 +190,11 @@ struct kmem_cache *kmem_create_cache(int order, u64 flags)
 	if (flags != KMEM_CACHE_CREATE_ONLY)
 		kmem_populate_cache(c);
 
+	kprintf("%d\n", __LINE__);
 	return c;
 }
 
-static void kmem_init_caches()
+static void kmem_init_caches(void)
 {
 	/*
 	 * initialize a cache for all order pages.
@@ -147,11 +204,16 @@ static void kmem_init_caches()
 	 * distributed/allocated/freed much more easily 
 	 */
 	struct kmem_cache *c;
-	int i = 0;
+	volatile int i = 0;
 
-	for (i = 0; i < MAX_ORDER_KMEM; i++) {
+	for (i = 0; i <= MAX_ORDER_KMEM; i++) {
+		isb();
+		kprintf("%x\n", i);
 		c = kmem_create_cache(i, 0);
+		kprintf("%d\n", __LINE__);
 		kmem_add_cache(c);
+		kprintf("Added cache\n");
+		kmem_print_cache(c);
 	}
 }
 
@@ -175,5 +237,8 @@ void *slub_alloc(size_t size)
 	if (!fl->cache[0])
 		kmem_init_caches();
 
+	kmem_print_fl(fl);
+
 	return 0;
 }
+

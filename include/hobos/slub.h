@@ -10,14 +10,15 @@
 #include <hobos/types.h>
 
 /* 2^order B objects */
-#define MAX_ORDER_KMEM	9
+#define MAX_ORDER_KMEM			9
+#define KMEM_OBJECT_SIZE(order)		(1 << order)
 
 #define KMEM_CACHE_CREATE_ONLY		0xAB
 
 #define KMEM_CACHE_AVAIL		0x0
 #define KMEM_CACHE_N_AVAIL		0x1
 
-#define KMEM_OBJECT_SIZE(order)		(1 << order)
+#define MAX_CPU_NR_CACHE		(MAX_REMOTE_CORE_ID + 1)
 
 /*
  * We want to localise the operations as much as possible. 
@@ -29,7 +30,7 @@ struct kmem_obj {
 	void *addr;
 	int order;
 	struct kmem_cache *parent_cache;
-	int parent_core_id;
+	unsigned int parent_core_id;
 	struct kmem_obj *next;
 };
 
@@ -45,13 +46,13 @@ struct kmem_cache {
 };
 
 struct kmem_fl {
-	struct kmem_cache *cache[MAX_ORDER_KMEM];
+	struct kmem_cache *cache[MAX_ORDER_KMEM + 1];
 	void *end;	// data is stored sequentially, this marks the tail
 	int core_id;
 };
 
 struct kmem_global_fls {
-	struct kmem_fl cache[MAX_REMOTE_CORE_ID + 1];
+	struct kmem_fl fls[MAX_CPU_NR_CACHE];
 };
 
 void kmem_free_obj(struct kmem_obj *obj);	/* return obj to local list */

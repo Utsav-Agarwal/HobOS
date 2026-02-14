@@ -76,6 +76,7 @@ __noreturn void main(void)
 		kernel_panic();
 
 	setup_console();
+	kmalloc(1);
 
 	init_device_drivers();
 	init_smp();
