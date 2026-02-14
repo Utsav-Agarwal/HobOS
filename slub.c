@@ -83,7 +83,6 @@ static void kmem_add_cache(struct kmem_cache *c)
 	struct kmem_cache *fl_c = kmem_get_curr_cache(order);
 	struct kmem_fl *fl; 
 
-	kprintf("%d\n", __LINE__);
 	// first entry
 	if (!fl_c) {
 		fl = kmem_get_curr_fl();
@@ -91,12 +90,10 @@ static void kmem_add_cache(struct kmem_cache *c)
 		return;
 	}
 
-	kprintf("%d\n", __LINE__);
 	// go to end
 	while (fl_c->next)
 		fl_c = fl_c->next;
 
-	kprintf("%d\n", __LINE__);
 	fl_c->next = c;
 }
 
@@ -159,7 +156,6 @@ static void kmem_populate_cache(struct kmem_cache *c)
 	if (!c)
 		return;
 
-	kprintf("populating... %x[%x] with %d objs\n", c, c->order, nr_objs);
 	for (i = 0; i < nr_objs; i++) {
 		obj = kmem_create_obj(c);
 		if (!obj)
@@ -179,7 +175,6 @@ static struct kmem_cache *kmem_create_cache(volatile int order, u64 flags)
 
 	c = fl->end;
 	fl->end = (void *) ((u64)fl->end + sizeof(struct kmem_cache));
-	kprintf("%d %x\n", __LINE__, order);
 	c->order = order;
 	c->parent_fl = fl;
 
@@ -190,7 +185,6 @@ static struct kmem_cache *kmem_create_cache(volatile int order, u64 flags)
 	if (flags != KMEM_CACHE_CREATE_ONLY)
 		kmem_populate_cache(c);
 
-	kprintf("%d\n", __LINE__);
 	return c;
 }
 
@@ -208,17 +202,52 @@ static void kmem_init_caches(void)
 
 	for (i = 0; i <= MAX_ORDER_KMEM; i++) {
 		isb();
-		kprintf("%x\n", i);
 		c = kmem_create_cache(i, 0);
-		kprintf("%d\n", __LINE__);
 		kmem_add_cache(c);
-		kprintf("Added cache\n");
-		kmem_print_cache(c);
+		// kmem_print_cache(c);
 	}
 }
 
-void *slub_alloc(size_t size)
+static inline int kmem_get_obj_order(size_t size)
+{
+	int i = 0;
 
+	while (size < KMEM_OBJECT_SIZE(i))
+		i++;
+
+	return i;
+}
+
+static inline struct kmem_obj *kmem_cache_obj(struct kmem_cache *c)
+{
+	struct kmem_obj *obj = c->first;
+	struct kmem_obj *n_obj = obj->next;
+
+	while (n_obj->next) {
+		obj = obj->next;
+		n_obj = obj->next;
+	}
+
+	obj->next = 0;
+
+	return n_obj;
+}
+
+static inline struct kmem_obj *kmem_fl_obj(int order)
+{
+	struct kmem_cache *c = kmem_get_curr_cache(order);
+
+	return kmem_cache_obj(c);
+}
+
+static inline struct kmem_obj *kmem_acquire_obj(size_t size)
+{
+	int order = kmem_get_obj_order(size);
+
+	return kmem_fl_obj(order);
+}
+
+void *slub_alloc(size_t size)
 {
 	/* Keep a list of smaller occupied blocks
 	 * which can be freed. This can also contain 
@@ -237,8 +266,14 @@ void *slub_alloc(size_t size)
 	if (!fl->cache[0])
 		kmem_init_caches();
 
-	kmem_print_fl(fl);
+	//kmem_print_fl(fl);
+	
+	//TODO: call current executing thread and add this to
+	//its cache objs so it can be returned properly when freed
+	//
+	//until processes are formed, we can keep these in a per cpu
+	//global list
 
-	return 0;
+	return kmem_acquire_obj(size)->addr;
 }
 

@@ -55,8 +55,6 @@ struct kmem_global_fls {
 	struct kmem_fl fls[MAX_CPU_NR_CACHE];
 };
 
-void kmem_free_obj(struct kmem_obj *obj);	/* return obj to local list */
-struct kmem_obj *kmem_acquire_obj(int order);	/* remove obj from local list */
 void kmem_fl_sy (void);				/* sync free lists and 
 						   consolidate page 
 						   blocks to resolve 
