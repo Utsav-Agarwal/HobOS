@@ -3,13 +3,15 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 
-#include <hobos/lib/pt_lib.h>
 #include <hobos/compiler_types.h>
+#include <hobos/lib/pt_lib.h>
+#include <hobos/slub.h>
 
 extern pid_t pid_cntr;
 
 struct ctxt {
 	u64 x[21];
+	struct kmem_obj *used_kmem;
 };
 
 //TODO: maybe consider shared memory processes
@@ -26,5 +28,6 @@ struct task {
 //memory in kernel before using this
 void save_curr_context(struct ctxt *proc_ctxt);
 void resume_from_context(struct ctxt *proc_ctxt);
+struct task *get_curr_task(void);
 
 #endif

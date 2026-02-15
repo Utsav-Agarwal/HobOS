@@ -6,6 +6,19 @@
 mutex_t task_mutex = 0;
 pid_t pid_cntr = 0;
 
+struct task init_task = {0}; 
+
+struct task *get_curr_task(void)
+{
+	// TODO
+	return &init_task;
+}
+
+void init_ktasks(void)
+{
+	// TODO
+}
+
 /*
  * Create a clone of the parent task. If nothing there, then just create an
  * initial task.

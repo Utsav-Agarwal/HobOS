@@ -2,6 +2,7 @@
 
 #include <hobos/compiler_types.h>
 #include <hobos/slub.h>
+#include <hobos/task.h>
 
 static struct kmem_global_fls global_fls = {0};
 
@@ -229,7 +230,6 @@ static inline struct kmem_obj *kmem_cache_obj(struct kmem_cache *c)
 	}
 
 	obj->next = 0;
-
 	return n_obj;
 }
 
@@ -261,6 +261,8 @@ void *slub_alloc(size_t size)
 	 */
 
 	struct kmem_fl *fl = kmem_get_curr_fl();
+	struct kmem_obj *obj;
+	struct task *t;
 
 	// init as an when needed
 	if (!fl->cache[0])
@@ -273,7 +275,10 @@ void *slub_alloc(size_t size)
 	//
 	//until processes are formed, we can keep these in a per cpu
 	//global list
+	obj = kmem_acquire_obj(size)->addr;
+	t = get_curr_task();
 
-	return kmem_acquire_obj(size)->addr;
+	t->ctxt.used_kmem = obj;
+	return obj->addr;
 }
 
