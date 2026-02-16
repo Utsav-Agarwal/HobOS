@@ -77,7 +77,7 @@ __noreturn void main(void)
 		kernel_panic();
 
 	init_device_drivers();
-	init_smp();
+	//init_smp();
 
 	switch_vmem();
 	jump_to_usr();
