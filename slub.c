@@ -169,10 +169,14 @@ static void kmem_populate_cache(struct kmem_cache *c)
 static struct kmem_cache *kmem_create_cache(volatile int order, u64 flags)
 {
 	struct kmem_fl *fl = kmem_get_curr_fl();
-	struct kmem_cache *c;
+	volatile struct kmem_cache *c;
 
 	if (!fl->end)
 		fl->end = page_alloc(1);
+
+	// page alloc failed
+	if (!fl->end)
+		return 0;
 
 	c = fl->end;
 	fl->end = (void *) ((u64)fl->end + sizeof(struct kmem_cache));
@@ -201,11 +205,13 @@ static void kmem_init_caches(void)
 	struct kmem_cache *c;
 	volatile int i = 0;
 
-	for (i = 0; i <= MAX_ORDER_KMEM; i++) {
+	for (i = MIN_ORDER_KMEM; i <= MAX_ORDER_KMEM; i++) {
 		isb();
+		kprintf("%d\n", __LINE__);
 		c = kmem_create_cache(i, 0);
+		kprintf("%d\n", __LINE__);
 		kmem_add_cache(c);
-		// kmem_print_cache(c);
+		kprintf("%d\n", __LINE__);
 	}
 }
 
@@ -268,7 +274,7 @@ void *slub_alloc(size_t size)
 	if (!fl->cache[0])
 		kmem_init_caches();
 
-	//kmem_print_fl(fl);
+	kmem_print_fl(fl);
 	
 	//TODO: call current executing thread and add this to
 	//its cache objs so it can be returned properly when freed

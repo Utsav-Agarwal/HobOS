@@ -10,7 +10,8 @@
 #include <hobos/types.h>
 
 /* 2^order B objects */
-#define MAX_ORDER_KMEM			9
+#define MIN_ORDER_KMEM			7
+#define MAX_ORDER_KMEM			10
 #define KMEM_OBJECT_SIZE(order)		(1 << order)
 
 #define KMEM_CACHE_CREATE_ONLY		0xAB
@@ -46,8 +47,9 @@ struct kmem_cache {
 };
 
 struct kmem_fl {
-	struct kmem_cache *cache[MAX_ORDER_KMEM + 1];
-	void *end;	// data is stored sequentially, this marks the tail
+	struct kmem_cache *cache[MAX_ORDER_KMEM - MIN_ORDER_KMEM + 1];
+	volatile void *end;	// data is stored sequentially, 
+				// this marks the tail
 	int core_id;
 };
 
