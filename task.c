@@ -1,12 +1,17 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
 #include <hobos/asm/mutex.h>
+#include <hobos/lib/pt_lib.h>
 #include <hobos/task.h>
 
 mutex_t task_mutex = 0;
 pid_t pid_cntr = 0;
 
-struct task init_task = {0}; 
+struct ctxt init_ctxt = {0}; 
+struct task init_task = {
+		.pid = 1,
+		.ctxt = &init_ctxt,
+}; 
 
 struct task *get_curr_task(void)
 {

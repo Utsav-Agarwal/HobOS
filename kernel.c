@@ -69,7 +69,7 @@ static void init_device_drivers(void)
 __noreturn void main(void)
 {
 	mmio_init();
-	init_free_list((u64)&__phymem_end, PAGE_SIZE * 512);
+	init_free_list((u64)&__phymem_end, PAGE_SIZE * 256);
 	init_mmu();
 	setup_console();
 
@@ -78,7 +78,8 @@ __noreturn void main(void)
 
 	init_device_drivers();
 	//init_smp();
-	kmalloc(1);
+	void *x = kmalloc(1);
+	kprintf("x: %x\n", (u64)x); 
 
 	switch_vmem();
 	jump_to_usr();

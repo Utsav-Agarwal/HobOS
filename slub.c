@@ -83,11 +83,12 @@ static void kmem_add_cache(struct kmem_cache *c)
 	int order = c->order;
 	struct kmem_cache *fl_c = kmem_get_curr_cache(order);
 	struct kmem_fl *fl; 
+	int cache_index = order - MIN_ORDER_KMEM;
 
 	// first entry
 	if (!fl_c) {
 		fl = kmem_get_curr_fl();
-		fl->cache[order] = c;
+		fl->cache[cache_index] = c;
 		return;
 	}
 
@@ -206,42 +207,48 @@ static void kmem_init_caches(void)
 	volatile int i = 0;
 
 	for (i = MIN_ORDER_KMEM; i <= MAX_ORDER_KMEM; i++) {
-		isb();
-		kprintf("%d\n", __LINE__);
 		c = kmem_create_cache(i, 0);
-		kprintf("%d\n", __LINE__);
 		kmem_add_cache(c);
-		kprintf("%d\n", __LINE__);
 	}
 }
 
 static inline int kmem_get_obj_order(size_t size)
 {
-	int i = 0;
+	int i = MIN_ORDER_KMEM;
 
-	while (size < KMEM_OBJECT_SIZE(i))
+	while (size > KMEM_OBJECT_SIZE(i)) {
+		//kprintf("order: %x for size %x\n", i, size);
+		//kprintf("slab size: %x\n", KMEM_OBJECT_SIZE(i));
 		i++;
+	}
 
 	return i;
 }
 
 static inline struct kmem_obj *kmem_cache_obj(struct kmem_cache *c)
 {
-	struct kmem_obj *obj = c->first;
-	struct kmem_obj *n_obj = obj->next;
+	volatile struct kmem_obj *obj = c->first;
+	volatile struct kmem_obj *p_obj = obj;
 
-	while (n_obj->next) {
-		obj = obj->next;
-		n_obj = obj->next;
+	if (!c->first)
+		return 0;
+
+	while (obj->next) {
+		p_obj = obj;
+		obj->next = obj;
 	}
 
-	obj->next = 0;
-	return n_obj;
+	if (obj == c->first)
+		c->first = 0;
+	else
+		p_obj->next = 0;
+
+	return obj;
 }
 
 static inline struct kmem_obj *kmem_fl_obj(int order)
 {
-	struct kmem_cache *c = kmem_get_curr_cache(order);
+	volatile struct kmem_cache *c = kmem_get_curr_cache(order);
 
 	return kmem_cache_obj(c);
 }
@@ -268,13 +275,13 @@ void *slub_alloc(size_t size)
 
 	struct kmem_fl *fl = kmem_get_curr_fl();
 	struct kmem_obj *obj;
-	struct task *t;
+	volatile struct task *t;
 
 	// init as an when needed
 	if (!fl->cache[0])
 		kmem_init_caches();
 
-	kmem_print_fl(fl);
+	//kmem_print_fl(fl);
 	
 	//TODO: call current executing thread and add this to
 	//its cache objs so it can be returned properly when freed
@@ -282,9 +289,19 @@ void *slub_alloc(size_t size)
 	//until processes are formed, we can keep these in a per cpu
 	//global list
 	obj = kmem_acquire_obj(size)->addr;
-	t = get_curr_task();
+	if (!obj) {
+		mb();
+		return 0;
+	}
 
-	t->ctxt.used_kmem = obj;
+	t = get_curr_task();
+	if (!t) {
+		mb();
+		return 0;
+	}
+
+	mb();
+	t->ctxt->used_kmem = obj;
 	return obj->addr;
 }
 

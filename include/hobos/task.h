@@ -18,7 +18,7 @@ struct ctxt {
 struct task {
 	pid_t pid;
 	struct page_table_desc *base_pt;		//memory map
-	struct ctxt ctxt;				//context
+	struct ctxt *ctxt;				//context
 };
 
 //TODO: we need to make sure proc_ctxt is not stored on stack

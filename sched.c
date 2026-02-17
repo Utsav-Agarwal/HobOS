@@ -7,7 +7,7 @@ mutex_t sched_mutex = 0;
 
 inline void save_ctxt(struct task *task)
 {
-	struct ctxt *ctxt = &task->ctxt;
+	struct ctxt *ctxt = task->ctxt;
 	
 	asm volatile ("mov x0, %0"
     		      "stp x10, x11, [x0, #16*0]\n"
@@ -26,7 +26,7 @@ inline void save_ctxt(struct task *task)
 
 inline void resume_ctxt(struct task *task)
 {
-	struct ctxt *ctxt = &task->ctxt;
+	struct ctxt *ctxt = task->ctxt;
 	
 	asm volatile ("mov x0, %0"
 		      "ldp x10, x11, [x0, #16*0]\n"
