@@ -80,6 +80,8 @@ __noreturn void main(void)
 	//init_smp();
 	void *x = kmalloc(1);
 	kprintf("x: %x\n", (u64)x); 
+	x = kmalloc(1);
+	kprintf("x: %x\n", (u64)x); 
 
 	switch_vmem();
 	jump_to_usr();

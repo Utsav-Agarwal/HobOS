@@ -33,7 +33,7 @@ static inline struct kmem_cache *kmem_get_curr_cache(int order)
 {
 	struct kmem_fl *fl = kmem_get_curr_fl();
 
-	return fl->cache[order];
+	return fl->cache[order - MIN_ORDER_KMEM];
 }
 
 void kmem_print_obj(volatile struct kmem_obj *obj)
@@ -227,15 +227,15 @@ static inline int kmem_get_obj_order(size_t size)
 
 static inline struct kmem_obj *kmem_cache_obj(struct kmem_cache *c)
 {
-	volatile struct kmem_obj *obj = c->first;
-	volatile struct kmem_obj *p_obj = obj;
+	struct kmem_obj *obj = c->first;
+	struct kmem_obj *p_obj = obj;
 
-	if (!c->first)
+	if (!obj)
 		return 0;
 
-	while (obj->next) {
+	while (obj) {
 		p_obj = obj;
-		obj->next = obj;
+		obj = obj->next;
 	}
 
 	if (obj == c->first)
@@ -243,7 +243,7 @@ static inline struct kmem_obj *kmem_cache_obj(struct kmem_cache *c)
 	else
 		p_obj->next = 0;
 
-	return obj;
+	return p_obj;
 }
 
 static inline struct kmem_obj *kmem_fl_obj(int order)
@@ -274,7 +274,7 @@ void *slub_alloc(size_t size)
 	 */
 
 	struct kmem_fl *fl = kmem_get_curr_fl();
-	struct kmem_obj *obj;
+	volatile struct kmem_obj *obj;
 	volatile struct task *t;
 
 	// init as an when needed
@@ -288,19 +288,14 @@ void *slub_alloc(size_t size)
 	//
 	//until processes are formed, we can keep these in a per cpu
 	//global list
-	obj = kmem_acquire_obj(size)->addr;
-	if (!obj) {
-		mb();
+	obj = kmem_acquire_obj(size);
+	if (!obj)
 		return 0;
-	}
 
 	t = get_curr_task();
-	if (!t) {
-		mb();
+	if (!t)
 		return 0;
-	}
 
-	mb();
 	t->ctxt->used_kmem = obj;
 	return obj->addr;
 }
