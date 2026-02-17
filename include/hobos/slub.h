@@ -10,7 +10,7 @@
 #include <hobos/types.h>
 
 /* 2^order B objects */
-#define MIN_ORDER_KMEM			7
+#define MIN_ORDER_KMEM			6
 #define MAX_ORDER_KMEM			10
 #define KMEM_OBJECT_SIZE(order)		(1 << order)
 

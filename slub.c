@@ -233,17 +233,15 @@ static inline struct kmem_obj *kmem_cache_obj(struct kmem_cache *c)
 	if (!obj)
 		return 0;
 
-	while (obj) {
+	while (obj->next) {
 		p_obj = obj;
 		obj = obj->next;
 	}
 
-	if (obj == c->first)
-		c->first = 0;
-	else
-		p_obj->next = 0;
+	p_obj->next = 0;
+	kprintf("p_obj: %x addr: %x\n", p_obj, p_obj->addr);
 
-	return p_obj;
+	return obj;
 }
 
 static inline struct kmem_obj *kmem_fl_obj(int order)
