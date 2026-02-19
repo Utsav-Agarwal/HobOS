@@ -17,7 +17,7 @@ static void map_to_usr(u64 start, u64 end)
 {
 	// add 3 page table addresses to current kernel table
 	while (start < end) {
-		map_pa_to_va_pg(start, start, global_page_tables[0],
+		map_pa_to_va_pg(start, start, &global_page_tables[0],
 				PTE_FLAGS_USER_GENERIC, 0);
 		start += 0x1000;
 	}

@@ -15,11 +15,11 @@
  */
 static u64 set_id_translation_table(void)
 {
-	create_id_mapping(0, 0x1000 * 512, 0, PTE_FLAGS_KERNEL_GENERIC);
-	if (!global_page_tables[0])
+	create_id_mapping(0, 0x1000 * 512, PTE_FLAGS_KERNEL_GENERIC);
+	if (!global_page_tables)
 		return 0;
 
-	return (u64)(global_page_tables[0]->pt);
+	return (u64)(global_page_tables[0].pt);
 }
 
 /*
@@ -28,10 +28,10 @@ static u64 set_id_translation_table(void)
  */
 static inline u64 get_kernel_translation_table(void)
 {
-	if (!global_page_tables[0])
+	if (!global_page_tables)
 		return 0;
 
-	return (u64)(global_page_tables[0]->pt);
+	return (u64)(global_page_tables[0].pt);
 }
 
 static inline void set_ttbr1_el1(u64 x)
