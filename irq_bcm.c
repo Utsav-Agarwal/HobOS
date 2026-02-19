@@ -23,9 +23,9 @@ static void bcm_irq_disable_interrupt(void *priv,
 {
 	struct irq_bcm_priv *bcm_priv = (struct irq_bcm_priv *)priv;
 	struct irq_controller *ctrl = bcm_priv->ctrl;
-
 	char *base = (char *)(ctrl->base);
-	unsigned char *basic_interrupts = (unsigned char *)(base + DISABLE_BASIC_IRQS);
+	unsigned char *basic_interrupts =
+		(unsigned char *)(base + DISABLE_BASIC_IRQS);
 
 	iowrite32(basic_interrupts, (unsigned int)BITP(int_nr));
 }
