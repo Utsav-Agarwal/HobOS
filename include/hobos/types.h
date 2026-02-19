@@ -3,7 +3,7 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-typedef volatile unsigned char	mutex_t;
+typedef volatile unsigned int	mutex_t;
 typedef unsigned int	pid_t;
 typedef unsigned int	size_t;
 

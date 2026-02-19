@@ -238,8 +238,6 @@ static inline struct kmem_obj *kmem_cache_obj(struct kmem_cache *c)
 	}
 
 	p_obj->next = 0;
-	kprintf("p_obj: %x addr: %x\n", p_obj, p_obj->addr);
-
 	return obj;
 }
 

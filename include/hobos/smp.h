@@ -3,8 +3,8 @@
 #ifndef SMP_H
 #define SMP_H
 
-#include "asm/barrier.h"
-#include "asm/mutex.h"
+#include <hobos/asm/barrier.h>
+#include <hobos/asm/mutex.h>
 
 /*
  * RPI FW initializes the remote processors using a spin table
@@ -23,7 +23,7 @@ struct jobs_meta {
 };
 
 struct worker_job {
-	volatile unsigned long *fn_addr;
+	void *fn_addr;
 	struct worker_job *next;
 	struct jobs_meta *meta;	//only applicable for head
 	unsigned char job_pos;
@@ -32,7 +32,6 @@ struct worker_job {
 struct worker {
 	unsigned char core_id;
 	mutex_t mutex[2];
-	volatile unsigned long queue_lock; //TODO
 	volatile unsigned long *exec_addr;  //spin table entry
 	struct worker_job *jobs;
 };
