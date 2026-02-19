@@ -3,24 +3,22 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 
-#include "lib/pt_lib.h"
+#include <hobos/compiler_types.h>
+#include <hobos/lib/pt_lib.h>
+#include <hobos/slub.h>
 
-//callee-saved registers
-#define X(n)	x[n - 19]
-#define FP	X(29)
-#define LR	X(30)
+extern pid_t pid_cntr;
 
 struct ctxt {
-	unsigned long x[12];
-	unsigned long sp;
+	u64 x[21];
+	struct kmem_obj *used_kmem;
 };
 
 //TODO: maybe consider shared memory processes
-struct process {
-	unsigned int pid;
-	unsigned long tcr;				//save mmu config
-	struct page_table_desc *pt_baddr;		//page tables
-	struct ctxt *proc_state;			//context
+struct task {
+	pid_t pid;
+	struct page_table_desc *base_pt;		//memory map
+	struct ctxt *ctxt;				//context
 };
 
 //TODO: we need to make sure proc_ctxt is not stored on stack
@@ -30,5 +28,6 @@ struct process {
 //memory in kernel before using this
 void save_curr_context(struct ctxt *proc_ctxt);
 void resume_from_context(struct ctxt *proc_ctxt);
+struct task *get_curr_task(void);
 
 #endif
