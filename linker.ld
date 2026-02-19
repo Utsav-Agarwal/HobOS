@@ -98,15 +98,9 @@ SECTIONS
     /*
      * This is where heap starts, grows downwards
      */
-    .phymem :
-    {
-	__phymem_start = .;
-	*(.phymem);
-	. = . + PHY_MEM_SIZE;
-	__phymem_end = .;
-    }
+    . = . + PHY_MEM_SIZE;
+    __phymem_end = .;
     . = ALIGN(PAGE_SIZE);
-
 
     /*
      * This is where heap starts, grows downwards
