@@ -29,8 +29,6 @@ void kernel_splash_msg(void)
 
 void kernel_test(void)
 {
-	kprintf("Hello from irq\n");
-
 	global_timer.reset_timer(&global_timer);
 	global_timer.set_timer(&global_timer, 0x200000);
 }
@@ -73,11 +71,10 @@ __noreturn void main(void)
 	mmio_init();
 	init_free_list((u64)&__phymem_end, PAGE_SIZE * 256);
 	init_mmu();
-
-	if (!global_page_tables[0])
-		kernel_panic();
-
 	setup_console();
+
+	if (!global_page_tables)
+		kernel_panic();
 
 	init_device_drivers();
 	init_smp();
