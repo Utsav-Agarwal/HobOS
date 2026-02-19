@@ -31,7 +31,7 @@ struct worker_job {
 
 struct worker {
 	unsigned char core_id;
-	volatile unsigned int mutex[2];
+	mutex_t mutex[2];
 	volatile unsigned long queue_lock; //TODO
 	volatile unsigned long *exec_addr;  //spin table entry
 	struct worker_job *jobs;

@@ -130,8 +130,8 @@ static int __run_core(unsigned char core)
 	return -1;
 
 	struct worker *w = &smp_worker[core];
-	volatile u32 *m0 = &w->mutex[0];
-	volatile u32 *m1 = &w->mutex[1];
+	mutex_t *m0 = &w->mutex[0];
+	mutex_t *m1 = &w->mutex[1];
 	volatile u64 *exec_addr = w->exec_addr;
 
 	//we need some sync/ordering here since 2 processors
@@ -151,8 +151,8 @@ static int __setup_core(unsigned char core)
 	return -1;
 
 	struct worker *w = &smp_worker[core];
-	volatile u32 *m0 = &w->mutex[0];
-	volatile u32 *m1 = &w->mutex[1];
+	mutex_t *m0 = &w->mutex[0];
+	mutex_t *m1 = &w->mutex[1];
 
 	//we need some sync/ordering here since 2 processors
 	//are competing to write to a common memory location (semaphores[..])
@@ -172,8 +172,8 @@ void __park_and_wait(void)
 	u8 core = curr_core_id();
 	struct worker *w = &smp_worker[core];
 	volatile u64 *exec_addr = w->exec_addr;
-	volatile u32 *m0 = &w->mutex[0];
-	volatile u32 *m1 = &w->mutex[1];
+	mutex_t *m0 = &w->mutex[0];
+	mutex_t *m1 = &w->mutex[1];
 	void (*trigger)(void);
 
 	release_mutex(m1);
