@@ -134,7 +134,7 @@ struct mair {
 
 extern volatile unsigned char __core0_stack;
 
-extern struct page_table_desc **global_page_tables;
+extern struct page_table_desc *global_page_tables;
 extern u8 pt_ctr;
 
 void init_mmu(void);
