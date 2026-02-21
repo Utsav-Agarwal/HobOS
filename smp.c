@@ -1,34 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
-#include <hobos/smp.h>
-#include <hobos/mmu.h>
 #include <hobos/asm/barrier.h>
 #include <hobos/kstdio.h>
+#include <hobos/lib/stdlib.h>
+#include <hobos/mmu.h>
+#include <hobos/smp.h>
 
 extern void setup_stack(void);
 extern void jump_to_EL1(void);
 
-#define declare_smp_worker_jobs(fn) \
-	struct worker_job fn##_jobs[] = {			\
-		{					\
-			.fn_addr = (unsigned long *)fn,	\
-		},					\
-		{					\
-			.fn_addr = (unsigned long *)fn,	\
-		},					\
-		{					\
-			.fn_addr = (unsigned long *)fn,	\
-		},					\
-		{					\
-			.fn_addr = (unsigned long *)fn,	\
-		},					\
-	}
-
-//just one job per proc for now
-struct worker_job smp_worker_jobs[MAX_REMOTE_CORE_ID + 1];
-//only need 1
-struct jobs_meta smp_worker_jobs_meta[MAX_REMOTE_CORE_ID + 1];
-struct worker smp_worker[MAX_REMOTE_CORE_ID + 1];
+static struct worker smp_worker[MAX_REMOTE_CORE_ID + 1];
 
 static inline void pop_worker_job(struct worker *w)
 {
@@ -41,17 +22,37 @@ static inline void pop_worker_job(struct worker *w)
 
 	next_job->job_pos = JOBS_HEAD;
 	w->jobs = next_job;
+	kfree(head);
 }
 
-//TODO: sort out memory mamangement for malloc
-//TODO: add generic list helpers
-//NOTE: assumes queue is not empty
-static void push_worker_job(struct worker_job *jobs, struct worker_job *n)
+static struct worker_job *create_job(void *fn)
+{
+	struct worker_job *job = kmalloc(sizeof(*job));
+
+	if (!job) {
+		kprintf("Failed to create job!\n");
+		return 0;
+	}
+
+	memset(job, 0, sizeof(struct worker_job));
+	job->fn_addr = fn;
+
+	return job;
+}
+
+static void push_worker_job(struct worker_job *head, void *fn)
 {
 	//we assume that the last job will always be followed by park_and_wait.
-	struct worker_job *tail = jobs->meta->tail;
-	struct jobs_meta *meta = jobs->meta;
+	struct jobs_meta *meta = head->meta;
+	struct worker_job *n, *tail;
 
+	if (!meta) {
+		kprintf("Could not find queue metadata!\n");
+		return;
+	}
+
+	n = create_job(fn);
+	tail = meta->tail;
 	tail->next = n;
 
 	//make sure its not a single element list
@@ -98,26 +99,30 @@ static void worker_process(void)
 	__park_and_wait();
 }
 
-static void set_job_queue_head(struct worker_job *job, unsigned long fn_addr)
+static void set_job_queue_head(struct worker_job **job, void *fn_addr)
 {
-	//TODO:
-	//job.job_meta = malloc(sizeof(struct jobs_meta));
+	struct jobs_meta *meta;
 
-	job->job_pos = JOBS_HEAD;
-	job->fn_addr = (unsigned long *)fn_addr;
-	job->next = 0;
+	*job = create_job(fn_addr);
+	(*job)->meta = kmalloc(sizeof(*meta));
+	meta = (*job)->meta;
+	if (!meta) {
+		kprintf("meta malloc failed!\n");
+		return;
+	}
 
-	job->meta->head = job;
-	job->meta->tail = job;
+	(*job)->job_pos = JOBS_HEAD;
+	meta->head = *job;
+	meta->tail = *job;
 }
 
-static void __init_worker(unsigned char core)
+static void __init_worker(unsigned char core, struct worker_job *jobs)
 {
 	volatile u64 *spin_table = (volatile unsigned long *)SPIN_TABLE_BASE;
 	struct worker *w = &smp_worker[core];
 
 	w->exec_addr = &spin_table[core];
-	w->jobs = &smp_worker_jobs[core];
+	w->jobs = jobs;
 	w->core_id = core;
 	w->mutex[0] = 0;
 	w->mutex[1] = 0;
@@ -130,8 +135,8 @@ static int __run_core(unsigned char core)
 	return -1;
 
 	struct worker *w = &smp_worker[core];
-	volatile u32 *m0 = &w->mutex[0];
-	volatile u32 *m1 = &w->mutex[1];
+	mutex_t *m0 = &w->mutex[0];
+	mutex_t *m1 = &w->mutex[1];
 	volatile u64 *exec_addr = w->exec_addr;
 
 	//we need some sync/ordering here since 2 processors
@@ -145,14 +150,14 @@ static int __run_core(unsigned char core)
 	return 0;
 }
 
-static int __setup_core(unsigned char core)
+static int __setup_core(int core)
 {
 	if (core > MAX_REMOTE_CORE_ID)
 	return -1;
 
 	struct worker *w = &smp_worker[core];
-	volatile u32 *m0 = &w->mutex[0];
-	volatile u32 *m1 = &w->mutex[1];
+	mutex_t *m0 = &w->mutex[0];
+	mutex_t *m1 = &w->mutex[1];
 
 	//we need some sync/ordering here since 2 processors
 	//are competing to write to a common memory location (semaphores[..])
@@ -172,8 +177,8 @@ void __park_and_wait(void)
 	u8 core = curr_core_id();
 	struct worker *w = &smp_worker[core];
 	volatile u64 *exec_addr = w->exec_addr;
-	volatile u32 *m0 = &w->mutex[0];
-	volatile u32 *m1 = &w->mutex[1];
+	mutex_t *m0 = &w->mutex[0];
+	mutex_t *m1 = &w->mutex[1];
 	void (*trigger)(void);
 
 	release_mutex(m1);
@@ -188,20 +193,26 @@ void __park_and_wait(void)
 	}
 }
 
-declare_smp_worker_jobs(init_mmu);
-declare_smp_worker_jobs(switch_vmem);
 void init_smp(void)
 {
-	int i;
+	struct worker_job *jobs;
+	int core;
 
-	for (i = 1; i <= MAX_REMOTE_CORE_ID; i++) {
-		smp_worker_jobs[i].meta = &smp_worker_jobs_meta[i];
-		set_job_queue_head(&smp_worker_jobs[i], (unsigned long)jump_to_EL1);
-		push_worker_job(&smp_worker_jobs[i], &init_mmu_jobs[i]);
-		push_worker_job(&smp_worker_jobs[i], &switch_vmem_jobs[i]);
+	for (core = 1; core <= MAX_REMOTE_CORE_ID; core++) {
+		/*
+		 * we need this here since gcc decides to optimize core out for some reason
+		 */
+		barrier();
 
-		__init_worker(i);
-		__setup_core(i);
-		__run_core(i);
+		set_job_queue_head(&jobs, jump_to_EL1);
+		push_worker_job(jobs, init_mmu);
+		push_worker_job(jobs, switch_vmem);
+
+		__init_worker(core, jobs);
+		if (__setup_core(core))
+			kprintf("Core %d setup failed!\n", core);
+
+		if (__run_core(core))
+			kprintf("Core %d startup failed!\n", core);
 	}
 }

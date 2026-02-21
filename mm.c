@@ -5,38 +5,57 @@
 #include <hobos/mmio.h>
 #include <hobos/mmu.h>
 #include <hobos/page_alloc.h>
+#include <hobos/slub.h>
+
+extern void kernel_panic(void);
 
 void *ioremap(unsigned long addr)
 {
-	//all of this is going to be before switching to high memory addressing
-	//so we dont mind if we get an identity mapped pointer.
-	//
-	//TODO: make it so that its compatible after high mem switch has taken
-	//place so we can add data during runtime (loadable drivers for instace)
-	u64 vaddr = addr;
+	void *vaddr;
 
-	map_pa_to_va_pg(addr, vaddr, global_page_tables[0], PTE_FLAGS_NC, 0);
+	vaddr = map_pa_to_va_pg(addr, addr,
+				&global_page_tables[0], PTE_FLAGS_NC, 0);
 
-	return (void *)vaddr;
+	if (!vaddr)
+		kernel_panic();
+
+	return vaddr;
 }
 
+/*
+ * Return contiguous memory of len = size bytes
+ */
 void *kmalloc(unsigned int size)
 {
-	//TODO: Add support for scatterlists
-	unsigned int pages = size / PAGE_SIZE;
+	unsigned int pages = (size / PAGE_SIZE);
 
-	return page_alloc(pages);
+	if (pages) {
+		/* If more than 1 page, just add another page to it */
+		pages += !!(size % PAGE_SIZE);
+		return page_alloc(pages);
+	}
+
+	return slub_alloc(size);
+}
+
+/*
+ * Use for larger memory sizes which dont need to be contiguous
+ */
+void vmalloc(unsigned int size)
+{
+	// TODO
 }
 
 void kfree(void *p)
 {
-	page_free(p);
+	if (slub_free(p))
+		page_free(p);
 }
 
 void strcpy(void *dst, void *src)
 {
-	volatile char *s = (volatile char *)src;
-	volatile char *d = (volatile char *)dst;
+	char *s = (char *)src;
+	char *d = (char *)dst;
 
 	while (*s != '\0')
 		*d++ = *s++;
@@ -44,8 +63,8 @@ void strcpy(void *dst, void *src)
 
 void memcpy(void *dst, void *src, unsigned int size)
 {
-	volatile char *s = (volatile char *)src;
-	volatile char *d = (volatile char *)dst;
+	char *s = (char *)src;
+	char *d = (char *)dst;
 	int i;
 
 	for (i = 0; i < size; i++)

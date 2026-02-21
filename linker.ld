@@ -1,6 +1,6 @@
 ENTRY(_start)
 
-BSS_SIZE = 0x4000;
+BSS_SIZE = 0xA000;
 
 CORE_STACK_SIZE = 0x1000;
 PAGE_SIZE = 0x1000;
@@ -24,13 +24,14 @@ SECTIONS
     {
         *(.rodata)
     }
-
     . = ALIGN(PAGE_SIZE);
+
     __data_start = .;
     .data :
     {
         *(.data)
     }
+    . = ALIGN(PAGE_SIZE);
 
     __bss_start = .;
     .bss :
@@ -40,6 +41,7 @@ SECTIONS
         *(.bss)
     }
     __bss_end = .;
+    . = ALIGN(PAGE_SIZE);
 
 
     /* NOTE: ARM stack grows upwards */
@@ -80,17 +82,6 @@ SECTIONS
     . = ALIGN(PAGE_SIZE);
 
     /*
-     * Leave some buffer for misc
-     * components such as exception vector tables
-     */
-    .misc :
-    {
-	*(.misc)
-	. = . + PAGE_SIZE*100;
-    }
-    . = ALIGN(PAGE_SIZE);
-
-    /*
      * Leave some space for physical accessible memory
      * management metadata
      *
@@ -109,15 +100,9 @@ SECTIONS
     /*
      * This is where heap starts, grows downwards
      */
-    .phymem :
-    {
-	__phymem_start = .;
-	*(.phymem);
-	. = . + PHY_MEM_SIZE;
-	__phymem_end = .;
-    }
+    . = . + PHY_MEM_SIZE;
+    __phymem_end = .;
     . = ALIGN(PAGE_SIZE);
-
 
     /*
      * This is where heap starts, grows downwards

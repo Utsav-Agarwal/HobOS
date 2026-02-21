@@ -8,7 +8,7 @@
 
 //global list of page tables
 //TODO: make size dynamic
-__section(".misc") struct page_table_desc *global_page_tables[10];
+struct page_table_desc *global_page_tables;
 u8 pt_ctr;
 
 // for simplicity, we will assume that this OS only cares about
@@ -30,7 +30,7 @@ u64 pt_entry(u64 paddr, u64 flags)
 //		io based memory ops
 void place_pt_entry(struct page_table_desc *pt_desc, u64 pte, int index)
 {
-	volatile u64 *pt = pt_desc->pt;
+	u64 *pt = pt_desc->pt;
 
 	if (index == -1) {
 		dmb(ish);
@@ -54,12 +54,12 @@ void place_pt_entry(struct page_table_desc *pt_desc, u64 pte, int index)
 //
 //
 //returns: the first new page table entry created
-volatile u64 *create_pt_entries(struct page_table_desc *pt_desc,
-				u64 start_paddr, u64 end_paddr,
+u64 *create_pt_entries(struct page_table_desc *pt_desc,
+		       u64 start_paddr, u64 end_paddr,
 		       u64 flags)
 {
-	volatile u64 *pt = pt_desc->pt;
-	volatile u64 *start_pte;
+	u64 *pt = pt_desc->pt;
+	u64 *start_pte;
 	u64 pte;
 	u64 offset = KB(4);	//should be separated by 1 page atleast
 
@@ -87,7 +87,7 @@ volatile u64 *create_pt_entries(struct page_table_desc *pt_desc,
 struct page_table_desc *create_pt(u64 pt_baddr, char level)
 {
 	struct page_table_desc *pt_desc;
-	volatile u64 *pt;
+	u64 *pt;
 
 	if (pt_baddr != 0) {
 		dmb(ish);
@@ -95,18 +95,22 @@ struct page_table_desc *create_pt(u64 pt_baddr, char level)
 	} else {
 		//if no arg, just move to the next available space
 		dmb(ish);
-		pt = (u64 *)
-		     ((u64)global_page_tables[pt_ctr - 1]->pt +
-		     NEXT_PT_OFFSET);
+		pt = kmalloc(0x1000);
+		if (!pt)
+			return 0;
 	}
 
-	memset((void *)pt, 0, 0x1000);	//512 entries * 8 B
-	pt_desc = (struct page_table_desc *)&pt[512];
+	if (!global_page_tables) {
+		global_page_tables = kmalloc(0x1000);
+		//memset(global_page_tables, 0, 0x1000);
+	}
+
+	pt_desc = &global_page_tables[pt_ctr++];
 	pt_desc->pt = pt;
 	pt_desc->level = level;
 	pt_desc->pt_len = 0;
-	pt_desc->pt[0] = 0;
-	global_page_tables[pt_ctr++] = pt_desc;
+	pt_desc->next = 0;
+	pt_desc->child_pt_desc = 0;
 
 	return pt_desc;
 }
@@ -130,7 +134,7 @@ static inline u64 pte_is_empty(u64 pte)
 	return !(pte);
 }
 
-static u64 extract_addr(u64 pte)
+static u64 extract_addr_from_pte(u64 pte)
 {
 	u64 addr = 0;
 
@@ -141,16 +145,51 @@ static u64 extract_addr(u64 pte)
 	return KERNEL_START + (addr & 0xFFFFFFFF);
 }
 
-volatile void *map_pa_to_va_pg(u64 pa, u64 va, struct page_table_desc *pt_top,
-			       u64 flags, bool walk_only)
+static void pt_desc_add_child(struct page_table_desc *parent,
+			      struct page_table_desc *child)
+{
+	struct page_table_desc *pt_desc = parent->child_pt_desc;
+
+	if (pt_desc) {
+		while (pt_desc->next)
+			pt_desc = pt_desc->next;
+
+		pt_desc->next = child;
+		return;
+	}
+
+	parent->child_pt_desc = child;
+}
+
+static struct page_table_desc *pt_desc_get_from_parent(u64 addr,
+						       struct page_table_desc *parent)
+{
+	struct page_table_desc *pt_desc = parent->child_pt_desc;
+
+	// no child!
+	if (!pt_desc)
+		return 0;
+
+	while (pt_desc) {
+		if (addr == (u64)pt_desc->pt)
+			return pt_desc;
+
+		pt_desc = pt_desc->next;
+	}
+
+	return 0;
+}
+
+void *map_pa_to_va_pg(u64 pa, u64 va, struct page_table_desc *pt_top,
+		      u64 flags, bool walk_only)
 {
 	struct page_table_desc *pt_desc = pt_top;
-	volatile u64 *pt;
-	volatile u64 pte;
 	struct va_metadata meta;
 	u64 pte_flags = flags;
 	u16 pt_index;
 	u8 level, i;
+	u64 pte;
+	u64 *pt;
 
 	extract_va_metadata(va, &meta);
 	meta.offset += pa;	//we want physical address at the end
@@ -165,6 +204,8 @@ volatile void *map_pa_to_va_pg(u64 pa, u64 va, struct page_table_desc *pt_top,
 
 		//L3
 		if (i == PT_LVL_MAX) {
+			// ensure all is up to date
+			mb();
 			if (walk_only)
 				return &pt[pt_index];
 
@@ -178,28 +219,43 @@ volatile void *map_pa_to_va_pg(u64 pa, u64 va, struct page_table_desc *pt_top,
 
 			//we create next level
 			new_pt_desc = create_pt(0, level + 1);
+			if (!new_pt_desc)
+				return 0;
+
 			pte = pt_entry((u64)new_pt_desc->pt, pte_flags);
 			place_pt_entry(pt_desc, pte, pt_index);
+
+			pt_desc_add_child(pt_desc, new_pt_desc);
 			pt_desc = new_pt_desc;
 		} else {
-			//extract next table
-			pt_desc = (struct page_table_desc *)
-				(extract_addr(pte) + 0x1000);
+		       pt_desc = pt_desc_get_from_parent(
+						extract_addr_from_pte(pte),
+						pt_desc);
+
+			if (!pt_desc)
+				return 0;
 		}
 	}
 
-	return 0;
+	return (void *)va;
 }
 
-void create_id_mapping(u64 start_paddr, u64 end_paddr,
-		       u64 pt, u64 flags)
+/*
+ * Assume this is the first function to be called for page tables
+ * when starting MMU for now
+ */
+void create_id_mapping(u64 start_paddr, u64 end_paddr, u64 flags)
 {
-	//for now lets assume T0/1_SZ is constant at 25, so we
-	//only care about 3 levels
+	/*
+	 * for now lets assume T0/1_SZ is constant at 25, so we
+	 * only care about 3 levels
+	 */
 	struct page_table_desc *pt_desc;
-
-	pt_desc = create_pt(pt, 1);
 	int i;
+
+	pt_desc = create_pt(0, 1);
+	if (!pt_desc)
+		return;
 
 	for (i = start_paddr; i < end_paddr; i += PAGE_SIZE)
 		map_pa_to_va_pg(i, i, pt_desc, flags, 0);
@@ -215,7 +271,7 @@ static inline void invalidate_tlb_va(u64 va)
  */
 void va_set_attr(u64 va, struct page_table_desc *pt_desc, u64 pte_attr)
 {
-	volatile u64 *pte = map_pa_to_va_pg(0, va, pt_desc, 0, 1);
+	u64 *pte = map_pa_to_va_pg(0, va, pt_desc, 0, 1);
 
 	*pte = (*pte | pte_attr);
 }
@@ -225,17 +281,12 @@ void va_set_attr(u64 va, struct page_table_desc *pt_desc, u64 pte_attr)
  */
 void va_clear_attr(u64 va, struct page_table_desc *pt_desc, u64 pte_attr)
 {
-	volatile u64 *pte = map_pa_to_va_pg(0, va, pt_desc, 0, 1);
+	u64 *pte = map_pa_to_va_pg(0, va, pt_desc, 0, 1);
 
 	*pte = (*pte & ~pte_attr);
-	wmb();
 	invalidate_tlb_va(va);
+
+	// ensure all changes have been committed
 	mb();
 	isb();
 }
-
-//traverse the page table and validate this vaddr range
-void validate_pt(u64 baddr, u64 start, u64 end)
-{
-}
-

@@ -54,7 +54,7 @@ run_dbg: all
 	${VM} -M raspi3b -serial null -serial stdio -s -kernel kernel8.img -d int
 
 run_no_kernel: all
-	${VM} -M raspi3b -serial null -serial stdio -s -d int
+	${VM} -M raspi3b -serial null -serial stdio -s
 
 clean:
 	rm -rf *.o *.img *.elf
