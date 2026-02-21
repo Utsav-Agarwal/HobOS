@@ -1,6 +1,6 @@
 ENTRY(_start)
 
-BSS_SIZE = 0x4000;
+BSS_SIZE = 0xA000;
 
 CORE_STACK_SIZE = 0x1000;
 PAGE_SIZE = 0x1000;
@@ -24,13 +24,14 @@ SECTIONS
     {
         *(.rodata)
     }
-
     . = ALIGN(PAGE_SIZE);
+
     __data_start = .;
     .data :
     {
         *(.data)
     }
+    . = ALIGN(PAGE_SIZE);
 
     __bss_start = .;
     .bss :
@@ -40,6 +41,7 @@ SECTIONS
         *(.bss)
     }
     __bss_end = .;
+    . = ALIGN(PAGE_SIZE);
 
 
     /* NOTE: ARM stack grows upwards */
