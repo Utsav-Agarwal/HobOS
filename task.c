@@ -7,7 +7,7 @@
 mutex_t task_mutex;
 pid_t pid_cntr;
 
-struct ctxt init_ctxt = {0};
+struct ctxt init_ctxt;
 struct task init_task = {
 		.pid = 1,
 		.ctxt = &init_ctxt,

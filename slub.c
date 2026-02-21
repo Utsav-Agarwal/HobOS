@@ -6,11 +6,6 @@
 
 static struct kmem_global_fls global_fls = {0};
 
-inline void *kmem_get_parent_page(struct kmem_obj *obj)
-{
-	return obj->parent_cache->parent_page;
-}
-
 static inline struct kmem_fl *kmem_get_curr_fl(void)
 {
 	int core_id = curr_core_id();
@@ -48,9 +43,9 @@ void kmem_print_cache(struct kmem_cache *c)
 {
 	struct kmem_obj *obj = c->first;
 
+	kprintf("%x\n", c);
 	kprintf("fl: %x\n", c->parent_fl);
 	kprintf("order: %x\n", c->order);
-	kprintf("page: %x\n", c->parent_page);
 	kprintf("first: %x\n", c->first);
 	kprintf("next: %x\n", c->next);
 	kprintf("status: %x\n", c->status);
@@ -103,6 +98,27 @@ static bool kmem_cache_is_available(struct kmem_cache *c)
 	return !!(c->status == KMEM_CACHE_AVAIL);
 }
 
+static void kmem_add_obj(struct kmem_cache *c, struct kmem_obj *obj)
+{
+	struct kmem_obj *n_obj;
+
+	// new slab
+	if (!c->first) {
+		c->first = obj;
+		c->parent_page = (void *)((u64)obj->addr & ~0xFFF);
+		obj->next = 0;
+		return;
+	}
+
+	n_obj = c->first;
+	while (n_obj->next)
+		n_obj = n_obj->next;
+
+	n_obj->next = obj;
+	if (!kmem_cache_is_available(c))
+		c->status = KMEM_CACHE_AVAIL;
+}
+
 /* for a given base address and order, create a new object
  * for the current core.
  *
@@ -116,12 +132,10 @@ static struct kmem_obj *kmem_create_obj(struct kmem_cache *c)
 	struct kmem_obj *n_obj;
 	struct kmem_obj *obj;
 	int order = c->order;
+	size_t blk_offset = KMEM_OBJECT_SIZE(order);
 	struct kmem_fl *fl = c->parent_fl;
 
 	if (!c)
-		return 0;
-
-	if (!kmem_cache_is_available(c))
 		return 0;
 
 	obj = (struct kmem_obj *)fl->end;
@@ -133,18 +147,17 @@ static struct kmem_obj *kmem_create_obj(struct kmem_cache *c)
 
 	// new slab
 	if (!c->first) {
-		c->first = obj;
 		obj->addr = page_alloc(1);
-		obj->next = 0;
-		return obj;
+	} else {
+		n_obj = c->first;
+		while (n_obj->next)
+			n_obj = n_obj->next;
+
+		obj->addr = (void *)
+			((u64)n_obj->addr + blk_offset);
 	}
 
-	n_obj = c->first;
-	while (n_obj->next)
-		n_obj = n_obj->next;
-
-	n_obj->next = obj;
-	obj->addr = (void *)((u64)n_obj->addr + KMEM_OBJECT_SIZE(order));
+	kmem_add_obj(c, obj);
 	return obj;
 }
 
@@ -179,12 +192,12 @@ static struct kmem_cache *kmem_create_cache(int order, u64 flags)
 		return 0;
 
 	c = fl->end;
-	fl->end = (void *)((u64)fl->end + sizeof(struct kmem_cache));
+	//TODO: maybe put a mutex here since its a global struct?
+	fl->end = (void *)((u64)fl->end + sizeof(*c));
 	c->order = order;
 	c->parent_fl = fl;
 
-	c->parent_page = page_alloc(1);
-	c->status = KMEM_CACHE_AVAIL;
+	c->status = KMEM_CACHE_N_AVAIL;
 	c->next = 0;
 
 	if (flags != KMEM_CACHE_CREATE_ONLY)
@@ -224,7 +237,7 @@ static inline int kmem_get_obj_order(size_t size)
 	return i;
 }
 
-static inline struct kmem_obj *kmem_cache_obj(struct kmem_cache *c)
+static inline struct kmem_obj *kmem_extract_obj_from_cache(struct kmem_cache *c)
 {
 	struct kmem_obj *obj = c->first;
 	struct kmem_obj *p_obj = obj;
@@ -241,18 +254,35 @@ static inline struct kmem_obj *kmem_cache_obj(struct kmem_cache *c)
 	return obj;
 }
 
-static inline struct kmem_obj *kmem_fl_obj(int order)
+static inline struct kmem_obj *kmem_extract_obj_from_fl(int order)
 {
 	struct kmem_cache *c = kmem_get_curr_cache(order);
 
-	return kmem_cache_obj(c);
+	return kmem_extract_obj_from_cache(c);
+}
+
+static void kmem_add_to_task(struct task *t, struct kmem_obj *obj)
+{
+	struct ctxt *ctxt = t->ctxt;
+	struct kmem_obj *o = ctxt->used_kmem;
+
+	obj->next = 0;
+	if (!o) {
+		ctxt->used_kmem = obj;
+		return;
+	}
+
+	while (o->next)
+		o = o->next;
+
+	o->next = obj;
 }
 
 static inline struct kmem_obj *kmem_acquire_obj(size_t size)
 {
 	int order = kmem_get_obj_order(size);
 
-	return kmem_fl_obj(order);
+	return kmem_extract_obj_from_fl(order);
 }
 
 void *slub_alloc(size_t size)
@@ -276,13 +306,6 @@ void *slub_alloc(size_t size)
 	if (!fl->cache[0])
 		kmem_init_caches();
 
-	//kmem_print_fl(fl);
-
-	//TODO: call current executing thread and add this to
-	//its cache objs so it can be returned properly when freed
-	//
-	//until processes are formed, we can keep these in a per cpu
-	//global list
 	obj = kmem_acquire_obj(size);
 	if (!obj)
 		return 0;
@@ -291,7 +314,144 @@ void *slub_alloc(size_t size)
 	if (!t)
 		return 0;
 
-	t->ctxt->used_kmem = obj;
+	kmem_add_to_task(t, obj);
 	return obj->addr;
 }
 
+/*
+ * Return the parent object which points to this addr. If this is a single entry,
+ * return it.
+ */
+static inline struct kmem_obj *kmem_get_obj_parent(struct kmem_obj *objs,
+						   void *addr)
+{
+	struct kmem_obj *o = objs;
+	struct kmem_obj *p = o;
+
+	if ((!addr) || (!objs))
+		return 0;
+
+	//maybe its the first element
+	if (o->addr == addr)
+		return o;
+
+	while (o) {
+		if (o->addr == addr)
+			return p;
+
+		p = o;
+		o = o->next;
+	}
+
+	return 0;
+}
+
+/*
+ * Return parent if no child.
+ * Return 0 if null.
+ */
+static inline struct kmem_obj *kmem_extract_obj_child(struct kmem_obj *parent)
+{
+	struct kmem_obj *child;
+
+	if (!parent)
+		return parent;
+
+	if (!parent->next)
+		return parent;
+
+	child = parent->next;
+	parent->next = child->next;
+	child->next = 0;
+	return child;
+}
+
+static struct kmem_obj *kmem_extract_obj(struct task *t, void *addr)
+{
+	struct ctxt *ctxt = t->ctxt;
+	struct kmem_obj *objs = ctxt->used_kmem;
+	struct kmem_obj *target_obj;
+
+	target_obj = kmem_get_obj_parent(objs, addr);
+	target_obj = kmem_extract_obj_child(target_obj);
+	return target_obj;
+}
+
+static struct kmem_cache *kmem_find_relative_cache(struct kmem_obj *obj)
+{
+	void *parent_page = (void *)((u64)obj->addr & ~0xFFF);
+	struct kmem_cache *c;
+	int order = obj->order;
+
+	c = kmem_get_curr_cache(order);
+	while (c) {
+		if (c->parent_page == parent_page)
+			return c;
+
+		c = c->next;
+	}
+
+	return 0;
+}
+
+static void kmem_reclaim_obj(struct kmem_obj *obj)
+{
+	int order = obj->order;
+	struct kmem_cache *c;
+	int core_id;
+
+	core_id = curr_core_id();
+
+	/*
+	 * We are home
+	 */
+	if (core_id == obj->parent_core_id) {
+		c = kmem_get_curr_cache(order);
+		kmem_add_obj(c, obj);
+		return;
+	}
+
+	/*
+	 * If not, check if a previous cache exists from
+	 * non-natively freed pages. If so, just add it there.
+	 *
+	 * Else, create a new empty cache and add it there.
+	 *
+	 * TODO: These stray caches can probably be flushed out/trimmed
+	 * when/if caches are synced between cores?
+	 */
+	c = kmem_find_relative_cache(obj);
+	if (!c)
+		c = kmem_create_cache(order, KMEM_CACHE_CREATE_ONLY);
+
+	kmem_add_obj(c, obj);
+}
+
+int slub_free(void *addr)
+{
+	/*
+	 * If kfree() addr belongs to thread's kmem_objs, then it was allocated
+	 * with slub, else forward to page_free() by returning.
+	 */
+
+	struct kmem_obj *o;
+	struct task *t;
+
+	if (!addr)
+		return 0;
+
+	t = get_curr_task();
+	o = kmem_extract_obj(t, addr);
+
+	/*
+	 * Nothing to free here
+	 */
+	if (!o)
+		return -1;
+
+	/*
+	 * Object reclaimed
+	 */
+	kmem_reclaim_obj(o);
+	return 0;
+}

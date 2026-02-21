@@ -22,7 +22,7 @@ static inline void pop_worker_job(struct worker *w)
 
 	next_job->job_pos = JOBS_HEAD;
 	w->jobs = next_job;
-	//TODO: free all mallocs
+	kfree(head);
 }
 
 static struct worker_job *create_job(void *fn)
@@ -101,9 +101,9 @@ static void worker_process(void)
 
 static void set_job_queue_head(struct worker_job **job, void *fn_addr)
 {
-	*job = create_job(fn_addr);
 	struct jobs_meta *meta;
 
+	*job = create_job(fn_addr);
 	(*job)->meta = kmalloc(sizeof(*meta));
 	meta = (*job)->meta;
 	if (!meta) {
@@ -199,6 +199,11 @@ void init_smp(void)
 	int core;
 
 	for (core = 1; core <= MAX_REMOTE_CORE_ID; core++) {
+		/*
+		 * we need this here since gcc decides to optimize core out for some reason
+		 */
+		barrier();
+
 		set_job_queue_head(&jobs, jump_to_EL1);
 		push_worker_job(jobs, init_mmu);
 		push_worker_job(jobs, switch_vmem);

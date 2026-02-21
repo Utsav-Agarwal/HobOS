@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
+#include <hobos/smp.h>
 #include <hobos/kstdio.h>
 
 /*
@@ -22,6 +23,7 @@
 // names with selective compilation
 
 struct char_device *_console;
+static mutex_t print_mutex;
 
 void init_console(struct char_device *console, void *priv)
 {
@@ -55,8 +57,10 @@ int kprintf(const char *format, ...)
 	va_list args;
 	int printed;
 
+	acquire_mutex(&print_mutex);
 	va_start(args, format);
 	printed = vprintf(format, args);
 	va_end(args);
+	release_mutex(&print_mutex);
 	return printed;
 }
