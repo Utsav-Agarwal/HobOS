@@ -48,7 +48,8 @@ void vmalloc(unsigned int size)
 
 void kfree(void *p)
 {
-	page_free(p);
+	if (slub_free(p))
+		page_free(p);
 }
 
 void strcpy(void *dst, void *src)

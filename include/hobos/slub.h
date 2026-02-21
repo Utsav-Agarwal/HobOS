@@ -33,8 +33,8 @@
 struct kmem_obj {
 	void *addr;
 	int order;
+	int parent_core_id;
 	struct kmem_cache *parent_cache;
-	unsigned int parent_core_id;
 	struct kmem_obj *next;
 };
 
@@ -66,5 +66,6 @@ struct kmem_global_fls {
 };
 
 void *slub_alloc(size_t size);
+int slub_free(void *addr);
 
 #endif

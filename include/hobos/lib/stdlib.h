@@ -7,7 +7,7 @@
 #define BITM(pos)	((BITP(pos)) - 1UL)
 
 void *kmalloc(unsigned size);
-void free(void *p);
+void kfree(void *p);
 
 void strcpy(void *dst, void *src);
 void memcpy(void *dst, void *src, unsigned size);
