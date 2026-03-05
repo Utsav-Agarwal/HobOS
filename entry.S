@@ -5,8 +5,8 @@
 .global jump_to_usr
 .type jump_to_usr, %function
 jump_to_usr:
-	bl usr_init
 	bl kernel_splash_msg
+	bl usr_init
 	bl get_usr_entry_pt
 	and x0, x0, #0xFFFFFFFF;
 	msr elr_el1, x0

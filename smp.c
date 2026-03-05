@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
 #include <hobos/asm/barrier.h>
+#include <hobos/compiler_types.h>
 #include <hobos/kstdio.h>
 #include <hobos/lib/stdlib.h>
 #include <hobos/mmu.h>
@@ -9,6 +10,7 @@
 extern void setup_stack(void);
 extern void jump_to_EL1(void);
 
+// This should just be zeroed with the .bss section being cleared
 static struct worker smp_worker[MAX_REMOTE_CORE_ID + 1];
 
 static inline void pop_worker_job(struct worker *w)
@@ -40,7 +42,7 @@ static struct worker_job *create_job(void *fn)
 	return job;
 }
 
-static void push_worker_job(struct worker_job *head, void *fn)
+__unused static void push_worker_job(struct worker_job *head, void *fn)
 {
 	//we assume that the last job will always be followed by park_and_wait.
 	struct jobs_meta *meta = head->meta;
@@ -75,7 +77,7 @@ static void push_worker_job(struct worker_job *head, void *fn)
 //that have been queued on it. Let yield be called with an interrupt and the job will
 //be flushed.
 void __park_and_wait(void);
-static void worker_process(void)
+__unused static void worker_process(void)
 {
 	u8 core = curr_core_id();
 	struct worker *w = &smp_worker[core];
@@ -99,7 +101,7 @@ static void worker_process(void)
 	__park_and_wait();
 }
 
-static void set_job_queue_head(struct worker_job **job, void *fn_addr)
+__unused void set_job_queue_head(struct worker_job **job, void *fn_addr)
 {
 	struct jobs_meta *meta;
 
@@ -116,11 +118,12 @@ static void set_job_queue_head(struct worker_job **job, void *fn_addr)
 	meta->tail = *job;
 }
 
-static void __init_worker(unsigned char core, struct worker_job *jobs)
+__unused static void __init_worker(unsigned char core, struct worker_job *jobs)
 {
-	volatile u64 *spin_table = (volatile unsigned long *)SPIN_TABLE_BASE;
 	struct worker *w = &smp_worker[core];
+	volatile u64 *spin_table;
 
+	spin_table = (u64 *)(SMP_SPINTABLE_BASE);
 	w->exec_addr = &spin_table[core];
 	w->jobs = jobs;
 	w->core_id = core;
@@ -129,7 +132,7 @@ static void __init_worker(unsigned char core, struct worker_job *jobs)
 }
 
 //kickstart the core to flush the job queue
-static int __run_core(unsigned char core)
+__unused static int __run_core(unsigned char core)
 {
 	if (core > MAX_REMOTE_CORE_ID)
 	return -1;
@@ -163,7 +166,11 @@ static int __setup_core(int core)
 	//are competing to write to a common memory location (semaphores[..])
 	//i.e - the scheduler(master) and the worker(slave)
 	acquire_mutex(m0);
-	smp_store_mb(*w->exec_addr, (unsigned long)setup_stack);
+	/*
+	 * This core does not have any page tables yet, so it will
+	 * fault on va. Convert function address to accommodate for this
+	 */
+	smp_store_mb(*w->exec_addr, (u64)va_to_pa(jump_to_EL1));
 	acquire_mutex(m1);
 
 	asm volatile("sev");
@@ -195,24 +202,16 @@ void __park_and_wait(void)
 
 void init_smp(void)
 {
-	struct worker_job *jobs;
+	struct worker_job *jobs = 0;
 	int core;
 
 	for (core = 1; core <= MAX_REMOTE_CORE_ID; core++) {
 		/*
-		 * we need this here since gcc decides to optimize core out for some reason
+		 * we need this here since gcc decides to optimize core
+		 * out for some reason
 		 */
-		barrier();
-
-		set_job_queue_head(&jobs, jump_to_EL1);
-		push_worker_job(jobs, init_mmu);
-		push_worker_job(jobs, switch_vmem);
-
 		__init_worker(core, jobs);
 		if (__setup_core(core))
 			kprintf("Core %d setup failed!\n", core);
-
-		if (__run_core(core))
-			kprintf("Core %d startup failed!\n", core);
 	}
 }

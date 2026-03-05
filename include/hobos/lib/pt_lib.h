@@ -89,7 +89,7 @@
 struct page_table_desc {
 	u8 level;
 	u16 pt_len;
-	unsigned long *pt;
+	u64 *pt;
 	struct page_table_desc *next;
 	struct page_table_desc *child_pt_desc;
 };
@@ -103,7 +103,7 @@ unsigned long pt_entry(unsigned long paddr, unsigned long flags);
 void place_pt_entry(struct page_table_desc *pt_desc, unsigned long pte,
 		    int index);
 
-struct page_table_desc *create_pt(unsigned long pt_baddr, char level);
+struct page_table_desc *create_pt(u64 pt_baddr, int level);
 u64 *create_pt_entries(struct page_table_desc *pt_desc,
 				unsigned long start_paddr,
 				unsigned long end_paddr,
@@ -114,7 +114,11 @@ void *map_pa_to_va_pg(unsigned long pa, unsigned long va,
 		      unsigned long flags,
 		      bool walk);
 
+struct page_table_desc *create_pt_desc(int level);
 void create_id_mapping(u64 start_paddr, u64 end_paddr, u64 flags);
 void va_set_attr(u64 va, struct page_table_desc *pt_desc, u64 pte_attr);
 void va_clear_attr(u64 va, struct page_table_desc *pt_desc, u64 pte_attr);
+void *get_kernel_va(void *pa);
+u64 *pa_to_va(void *addr);
+u64 *va_to_pa(void *addr);
 #endif

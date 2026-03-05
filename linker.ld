@@ -1,4 +1,4 @@
-ENTRY(_start)
+ENTRY(__start)
 
 BSS_SIZE = 0xA000;
 
@@ -7,18 +7,24 @@ PAGE_SIZE = 0x1000;
 /* 1MB memory */
 PHY_MEM_SIZE = PAGE_SIZE*256;
 
+VMEM_OFFSET = 0xffffff8000000000;
+SPIN_TABLE_BASE	= 0xD8;
+KERNEL_START = 0x80000;
+USER_START = 0x400000;
+
 SECTIONS
 {
     /* Starts at LOADER_ADDR. */
-    . = 0x80000;
+    . = VMEM_OFFSET + KERNEL_START;
     /* For AArch64, use . = 0x80000; */
-    __start = .;
-    .text :
+    .text : AT(KERNEL_START)
     {
         KEEP(*(.text.boot))
         KEEP(*(.text.proc))
         *(.text)
     }
+    /* We need this so that we dont start in highmem */
+    __start = LOADADDR(.text);
     . = ALIGN(PAGE_SIZE);
     .rodata :
     {
@@ -42,7 +48,6 @@ SECTIONS
     }
     __bss_end = .;
     . = ALIGN(PAGE_SIZE);
-
 
     /* NOTE: ARM stack grows upwards */
 
@@ -104,12 +109,20 @@ SECTIONS
     __phymem_end = .;
     . = ALIGN(PAGE_SIZE);
 
+    .kernel_pt :
+    {
+	__kernel_pt = .;
+	*(.kernel_pt);
+	. = . + (3*PAGE_SIZE);
+    }
+    . = ALIGN(PAGE_SIZE);
     /*
      * This is where heap starts, grows downwards
      */
-    . = 0x200000;
-    .usr_entry :
+    . = VMEM_OFFSET + USER_START;
+    .usr_entry : AT(USER_START)
     {
+	__usr_entry = .;
 	*(.usr_entry);
     }
     . = ALIGN(PAGE_SIZE);
@@ -118,6 +131,10 @@ SECTIONS
 	*(.usr_mem);
     }
     . = ALIGN(PAGE_SIZE);
+
+    /* We need something like a device tree for this */
+    /* TODO: use ioremap for now */
+    __rpi_spintable_base = VMEM_OFFSET + SPIN_TABLE_BASE;
 
     __end = . ;
 }
