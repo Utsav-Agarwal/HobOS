@@ -18,7 +18,13 @@ u8 pt_ctr;
 // TODO: Add support for more granule sizes
 u64 pt_entry(u64 paddr, u64 flags)
 {
-	return (paddr | flags);
+	u64 san_paddr = paddr;
+
+	/* We need to ensure we always use physical addresses */
+	if (paddr > KERNEL_START)
+		san_paddr -= KERNEL_START;
+
+	return (san_paddr | flags);
 }
 
 //TODO: Add error checking to make sure we dont exceed 512 entries
@@ -82,9 +88,27 @@ u64 *create_pt_entries(struct page_table_desc *pt_desc,
 	return start_pte;
 }
 
+struct page_table_desc *create_pt_desc(int level)
+{
+	struct page_table_desc *pt_desc;
+
+	if (!global_page_tables) {
+		global_page_tables = kmalloc(0x1000);
+		memset(global_page_tables, 0, 0x1000);
+	}
+
+	pt_desc = &global_page_tables[pt_ctr++];
+	pt_desc->level = level;
+	pt_desc->pt_len = 0;
+	pt_desc->next = 0;
+	pt_desc->child_pt_desc = 0;
+
+	return pt_desc;
+}
+
 //if 0 is provided, new address should be given automatically
 //NOTE: first time usage MUST provide a base address
-struct page_table_desc *create_pt(u64 pt_baddr, char level)
+struct page_table_desc *create_pt(u64 pt_baddr, int level)
 {
 	struct page_table_desc *pt_desc;
 	u64 *pt;
@@ -100,17 +124,8 @@ struct page_table_desc *create_pt(u64 pt_baddr, char level)
 			return 0;
 	}
 
-	if (!global_page_tables) {
-		global_page_tables = kmalloc(0x1000);
-		//memset(global_page_tables, 0, 0x1000);
-	}
-
-	pt_desc = &global_page_tables[pt_ctr++];
+	pt_desc = create_pt_desc(level);
 	pt_desc->pt = pt;
-	pt_desc->level = level;
-	pt_desc->pt_len = 0;
-	pt_desc->next = 0;
-	pt_desc->child_pt_desc = 0;
 
 	return pt_desc;
 }
@@ -161,8 +176,19 @@ static void pt_desc_add_child(struct page_table_desc *parent,
 	parent->child_pt_desc = child;
 }
 
+u64 *pa_to_va(void *addr)
+{
+	return (u64 *)(KERNEL_START | (u64)addr);
+}
+
+u64 *va_to_pa(void *addr)
+{
+	return (u64 *)((u64)addr & ~KERNEL_START);
+}
+
 static struct page_table_desc *pt_desc_get_from_parent(u64 addr,
-						       struct page_table_desc *parent)
+						       struct page_table_desc
+						       *parent)
 {
 	struct page_table_desc *pt_desc = parent->child_pt_desc;
 
@@ -171,7 +197,7 @@ static struct page_table_desc *pt_desc_get_from_parent(u64 addr,
 		return 0;
 
 	while (pt_desc) {
-		if (addr == (u64)pt_desc->pt)
+		if (addr == (u64)va_to_pa(pt_desc->pt))
 			return pt_desc;
 
 		pt_desc = pt_desc->next;
@@ -213,6 +239,7 @@ void *map_pa_to_va_pg(u64 pa, u64 va, struct page_table_desc *pt_top,
 			break;
 		}
 
+		//TODO: Account for empty PT
 		pte = pt[pt_index];
 		if (pte_is_empty(pte)) {
 			struct page_table_desc *new_pt_desc;
@@ -228,7 +255,7 @@ void *map_pa_to_va_pg(u64 pa, u64 va, struct page_table_desc *pt_top,
 			pt_desc_add_child(pt_desc, new_pt_desc);
 			pt_desc = new_pt_desc;
 		} else {
-		       pt_desc = pt_desc_get_from_parent(
+			pt_desc = pt_desc_get_from_parent(
 						extract_addr_from_pte(pte),
 						pt_desc);
 
@@ -238,6 +265,13 @@ void *map_pa_to_va_pg(u64 pa, u64 va, struct page_table_desc *pt_top,
 	}
 
 	return (void *)va;
+}
+
+void *get_kernel_va(void *pa)
+{
+	void *va = (void *)((u64)pa | KERNEL_START);
+
+	return va;
 }
 
 /*

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
 #include <hobos/uart.h>
+#include <hobos/lib/pt_lib.h>
 #include <hobos/asm/barrier.h>
 
 static void uart_init(void *priv);
@@ -9,7 +10,7 @@ struct char_device uart_dev = {
     .init = uart_init,
 };
 
-static inline unsigned long uart_reg(unsigned offset)
+static inline unsigned long uart_reg(unsigned int offset)
 {
 	return ((unsigned long)uart_dev.base + offset);
 }
@@ -143,7 +144,7 @@ static void uart_init(void *priv)
 		uart_dev.puts = mini_uart_puts;
 	}
 
-	uart_dev.base = (unsigned long *)ioremap(base + (unsigned long)mmio_base);
+	uart_dev.base = (u64 *)ioremap(base + ((u64)va_to_pa(mmio_base)));
 
 	/*
 	* NOTE: Current implementation is not complete and is assisted

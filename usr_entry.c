@@ -13,23 +13,43 @@
  * This will be similar to the kernel switch since we need to keep the page tables within the
  * realm of userspace as well.
  */
-static void map_to_usr(u64 start, u64 end)
+static void id_map_to_usr(u64 start, u64 end, struct page_table_desc *pt_desc)
 {
 	// add 3 page table addresses to current kernel table
+	void *ret;
+	u64 va = start;
+
 	while (start < end) {
-		map_pa_to_va_pg(start, start, &global_page_tables[0],
-				PTE_FLAGS_USER_GENERIC, 0);
+		ret = map_pa_to_va_pg(start, va, pt_desc,
+				      PTE_FLAGS_USER_GENERIC, 0);
+		if (ret != (void *)va) {
+			kprintf("Failed at %x -> %x!(%x)\n", start, va, ret);
+			return;
+		}
+
 		start += 0x1000;
+		va += 0x1000;
 	}
 }
 
 void usr_init(void)
 {
+	struct page_table_desc *usr_pt_desc;
+	void *usr_pt;
+
 	kprintf("\nUser memory range: [%x, %x] (%d KiB)\n",
 		USR_INIT, USR_END, USR_SZ_KB);
 
-	map_to_usr(USR_INIT, USR_END);
+	usr_pt_desc = kmalloc(sizeof(*usr_pt_desc));
+	usr_pt_desc->level = 1;
+	usr_pt_desc->pt = kmalloc(sizeof(u64) * 512);
+	usr_pt = usr_pt_desc->pt;
+
+	id_map_to_usr(USR_INIT, USR_END, usr_pt_desc);
+
 	// TODO: Maybe assign a new page table?
+	if (usr_pt)
+		set_ttbr0_el1((u64)va_to_pa(usr_pt));
 }
 
 __section(".usr_entry") __noreturn void user_panic(void)
@@ -101,8 +121,9 @@ __section(".usr_entry") __noreturn static void el0_default_init(void)
 	    : "x8"
 	);
 
-	mb();
-	// make sure x0 is not clobbered
+	/*
+	 * make sure x0 is not clobbered
+	 */
 	asm volatile (
 	    "mov x1, %0\n"
 	    "svc #0\n"

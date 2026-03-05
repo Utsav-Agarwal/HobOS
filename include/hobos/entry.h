@@ -6,9 +6,11 @@
 #include <hobos/page_alloc.h>
 #include <hobos/compiler_types.h>
 
+extern char __usr_entry;
+
 // based on the identity page table mapping
-#define USR_INIT	((u64)(0x1000 * 512))
-#define USR_SZ		((u64)(0x1000 * 512 * 128))
+#define USR_INIT	((u64)(&__usr_entry))
+#define USR_SZ		((u64)(0x1000 * 512 * 100))
 #define USR_SZ_KB	(USR_SZ / KB(1))
 #define USR_END		(USR_INIT + USR_SZ)
 

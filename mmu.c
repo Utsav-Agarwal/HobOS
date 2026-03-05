@@ -5,22 +5,10 @@
 #include <hobos/mmu/bcm2835.h>
 #include <hobos/mmu.h>
 #include <hobos/smp.h>
+#include <hobos/kstdio.h>
 
 #define map_sz		512
 #define ID_PG_SZ	PAGE_SIZE
-
-/*
- * This is the first id translation table created, it will always be the 1st page table
- * created.
- */
-static u64 set_id_translation_table(void)
-{
-	create_id_mapping(0, 0x1000 * 512, PTE_FLAGS_KERNEL_GENERIC);
-	if (!global_page_tables)
-		return 0;
-
-	return (u64)(global_page_tables[0].pt);
-}
 
 /*
  * We can just reuse the id_map for now as we only
@@ -28,49 +16,55 @@ static u64 set_id_translation_table(void)
  */
 static inline u64 get_kernel_translation_table(void)
 {
-	if (!global_page_tables)
+	struct page_table_desc *pt_desc = &global_page_tables[0];
+
+	pt_desc = (struct page_table_desc *)(va_to_pa(pt_desc));
+	if (!pt_desc)
 		return 0;
 
-	return (u64)(global_page_tables[0].pt);
+	return (u64)(pt_desc->pt);
+}
+
+static inline u64 get_ttbr0_el1(void)
+{
+	u64 reg;
+
+	asm volatile ("mrs %0, ttbr0_el1" : "=r"(reg));
+	return reg;
+}
+
+static inline u64 get_ttbr1_el1(void)
+{
+	u64 reg;
+
+	asm volatile ("mrs %0, ttbr1_el1" : "=r"(reg));
+	return reg;
 }
 
 static inline void set_ttbr1_el1(u64 x)
 {
-	asm volatile ("msr ttbr1_el1, %0"::"r"(x));
-}
+	u64 _x = x;
 
-static void disable_ttbr0_el1(void)
-{
-	u64 tcr;
+	if (_x > KERNEL_START)
+		_x -= KERNEL_START;
 
-	asm volatile ("mrs %0, tcr_el1" : "=r"(tcr));
-	tcr |= EPD_FAULT << EPD0_POS;
-	asm volatile ("msr tcr_el1, %0"::"r"(tcr));
-}
-
-static void enable_ttbr0_el1(void)
-{
-	u64 tcr;
-
-	asm volatile ("mrs %0, tcr_el1" : "=r"(tcr));
-	tcr |= EPD_WALK << EPD0_POS;
-	asm volatile ("msr tcr_el1, %0"::"r"(tcr));
+	asm volatile ("msr ttbr1_el1, %0"::"r"(_x));
+	asm volatile ("dmb ish; tlbi vmalle1; ic iallu; isb; dmb ish;");
 }
 
 void set_ttbr0_el1(u64 x)
 {
-	disable_ttbr0_el1();
-	mb();
+	//disable_ttbr0_el1();
 	asm volatile ("msr ttbr0_el1, %0"::"r"(x));
 	asm volatile ("dmb ish; tlbi vmalle1; isb; dmb ish;");
-	enable_ttbr0_el1();
+	//enable_ttbr0_el1();
 }
 
 void switch_vmem(void)
 {
 	u64 tcr, reg;
 
-	set_ttbr1_el1((u64)get_kernel_translation_table());
+	set_ttbr1_el1(get_ttbr0_el1());
 
 	asm volatile ("mrs %0, tcr_el1" : "=r"(tcr));
 
@@ -83,7 +77,8 @@ void switch_vmem(void)
 	//at this point the table should be active, so in theory
 	//we should be able to just set the next instruction
 
-	reg = ((u64)&__core0_stack) + KERNEL_START;
+	asm volatile ("mov %0, sp" : "=r"(reg));
+	reg += KERNEL_START;
 	asm volatile ("mov sp, %0"::"r"(reg));
 
 	asm volatile ("mov %0, lr" : "=r"(reg));
@@ -97,47 +92,66 @@ void switch_vmem(void)
 	asm volatile ("tlbi vmalle1; dsb sy; isb");
 }
 
+static u64 *extract_pt_addr(int level)
+{
+	u64 *pt_addr = 0;
+
+	if (level > 1)
+		return (u64 *)(*global_page_tables[level - 2].pt & 0xFFFFF000);
+	else
+		return (u64 *)get_ttbr1_el1();
+
+	return pt_addr;
+}
+
+/*
+ * Given ttbr1, extract all info for existing page tables into pt_desc
+ */
+static void extract_global_pt_info(void)
+{
+	struct page_table_desc *pt_desc = 0;
+	struct page_table_desc *parent = 0;
+	int i;
+
+	/*
+	 * For now, lets just assume that we are only going to be dealing
+	 * with 3 levels, always starting from 1
+	 */
+
+	for (i = 1; i < 4; i++) {
+		/* ensure you link the pt descriptors */
+		if (pt_desc)
+			parent = pt_desc;
+
+		pt_desc = create_pt_desc(i);
+		pt_desc->pt = extract_pt_addr(i);
+
+		if (i == 3)
+			pt_desc->pt_len = 512;
+		else
+			pt_desc->pt_len = 1;
+
+		if (pt_desc)
+			parent->child_pt_desc = pt_desc;
+	}
+}
+
 void init_mmu(void)
 {
-	u64 tcr = 0;
-	u64 sctlr = 0;
-
 	//page table set
 	//we want to share the page tables from core 0 to others, to start
 	//with
+	//
+	//TODO: extract all data from existing page table into table descriptors
 	if (!curr_core_id())
-		set_ttbr0_el1(set_id_translation_table() + CNP_COMMON);
+		extract_global_pt_info();
 	else
-		set_ttbr0_el1(get_kernel_translation_table() + CNP_COMMON);
+		set_ttbr0_el1(get_kernel_translation_table());
 
 	if (!get_kernel_translation_table())
 		return;
 
 	asm volatile ("msr mair_el1, %0"::"r"(mair_el1));
-
-	//translation control TCR_EL1
-
-	tcr = MMU_TSZ << T0SZ_POS;
-	tcr |= TG0_GRANULE_SZ_4KB << TG0_POS;
-	tcr |= EPD_WALK << EPD0_POS;
-	tcr |= 0b00 << IRGN0_POS;
-	tcr |= 0b00 << ORGN0_POS;
-	tcr |= 0b00 << SH0_POS;
-
-	asm volatile ("msr tcr_el1, %0"::"r"(tcr));
-	//system control SCTLR_EL1
-	asm volatile ("mrs %0, sctlr_el1" : "=r"(sctlr));
-
-#ifdef SCTLR_QUIRKS
-	handle_sctlr_quirks(&sctlr);
-#endif
-	sctlr &= ~(1 << 1); //remove alignment check
-	sctlr &= ~(1 << 25); //make sure little endian
-
-	//enable mmu
-	sctlr |= 1;
-
-	asm volatile ("msr sctlr_el1, %0"::"r"(sctlr));
 	asm volatile ("dsb sy; isb");
 
 	//invalidate tlb

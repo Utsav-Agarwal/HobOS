@@ -11,14 +11,17 @@ extern void kernel_panic(void);
 
 void *ioremap(unsigned long addr)
 {
+	u64 paddr = (u64)va_to_pa((u64 *)addr);
 	void *vaddr;
 
-	vaddr = map_pa_to_va_pg(addr, addr,
+	vaddr = map_pa_to_va_pg(paddr, paddr,
 				&global_page_tables[0], PTE_FLAGS_NC, 0);
 
+	// io memory will never be mapped to 0x0
 	if (!vaddr)
 		kernel_panic();
 
+	vaddr = (void *)pa_to_va(vaddr);
 	return vaddr;
 }
 

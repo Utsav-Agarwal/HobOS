@@ -38,7 +38,7 @@ void syscall_el0_common(void)
 	if (sys_nr >= SUPP_SYSCALL_NR)
 		sys_nr = 0;
 
-	syscall_fn = syscall_table[sys_nr];
+	syscall_fn = (syscall_t)syscall_table[sys_nr];
 
 	/* Ensure target function address was correctly updated */
 	mb();

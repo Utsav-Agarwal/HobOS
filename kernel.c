@@ -68,18 +68,17 @@ static void init_device_drivers(void)
 
 __noreturn void main(void)
 {
-	mmio_init();
 	init_free_list((u64)&__phymem_end, PAGE_SIZE * 256);
 	init_mmu();
-	setup_console();
+	mmio_init();
 
 	if (!global_page_tables)
 		kernel_panic();
 
-	init_device_drivers();
 	init_smp();
+	setup_console();
+	init_device_drivers();
 
-	switch_vmem();
 	jump_to_usr();
 
 	while (1)

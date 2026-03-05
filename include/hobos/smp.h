@@ -11,8 +11,8 @@
  * where CPU IDs 1-3 are put to sleep using a spin table
  * */
 
-#define SPIN_TABLE_BASE		0xD8
 #define MAX_REMOTE_CORE_ID	3
+#define SMP_SPINTABLE_BASE	0xD8
 
 #define JOBS_HEAD	0xFA
 #define JOBS_TAIL	0xAF
