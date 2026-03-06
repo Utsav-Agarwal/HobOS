@@ -10,6 +10,7 @@
 #include <hobos/irq/irq_bcm.h>
 #include <hobos/asm/barrier.h>
 #include <hobos/entry.h>
+#include <hobos/sched.h>
 
 extern __noreturn void jump_to_usr(void);
 
@@ -66,6 +67,30 @@ static void init_device_drivers(void)
 	enable_interrupts();
 }
 
+static int print_msg(void *data)
+{
+	char *t_msg = (char *)data;
+
+	kprintf("%x\n", t_msg);
+	kprintf("%s", t_msg);
+	kprintf("default thread msg\n");
+	return 5;
+}
+
+//TODO: remove this before merge
+char msg[10] = "Hello\n";
+static void kthread_test(void)
+{
+	struct task *t;
+
+	kthread_init();
+	t = kthread_create(print_msg, msg);
+	if (!t)
+		kernel_panic();
+
+	sched_run(t);
+}
+
 __noreturn void main(void)
 {
 	init_free_list((u64)&__phymem_end, PAGE_SIZE * 256);
@@ -75,9 +100,11 @@ __noreturn void main(void)
 	if (!global_page_tables)
 		kernel_panic();
 
-	init_smp();
+	//init_smp();
 	setup_console();
 	init_device_drivers();
+
+	kthread_test();
 
 	jump_to_usr();
 

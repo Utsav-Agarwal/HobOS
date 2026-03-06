@@ -2,6 +2,10 @@ ENTRY(__start)
 
 BSS_SIZE = 0xA000;
 
+/*
+ * We dont need too much, just enough until the scheduler takes over
+ * since each task will have its own stack allocated to it
+ */
 CORE_STACK_SIZE = 0x1000;
 PAGE_SIZE = 0x1000;
 /* 1MB memory */
@@ -49,11 +53,11 @@ SECTIONS
     __bss_end = .;
     . = ALIGN(PAGE_SIZE);
 
-    /* NOTE: ARM stack grows upwards */
-
     /* SMP Stack */
     /* start translation tables here */
     /*. = CORE_STACK_BASE;*/
+
+    /* stack grows high to low */
     .core0_stack :
     {
 	. = . + CORE_STACK_SIZE;
