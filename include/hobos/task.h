@@ -29,12 +29,14 @@ struct ctxt {
 //TODO: maybe consider shared memory processes
 struct task {
 	pid_t pid;
-	struct page_table_desc *base_pt;		//memory map
-	struct ctxt *ctxt;				//context
-	char stack[8192];				//stack
-	int (*pc)(void *data);				//start exec here
-	void *data;					//start exec here
-	u64 running;					//start exec here
+	struct page_table_desc *base_pt;	//memory map
+	struct ctxt *ctxt;			//context
+	char stack[8192];			//stack
+	int (*pc)(void *data);			//start exec here
+	void *data;				//start exec here
+	bool running;				//start exec here
+	struct task *next;			//tasks are always in a queue
+	bool completed;				//completed?
 };
 
 //TODO: we need to make sure proc_ctxt is not stored on stack
@@ -49,5 +51,9 @@ void set_curr_task(struct task *t);
 int kthread_start(struct task *t);
 struct task *kthread_create(int (*thread_fn)(void *data), void *data);
 void kthread_init(void);
+bool has_completed(struct task *t);
+bool is_running(struct task *t);
+void task_free(struct task *t);
+void kthread_queue(struct task *t);
 
 #endif
