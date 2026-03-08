@@ -11,6 +11,7 @@
 #include <hobos/asm/barrier.h>
 #include <hobos/entry.h>
 #include <hobos/sched.h>
+#include <hobos/workqueue.h>
 
 extern __noreturn void jump_to_usr(void);
 
@@ -71,39 +72,48 @@ static int print_msg(void *data)
 {
 	char *t_msg = (char *)data;
 
-	kprintf("%x\n", t_msg);
 	kprintf("%s", t_msg);
-	kprintf("default thread msg\n");
 	return 5;
 }
 
 //TODO: remove this before merge
-char msg[10] = "Hello\n";
+char msg1[10] = "Hello\n";
+char msg2[10] = "World\n";
 static void kthread_test(void)
 {
-	struct task *t;
+	struct task *t1, *t2;
 
-	kthread_init();
-	t = kthread_create(print_msg, msg);
-	if (!t)
+	t1 = kthread_create(print_msg, msg1);
+	if (!t1)
 		kernel_panic();
 
-	sched_run(t);
+	kthread_queue(t1);
+
+	t2 = kthread_create(print_msg, msg2);
+	if (!t2)
+		kernel_panic();
+
+	kthread_queue(t2);
+
+	schedule();
 }
 
 __noreturn void main(void)
 {
+	kthread_init();
 	init_free_list((u64)&__phymem_end, PAGE_SIZE * 256);
+	wq_init();
+	
 	init_mmu();
 	mmio_init();
 
 	if (!global_page_tables)
 		kernel_panic();
 
-	//init_smp();
+	init_smp();
 	setup_console();
 	init_device_drivers();
-
+	
 	kthread_test();
 
 	jump_to_usr();
