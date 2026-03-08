@@ -4,12 +4,12 @@
 #include <hobos/lib/pt_lib.h>
 #include <hobos/task.h>
 #include <hobos/sched.h>
+#include <hobos/workqueue.h>
 
 mutex_t pid_mutex;
-pid_t pid_cntr;
+pid_t pid_cntr = 1;
 
 /*
- *
  * Essentially what we want is a 3 task initial structure:
  *
  * PID	Job
@@ -18,16 +18,25 @@ pid_t pid_cntr;
  * 1	init kernel and then jump to userspace
  * 2	init kernel threading daemon. This is responsible for handling
  *	all kthread_create() calls
- *
  */
 
 /*
  * This is the process that will eventually become the idle process
  */
-struct ctxt init_ctxt;
-struct task init_task = {
+int idle(void *data)
+{
+	while(1)
+		asm ("wfe");
+
+	return 0;
+}
+
+struct ctxt idle_ctxt;
+struct task idle_task = {
 		.pid = 0,
-		.ctxt = &init_ctxt,
+		.running = 0,
+		.ctxt = &idle_ctxt,
+		.pc = idle,
 };
 
 pid_t assign_new_pid(void)
@@ -74,9 +83,10 @@ struct task *clone(struct task *task)
 void set_curr_task(struct task *t)
 {
 	asm volatile("msr sp_el0, %0"::"r"(t));
+	isb();
 }
 
-inline struct task *get_curr_task(void)
+struct task *get_curr_task(void)
 {
 	void *t;
 
@@ -89,7 +99,7 @@ inline struct task *get_curr_task(void)
 /* Make sure the init is set to idle if no task */
 void kthread_init(void)
 {
-	set_curr_task(&init_task);
+	set_curr_task(&idle_task);
 }
 
 struct task *kthread_create(int (*thread_fn)(void *data), void *data)
@@ -104,8 +114,16 @@ struct task *kthread_create(int (*thread_fn)(void *data), void *data)
 	new_t->pc = thread_fn;
 	new_t->running = 0;
 	new_t->data = data;
+	wmb();
 
 	return new_t;
+}
+
+
+// we need a barrier here to ensure that older ops dont pass this
+static inline void mark_completed(struct task *t)
+{
+	smp_store_mb(t->completed, 1);
 }
 
 /*
@@ -114,6 +132,7 @@ struct task *kthread_create(int (*thread_fn)(void *data), void *data)
  */
 __noreturn void kthread_ret_from_fork(void)
 {
+	struct task *t;
 	int (*thread_fn)(void *data);
 	void *data;
 	int ret;
@@ -122,13 +141,13 @@ __noreturn void kthread_ret_from_fork(void)
 	asm volatile("mov %0, x19" : "=r"(thread_fn));
 
 	ret = thread_fn(data);
+	t = get_curr_task();
 	kprintf("Thread returned with ret: %x\n", ret);
-
-	//TODO: free task
-	//kthread_free_resources();
+	mark_completed(t);
 	schedule();
-	//TODO: run idle proc if nothing
-	while (1)
+
+	// failsafe
+	while(1)
 		;
 }
 
@@ -163,6 +182,7 @@ __noreturn void kthread_init_stack_and_run(struct task *t)
 	ctxt->x[1] = (u64)(t->data);
 	ctxt->x[11] = (u64)(kthread_ret_from_fork);
 
+	t->running = 1;
 	/* Ensure that all previous memory operations have been completed
 	 * since ctxt read/wrties are load/stores
 	 */
@@ -182,9 +202,33 @@ int kthread_start(struct task *t)
 		return -1;
 
 	/* We only care about starting a task, not resuming it */
-	if (t->running)
+	if (is_running(t))
 		return 0;
 
 	kthread_init_stack_and_run(t);
 	return 0;
+}
+
+void kthread_queue(struct task *t)
+{
+	struct workqueue *wq = wq_get_curr();
+
+	wq_push(wq, t);
+}
+
+void task_free(struct task *t)
+{
+	//TODO:
+	//free all kobjs
+	kfree(t);
+}
+
+bool is_running(struct task *t)
+{
+	return t->running;
+}
+
+bool has_completed(struct task *t)
+{
+	return t->completed;
 }
