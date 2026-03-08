@@ -83,7 +83,7 @@ static bool list_has_free_block(int order)
 	if (!page_block_exists(order))
 		return 0;
 
-	while ((i < list->count)) {
+	while (i < list->count) {
 		if (!pb) {
 			kprintf("WARNING: count and actual list not aligned!\n");
 			kprintf("count: [%d], elements: [%d]\n", list->count, i);
@@ -257,7 +257,6 @@ static int remove_next_free_block(int order)
 		pb = get_nth_block(list->first->order, i - 1);
 
 		if (block_is_free(pb->next)) {
-			//kprintf("removed %x\n", pb->page);
 			pb->next = 0;
 			list->count--;
 			return 0;
@@ -310,18 +309,15 @@ static int split_page_block(int order)
 	if (remove_next_free_block(curr_order))
 		return 1;
 
-	//kprintf("%x = ", pb->page);
 	// Next order buddy creation
 	page_offset = PAGE_BLOCK(order - 1) * PAGE_SIZE;
 
 	pb = new_page_block((void *)base_addr);
 	add_block_to_order(pb, order - 1);
-	//kprintf("%x + ", pb->page);
 
 	barrier();
 	pb = new_page_block((void *)get_buddy_pfn(pb));
 	add_block_to_order(pb, order - 1);
-	//kprintf("%x (%x)\n", pb->page, page_offset);
 	return 0;
 }
 
@@ -434,7 +430,7 @@ static int get_page_order(size_t nr_pages)
 	size_t val = nr_pages;
 	int i = 0;
 
-	while (val < PAGE_BLOCK(i))
+	while (val > PAGE_BLOCK(i))
 		i++;
 
 	return i;
