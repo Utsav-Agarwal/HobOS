@@ -57,7 +57,7 @@ run_no_kernel: all
 	${VM} -M raspi3b -serial null -serial stdio -s
 
 clean:
-	rm -rf *.o *.img *.elf
+	rm -rf *.o *.img *.elf *.bin
 
 cleanall: clean
 	rm -rf *.log
@@ -65,4 +65,10 @@ cleanall: clean
 run_checkpatch:
 	./${SCRIPTS}/checkpatch.sh ${SCRIPTS}
 
-ci: kernel8.img run_checkpatch
+
+kvm: kernel8.img
+	aarch64-linux-gnu-gcc kvm/kvm_main.c -o kvm_runner.bin
+	${TOOLCHAIN}objcopy -O binary kernel8.elf kernel8.bin
+
+ci: kernel8.img kvm run_checkpatch
+
