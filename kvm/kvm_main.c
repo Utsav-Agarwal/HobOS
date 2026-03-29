@@ -32,6 +32,7 @@
 
 // Misc
 #define KVM	"/dev/kvm"
+//#define GUEST_NAME	"/a.out"
 #define GUEST_NAME	"/kernel8.bin"
 
 

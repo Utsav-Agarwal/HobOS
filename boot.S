@@ -140,6 +140,10 @@ el1:
 
 .global _start
 _start:
+	mov x0, #64
+	ldr x1, =0x3F215040
+	str x0, [x1]
+
 	m__lowlevel_init
 
 	// clear bss
