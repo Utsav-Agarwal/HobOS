@@ -136,7 +136,7 @@ jump_to_EL1:
 .global handle_irq
 handle_irq:
 	m__save_curr_context
-	bl kernel_test
+	bl __handle_irq_main
 	m__resume_from_context
 	eret
 
