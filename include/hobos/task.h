@@ -17,7 +17,7 @@ struct ctxt {
 	 * Look at AAPCS64 for clarification if needed
 	 */
 	void *sp;
-	u64 pad;
+	u64 spsr;
 	u64 x[12];
 	struct kmem_obj *used_kmem;
 };
@@ -31,12 +31,13 @@ struct task {
 	pid_t pid;
 	struct page_table_desc *base_pt;	//memory map
 	struct ctxt *ctxt;			//context
-	char stack[8192];			//stack
 	int (*pc)(void *data);			//start exec here
 	void *data;				//start exec here
 	bool running;				//start exec here
 	struct task *next;			//tasks are always in a queue
 	bool completed;				//completed?
+	bool resume;				//just resumed?
+	char stack[8192];			//stack
 };
 
 //TODO: we need to make sure proc_ctxt is not stored on stack

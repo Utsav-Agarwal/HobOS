@@ -20,14 +20,8 @@ pid_t pid_cntr = 1;
  *	all kthread_create() calls
  */
 
-/*
- * This is the process that will eventually become the idle process
- */
 int idle(void *data)
 {
-	while(1)
-		asm ("wfe");
-
 	return 0;
 }
 
@@ -61,7 +55,9 @@ struct task *clone(struct task *task)
 
 	if (task) {
 		new_task = kmalloc(sizeof(*new_task));
+		memset(new_task, 0, sizeof(*new_task));
 		new_ctxt = kmalloc(sizeof(*new_ctxt));
+		memset(new_ctxt, 0, sizeof(*new_ctxt));
 		if (!new_task)
 			return 0;
 	} else {
@@ -70,36 +66,19 @@ struct task *clone(struct task *task)
 
 	memcpy(new_task, task, sizeof(*new_task));
 	new_task->pid = assign_new_pid();
-	new_ctxt->sp = new_task->stack;
+	new_ctxt->sp = &new_task->stack[8192];
 	new_task->ctxt = new_ctxt;
 	return new_task;
 }
 
-/*
- * sp_el0 is unused when executing in kernel. This means we can
- * leverage that to store the current executing task without it being a memory
- * operation - i.e, no load/store needed.
- */
-void set_curr_task(struct task *t)
-{
-	asm volatile("msr sp_el0, %0"::"r"(t));
-	isb();
-}
-
 struct task *get_curr_task(void)
 {
-	void *t;
+	struct workqueue *wq = wq_get_curr();
 
-	//its fine to cache this value. We dont change it too much
-	asm("mrs %0, sp_el0" : "=r"(t));
+	if (pid_cntr == 1)
+		return &idle_task;
 
-	return (struct task *)t;
-}
-
-/* Make sure the init is set to idle if no task */
-void kthread_init(void)
-{
-	set_curr_task(&idle_task);
+	return wq->queue;
 }
 
 struct task *kthread_create(int (*thread_fn)(void *data), void *data)
@@ -113,6 +92,7 @@ struct task *kthread_create(int (*thread_fn)(void *data), void *data)
 
 	new_t->pc = thread_fn;
 	new_t->running = 0;
+	new_t->resume = 0;
 	new_t->data = data;
 	wmb();
 
@@ -123,6 +103,7 @@ struct task *kthread_create(int (*thread_fn)(void *data), void *data)
 // we need a barrier here to ensure that older ops dont pass this
 static inline void mark_completed(struct task *t)
 {
+	smp_store_mb(t->resume, 0);
 	smp_store_mb(t->completed, 1);
 }
 
@@ -142,16 +123,14 @@ __noreturn void kthread_ret_from_fork(void)
 
 	ret = thread_fn(data);
 	t = get_curr_task();
-	kprintf("Thread returned with ret: %x\n", ret);
+	kprintf("Task (%d) returned with ret: %x\n", ret, t->pid);
 	mark_completed(t);
-	schedule();
 
-	// failsafe
-	while(1)
-		;
+	while (1)
+		schedule();
 }
 
-__noreturn void kthread_init_stack_and_run(struct task *t)
+void kthread_init_stack(struct task *t)
 {
 	/*
 	 * We want the task to start with its own stack and in doing so,
@@ -183,30 +162,13 @@ __noreturn void kthread_init_stack_and_run(struct task *t)
 	ctxt->x[11] = (u64)(kthread_ret_from_fork);
 
 	t->running = 1;
+
+	/* no context to resume */
+	t->resume = 0;
 	/* Ensure that all previous memory operations have been completed
 	 * since ctxt read/wrties are load/stores
 	 */
 	wmb();
-
-	/* Start executing */
-	resume_ctxt(t);
-
-	/* fail safe */
-	while (1)
-		;
-}
-
-int kthread_start(struct task *t)
-{
-	if (!t)
-		return -1;
-
-	/* We only care about starting a task, not resuming it */
-	if (is_running(t))
-		return 0;
-
-	kthread_init_stack_and_run(t);
-	return 0;
 }
 
 void kthread_queue(struct task *t)
@@ -220,12 +182,25 @@ void task_free(struct task *t)
 {
 	//TODO:
 	//free all kobjs
+	kprintf("freeing task\n");
+	kfree(t->ctxt);
 	kfree(t);
 }
 
 bool is_running(struct task *t)
 {
 	return t->running;
+}
+
+int kthread_start(struct task *t)
+{
+	if (!t)
+		return -1;
+	
+	if (!is_running(t))
+		kthread_init_stack(t);
+
+	return 0;
 }
 
 bool has_completed(struct task *t)

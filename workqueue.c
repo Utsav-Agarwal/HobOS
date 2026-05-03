@@ -19,18 +19,40 @@ struct workqueue *wq_get_curr(void)
 	return get_core_workqueue(core_id);
 }
 
+static void wq_print(struct workqueue *wq)
+{
+	struct task *t = wq->queue;
+
+	if (!t)
+		return;
+
+	while(t) {
+#ifdef DEBUG
+		kprintf("[%d] < ", t->pid);
+#endif
+		t = t->next;
+	}
+
+#ifdef DEBUG
+	kprintf("\n");
+#endif
+}
+
+/*
+ * pop from head 
+ */
 struct task *wq_pop(struct workqueue *wq)
 {
-	struct task *new_head, *t = wq->queue;
+	struct task *t = wq->queue;
 
 	if (!t)
 		return 0;
 
-	new_head = t->next;
+	wq->queue = t->next;
 	t->next = 0;
 
-	wq->queue = new_head;
 	if (has_completed(t)) {
+		isb();
 		task_free(t);
 		return 0;
 	}
@@ -42,9 +64,11 @@ static inline struct task *get_workqueue_end(struct workqueue *wq)
 {
 	struct task *t = wq->queue;
 
-	if (t)
-		while(t->next)
-			t = t->next;
+	if (!t)
+		return 0;
+
+	while(t->next)
+		t = t->next;
 
 	return t;
 }
@@ -56,10 +80,12 @@ void wq_push(struct workqueue *wq, struct task *t)
 	tail_t = get_workqueue_end(wq);
 	if (!tail_t) {
 		wq->queue = t;
+		t->next = 0;
 		return;
 	}
 
 	tail_t->next = t;
+
 }
 
 /*
@@ -72,11 +98,17 @@ struct task *wq_queue_next(struct workqueue *wq)
 	struct task *t;
 
 	t = wq_pop(wq);
-	
 	//do we need to requeue this?
-	if (t)
+	if (t) {
+#ifdef DEBUG
+		kprintf("pushing unfinished queue back (%d)\n", t->pid);
+#endif
 		wq_push(wq, t);
+	}
 
+	// return head
+	t = wq->queue;
+	wq_print(wq);
 	return t;
 }
 

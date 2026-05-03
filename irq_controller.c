@@ -23,11 +23,3 @@ void init_irq_controller(struct irq_controller *irq, char type)
 		return;
 	}
 }
-
-void __handle_irq_main(void)
-{
-	kprintf("handling irq\n");
-	global_timer.reset_timer(&global_timer);
-	global_timer.set_timer(&global_timer, 0x200000);
-	return;
-}

@@ -16,6 +16,7 @@
 
 extern __noreturn void jump_to_usr(void);
 
+extern int volatile schedule_needed;
 struct irq_controller soc_irq;
 struct irq_bcm_priv priv;
 
@@ -64,12 +65,10 @@ static void enable_interrupts(void)
 static void init_device_drivers(void)
 {
 	init_timer(&global_timer);
-	enable_interrupts();
 }
 
 __noreturn void main(void)
 {
-	kthread_init();
 	init_free_list((u64)&__phymem_end, PAGE_SIZE * 256);
 	init_mmu();
 	mmio_init();
@@ -77,15 +76,21 @@ __noreturn void main(void)
 	if (!global_page_tables)
 		kernel_panic();
 
-	init_smp();
+	//init_smp();
 	setup_console();
 	init_device_drivers();
 	
 	wq_init();
+	enable_interrupts();
 	if (kernel_test())
 		kernel_panic();
 
-	jump_to_usr();
-	while (1)
-		;
+	//kprintf("Starting userspace...\n");
+	//jump_to_usr();
+	while (1) {
+		if (schedule_needed) {
+			schedule();
+			schedule_needed = 0;
+		}
+	}
 }
