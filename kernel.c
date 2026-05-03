@@ -12,6 +12,7 @@
 #include <hobos/entry.h>
 #include <hobos/sched.h>
 #include <hobos/workqueue.h>
+#include <hobos/test.h>
 
 extern __noreturn void jump_to_usr(void);
 
@@ -29,11 +30,6 @@ void kernel_splash_msg(void)
 	kprintf("\n** Welcome to HobOS! **\n");
 }
 
-void kernel_test(void)
-{
-	global_timer.reset_timer(&global_timer);
-	global_timer.set_timer(&global_timer, 0x200000);
-}
 
 static void setup_console(void)
 {
@@ -68,42 +64,11 @@ static void init_device_drivers(void)
 	enable_interrupts();
 }
 
-static int print_msg(void *data)
-{
-	char *t_msg = (char *)data;
-
-	kprintf("%s", t_msg);
-	return 5;
-}
-
-//TODO: remove this before merge
-char msg1[10] = "Hello\n";
-char msg2[10] = "World\n";
-static void kthread_test(void)
-{
-	struct task *t1, *t2;
-
-	t1 = kthread_create(print_msg, msg1);
-	if (!t1)
-		kernel_panic();
-
-	kthread_queue(t1);
-
-	t2 = kthread_create(print_msg, msg2);
-	if (!t2)
-		kernel_panic();
-
-	kthread_queue(t2);
-
-	schedule();
-}
-
 __noreturn void main(void)
 {
 	kthread_init();
 	init_free_list((u64)&__phymem_end, PAGE_SIZE * 256);
 	wq_init();
-	
 	init_mmu();
 	mmio_init();
 
@@ -113,11 +78,10 @@ __noreturn void main(void)
 	init_smp();
 	setup_console();
 	init_device_drivers();
-	
-	kthread_test();
+	if (kernel_test())
+		kernel_panic();
 
 	jump_to_usr();
-
 	while (1)
 		;
 }
