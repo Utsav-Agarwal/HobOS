@@ -56,6 +56,9 @@ static void enable_interrupts(void)
 	init_irq_controller(&soc_irq, IRQ_BCM_SOC);
 
 	soc_irq.enable_interrupt(soc_irq.priv, BCM_DEFAULT_IRQ_TIMER);
+
+	//TODO: timer value can be configured at compile time
+	global_timer.set_timer(&global_timer, 0x200000);
 }
 
 static void init_device_drivers(void)
@@ -68,7 +71,6 @@ __noreturn void main(void)
 {
 	kthread_init();
 	init_free_list((u64)&__phymem_end, PAGE_SIZE * 256);
-	wq_init();
 	init_mmu();
 	mmio_init();
 
@@ -78,6 +80,8 @@ __noreturn void main(void)
 	init_smp();
 	setup_console();
 	init_device_drivers();
+	
+	wq_init();
 	if (kernel_test())
 		kernel_panic();
 
