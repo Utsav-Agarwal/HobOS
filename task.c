@@ -20,14 +20,9 @@ pid_t pid_cntr = 1;
  *	all kthread_create() calls
  */
 
-/*
- * This is the process that will eventually become the idle process
- */
 int idle(void *data)
 {
-	while(1)
-		asm ("wfe");
-
+	asm volatile("nop\n");
 	return 0;
 }
 
@@ -70,36 +65,19 @@ struct task *clone(struct task *task)
 
 	memcpy(new_task, task, sizeof(*new_task));
 	new_task->pid = assign_new_pid();
-	new_ctxt->sp = new_task->stack;
+	new_ctxt->sp = &new_task->stack[8192];
 	new_task->ctxt = new_ctxt;
 	return new_task;
 }
 
-/*
- * sp_el0 is unused when executing in kernel. This means we can
- * leverage that to store the current executing task without it being a memory
- * operation - i.e, no load/store needed.
- */
-void set_curr_task(struct task *t)
-{
-	asm volatile("msr sp_el0, %0"::"r"(t));
-	isb();
-}
-
 struct task *get_curr_task(void)
 {
-	void *t;
+	struct workqueue *wq = wq_get_curr();
 
-	//its fine to cache this value. We dont change it too much
-	asm("mrs %0, sp_el0" : "=r"(t));
+	if (pid_cntr == 1)
+		return &idle_task;
 
-	return (struct task *)t;
-}
-
-/* Make sure the init is set to idle if no task */
-void kthread_init(void)
-{
-	set_curr_task(&idle_task);
+	return wq->queue;
 }
 
 struct task *kthread_create(int (*thread_fn)(void *data), void *data)
@@ -113,6 +91,7 @@ struct task *kthread_create(int (*thread_fn)(void *data), void *data)
 
 	new_t->pc = thread_fn;
 	new_t->running = 0;
+	new_t->resume = 0;
 	new_t->data = data;
 	wmb();
 
@@ -146,8 +125,7 @@ __noreturn void kthread_ret_from_fork(void)
 	mark_completed(t);
 	schedule();
 
-	// failsafe
-	while(1)
+	while (1)
 		;
 }
 
@@ -188,9 +166,11 @@ __noreturn void kthread_init_stack_and_run(struct task *t)
 	 */
 	wmb();
 
+	kprintf("kthread init resume\n");
 	/* Start executing */
 	resume_ctxt(t);
 
+	kprintf("reached kthread init end!!\n");
 	/* fail safe */
 	while (1)
 		;
@@ -200,11 +180,7 @@ int kthread_start(struct task *t)
 {
 	if (!t)
 		return -1;
-
-	/* We only care about starting a task, not resuming it */
-	if (is_running(t))
-		return 0;
-
+	
 	kthread_init_stack_and_run(t);
 	return 0;
 }
@@ -220,6 +196,7 @@ void task_free(struct task *t)
 {
 	//TODO:
 	//free all kobjs
+	kprintf("freeing task\n");
 	kfree(t);
 }
 
