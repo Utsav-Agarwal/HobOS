@@ -61,10 +61,6 @@ int kprintf(const char *format, ...)
 	int printed;
 	u64 irq_flags;
 
-	/* Critical section */
-	// TODO: This was always meant for SMP, we dont really care about
-	// prints within a single core since they will always be ordered.
-	//
 	irq_flags = irq_save();
 
 	acquire_mutex(&print_mutex);
