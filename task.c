@@ -22,7 +22,6 @@ pid_t pid_cntr = 1;
 
 int idle(void *data)
 {
-	asm volatile("nop\n");
 	return 0;
 }
 
@@ -163,6 +162,7 @@ void kthread_init_stack(struct task *t)
 	ctxt->x[11] = (u64)(kthread_ret_from_fork);
 
 	t->running = 1;
+	t->resume = 0;
 	/* Ensure that all previous memory operations have been completed
 	 * since ctxt read/wrties are load/stores
 	 */

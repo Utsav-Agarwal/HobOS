@@ -19,16 +19,8 @@ static void switch_ctxt(struct task *prev, struct task *next)
 {
 	volatile struct ctxt *ctxt;
 
-	//is this what we want to kick off?
-	if (prev->resume) {
-		prev->resume = 0; 
-		kprintf("resumed: %x \n", prev->pid);
-		return;
-	}
-
 	ctxt = prev->ctxt;
 	// task must not be resumed
-	prev->resume = 0; 
 	asm volatile ("mov %0, sp\n" : "=r"(ctxt->sp));
 	asm volatile ("mrs %0, spsr_el1\n" : "=r"(ctxt->spsr));
 	asm volatile ("mov x0, %0\n"
@@ -47,7 +39,16 @@ static void switch_ctxt(struct task *prev, struct task *next)
 	 */
 	kprintf("saved: %x\n", ctxt->x[11]);
 	
+	//is this what we want to kick off?
+	if (prev->resume == 1) {
+		prev->resume = 0; 
+		kprintf("resumed: %x \n", prev->pid);
+		return;
+	}
+
+	
 	// get ready to kick off
+	kprintf("setting up: %x \n", next->pid);
 	next->resume = 1; 
 	if (kthread_start(next) < 0)
 		fail("got NULL thread!\n");
@@ -95,12 +96,6 @@ static inline void sched_switch(struct task *prev, struct task *next)
 static inline void idle(void)
 {
 	sched_run(&idle_task);
-}
-
-static void queue_idle(void)
-{
-       kthread_queue(&idle_task);
-       kprintf("nothing to do...\n");
 }
 
 /* queue next */
