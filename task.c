@@ -123,7 +123,7 @@ __noreturn void kthread_ret_from_fork(void)
 
 	ret = thread_fn(data);
 	t = get_curr_task();
-	kprintf("Thread returned with ret: %x\n", ret);
+	kprintf("Task (%d) returned with ret: %x\n", ret, t->pid);
 	mark_completed(t);
 
 	while (1)
@@ -162,13 +162,13 @@ void kthread_init_stack(struct task *t)
 	ctxt->x[11] = (u64)(kthread_ret_from_fork);
 
 	t->running = 1;
+
+	/* no context to resume */
 	t->resume = 0;
 	/* Ensure that all previous memory operations have been completed
 	 * since ctxt read/wrties are load/stores
 	 */
 	wmb();
-
-	kprintf("kthread init resume\n");
 }
 
 void kthread_queue(struct task *t)
@@ -183,6 +183,7 @@ void task_free(struct task *t)
 	//TODO:
 	//free all kobjs
 	kprintf("freeing task\n");
+	kfree(t->ctxt);
 	kfree(t);
 }
 

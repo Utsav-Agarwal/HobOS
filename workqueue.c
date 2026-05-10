@@ -27,11 +27,15 @@ static void wq_print(struct workqueue *wq)
 		return;
 
 	while(t) {
+#ifdef DEBUG
 		kprintf("[%d] < ", t->pid);
+#endif
 		t = t->next;
 	}
 
+#ifdef DEBUG
 	kprintf("\n");
+#endif
 }
 
 /*
@@ -96,7 +100,9 @@ struct task *wq_queue_next(struct workqueue *wq)
 	t = wq_pop(wq);
 	//do we need to requeue this?
 	if (t) {
+#ifdef DEBUG
 		kprintf("pushing unfinished queue back (%d)\n", t->pid);
+#endif
 		wq_push(wq, t);
 	}
 

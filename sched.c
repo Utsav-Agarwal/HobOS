@@ -5,7 +5,6 @@
 #include <hobos/timer.h>
 #include <hobos/workqueue.h>
 
-
 extern struct task idle_task;
 
 __noreturn static void fail(char *msg)
@@ -20,7 +19,6 @@ static void switch_ctxt(struct task *prev, struct task *next)
 	volatile struct ctxt *ctxt;
 
 	ctxt = prev->ctxt;
-	// task must not be resumed
 	asm volatile ("mov %0, sp\n" : "=r"(ctxt->sp));
 	asm volatile ("mrs %0, spsr_el1\n" : "=r"(ctxt->spsr));
 	asm volatile ("mov x0, %0\n"
@@ -37,18 +35,15 @@ static void switch_ctxt(struct task *prev, struct task *next)
 	/* Ensure that all previous memory operations have been completed
 	 * since ctxt read/wrties are load/stores
 	 */
-	kprintf("saved: %x\n", ctxt->x[11]);
-	
-	//is this what we want to kick off?
+
+	/* Is this what we want to resume? */
 	if (prev->resume == 1) {
 		prev->resume = 0; 
-		kprintf("resumed: %x \n", prev->pid);
 		return;
 	}
 
 	
-	// get ready to kick off
-	kprintf("setting up: %x \n", next->pid);
+	/* Resume this next time */
 	next->resume = 1; 
 	if (kthread_start(next) < 0)
 		fail("got NULL thread!\n");
@@ -72,16 +67,16 @@ static void switch_ctxt(struct task *prev, struct task *next)
 		      :: "r"(ctxt->sp));
 
 	wmb();
-	kprintf("resuming: %x\n", ctxt->x[11]);
 }
 
 static inline void sched_switch(struct task *prev, struct task *next)
 {
+#ifdef DEBUG
 	if (prev)
 		kprintf("SWITCH: [%x] -> [%x]\n", prev->pid, next->pid);
 	else
 		kprintf("RUN: [%x]\n", next->pid);
-
+#endif
 	switch_ctxt(prev, next);
 }
 
