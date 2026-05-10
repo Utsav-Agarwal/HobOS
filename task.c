@@ -56,7 +56,9 @@ struct task *clone(struct task *task)
 
 	if (task) {
 		new_task = kmalloc(sizeof(*new_task));
+		memset(new_task, 0, sizeof(*new_task));
 		new_ctxt = kmalloc(sizeof(*new_ctxt));
+		memset(new_ctxt, 0, sizeof(*new_ctxt));
 		if (!new_task)
 			return 0;
 	} else {
@@ -102,6 +104,7 @@ struct task *kthread_create(int (*thread_fn)(void *data), void *data)
 // we need a barrier here to ensure that older ops dont pass this
 static inline void mark_completed(struct task *t)
 {
+	smp_store_mb(t->resume, 0);
 	smp_store_mb(t->completed, 1);
 }
 
@@ -123,13 +126,12 @@ __noreturn void kthread_ret_from_fork(void)
 	t = get_curr_task();
 	kprintf("Thread returned with ret: %x\n", ret);
 	mark_completed(t);
-	schedule();
 
 	while (1)
-		;
+		schedule();
 }
 
-__noreturn void kthread_init_stack_and_run(struct task *t)
+void kthread_init_stack(struct task *t)
 {
 	/*
 	 * We want the task to start with its own stack and in doing so,
@@ -167,22 +169,6 @@ __noreturn void kthread_init_stack_and_run(struct task *t)
 	wmb();
 
 	kprintf("kthread init resume\n");
-	/* Start executing */
-	resume_ctxt(t);
-
-	kprintf("reached kthread init end!!\n");
-	/* fail safe */
-	while (1)
-		;
-}
-
-int kthread_start(struct task *t)
-{
-	if (!t)
-		return -1;
-	
-	kthread_init_stack_and_run(t);
-	return 0;
 }
 
 void kthread_queue(struct task *t)
@@ -203,6 +189,17 @@ void task_free(struct task *t)
 bool is_running(struct task *t)
 {
 	return t->running;
+}
+
+int kthread_start(struct task *t)
+{
+	if (!t)
+		return -1;
+	
+	if (!is_running(t))
+		kthread_init_stack(t);
+
+	return 0;
 }
 
 bool has_completed(struct task *t)
