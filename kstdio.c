@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
+#include <hobos/irq/irq_bcm.h>
 #include <hobos/smp.h>
 #include <hobos/kstdio.h>
+#include <hobos/irq.h>
 
 /*
  * This library links the serial drivers to commonly
@@ -24,6 +26,7 @@
 
 struct char_device *_console;
 static mutex_t print_mutex;
+extern struct irq_controller soc_irq;
 
 void init_console(struct char_device *console, void *priv)
 {
@@ -56,11 +59,21 @@ int kprintf(const char *format, ...)
 {
 	va_list args;
 	int printed;
+	u64 irq_flags;
+
+	/* Critical section */
+	// TODO: This was always meant for SMP, we dont really care about
+	// prints within a single core since they will always be ordered.
+	//
+	irq_flags = irq_save();
 
 	acquire_mutex(&print_mutex);
 	va_start(args, format);
 	printed = vprintf(format, args);
 	va_end(args);
 	release_mutex(&print_mutex);
+	
+	irq_restore(irq_flags);
+	
 	return printed;
 }
