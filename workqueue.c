@@ -43,11 +43,12 @@ static void wq_print(struct workqueue *wq)
  */
 struct task *wq_pop(struct workqueue *wq)
 {
-	struct task *t = wq->queue;
+	struct task *t;
 
-	if (!t)
+	if (wq_is_empty(wq))
 		return 0;
-
+	
+	t = wq->queue;
 	wq->queue = t->next;
 	t->next = 0;
 

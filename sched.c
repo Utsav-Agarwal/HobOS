@@ -29,14 +29,14 @@ static void sched_switch(struct task *prev, struct task *next)
 	asm volatile ("mov %0, sp\n" : "=r"(ctxt->sp));
 	asm volatile ("mrs %0, spsr_el1\n" : "=r"(ctxt->spsr));
 	asm volatile ("mov x0, %0\n"
-		      "stp x19, x20, [x0, #16*1]\n"
-		      "stp x21, x22, [x0, #16*2]\n"
-		      "stp x23, x24, [x0, #16*3]\n"
-		      "stp x25, x26, [x0, #16*4]\n"
-		      "stp x27, x28, [x0, #16*5]\n"
-		      "stp x29, x30, [x0, #16*6]\n"
+		      "stp x19, x20, [x0, #16*0]\n"
+		      "stp x21, x22, [x0, #16*1]\n"
+		      "stp x23, x24, [x0, #16*2]\n"
+		      "stp x25, x26, [x0, #16*3]\n"
+		      "stp x27, x28, [x0, #16*4]\n"
+		      "stp x29, x30, [x0, #16*5]\n"
 		      :
-		      : "r"(ctxt)
+		      : "r"(&ctxt->x[0])
 		      : "x0", "memory");
 
 	/* Ensure that all previous memory operations have been completed
@@ -57,19 +57,19 @@ static void sched_switch(struct task *prev, struct task *next)
 
 	ctxt = next->ctxt;
 	asm volatile ("mov x0, %0\n"
-		      "ldp x19, x20, [x0, #16*1]\n"
-		      "ldp x21, x22, [x0, #16*2]\n"
-		      "ldp x23, x24, [x0, #16*3]\n"
-		      "ldp x25, x26, [x0, #16*4]\n"
-		      "ldp x27, x28, [x0, #16*5]\n"
-		      "ldp x29, x30, [x0, #16*6]\n"
+		      "ldp x19, x20, [x0, #16*0]\n"
+		      "ldp x21, x22, [x0, #16*1]\n"
+		      "ldp x23, x24, [x0, #16*2]\n"
+		      "ldp x25, x26, [x0, #16*3]\n"
+		      "ldp x27, x28, [x0, #16*4]\n"
+		      "ldp x29, x30, [x0, #16*5]\n"
 		      :
-		      : "r"(ctxt)
+		      : "r"(&ctxt->x[0])
 		      : "x0", "memory");
 
 	asm volatile ("msr spsr_el1, %0\n":: "r"(ctxt->spsr));
 	asm volatile ("mov sp, %0\n"
-		      "mov x0, #5\n"
+		      "dmb ish\n"
 		      "ret\n"
 		      :: "r"(ctxt->sp));
 
@@ -112,25 +112,22 @@ void yield(void)
 }
 
 int volatile schedule_needed;
-void __handle_sched_irq(void)
+u64 __handle_sched_irq(void *sp)
 {
 	struct workqueue *wq = wq_get_curr();
 	struct task *next, *t = get_curr_task();
-	
+
+	t->ctxt->sp = sp;
+
 	schedule_needed = 1;
 	next = wq_queue_next(wq);
 	global_timer.reset_timer(&global_timer);
-	global_timer.set_timer(&global_timer, 0x50);
+	global_timer.set_timer(&global_timer, 0x1000);
 
 	//let yield handle null for now
-	if ((t == &idle_task) || (!next))
+	if ((!next) || wq_is_empty(wq) || (kthread_start(next) < 0))
 		asm volatile ("eret");
 	
-	kthread_start(next);
 	kprintf("preempted! (%x)->(%x)\n", t->pid, next->pid);
-	asm volatile ("mov x1, %0\n"
-		      "mov x2, %1\n"
-		      :
-		      :"r"(t->ctxt), "r"(next->ctxt)
-		      :"x1", "x2");
+	return (u64)next->ctxt->sp;
 }

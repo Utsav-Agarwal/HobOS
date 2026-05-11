@@ -91,79 +91,46 @@ jump_to_EL1:
 	eret
 
 //push all the registers just after the stack pointer
-.macro m__save_curr_context
-	//reserving 16*16 bytes of stack
-	sub sp, sp, #16*16	//30 regs, 8 bytes each
-	stp x0, x1, [sp, #16*0]
-	stp x2, x3, [sp, #16*1]
-	stp x4, x5, [sp, #16*2]
-	stp x6, x7, [sp, #16*3]
-	stp x8, x9, [sp, #16*4]
-	stp x10, x11, [sp, #16*5]
-	stp x12, x13, [sp, #16*6]
-	stp x14, x15, [sp, #16*7]
-	stp x16, x17, [sp, #16*8]
-	stp x18, x19, [sp, #16*9]
-	stp x20, x21, [sp, #16*10]
-	stp x22, x23, [sp, #16*11]
-	stp x24, x25, [sp, #16*12]
-	stp x26, x27, [sp, #16*13]
-	stp x28, x29, [sp, #16*14]
-	str x30, [sp, #16*15]
+.macro m__save_curr_context base
+
+	sub sp, sp, #16*6
+
+	stp x19, x20, [x0, #16*0]
+	stp x21, x22, [x0, #16*1]
+	stp x23, x24, [x0, #16*2]
+	stp x25, x26, [x0, #16*3]
+	stp x27, x28, [x0, #16*4]
+	stp x29, x30, [x0, #16*5]
+	
+	mov \base, sp	// save sp
+	
 .endm
 
 //undo previous operation and start restoring
-.macro m__resume_from_context
-	ldp x0, x1, [sp, #16*0]
-	ldp x2, x3, [sp, #16*1]
-	ldp x4, x5, [sp, #16*2]
-	ldp x6, x7, [sp, #16*3]
-	ldp x8, x9, [sp, #16*4]
-	ldp x10, x11, [sp, #16*5]
-	ldp x12, x13, [sp, #16*6]
-	ldp x14, x15, [sp, #16*7]
-	ldp x16, x17, [sp, #16*8]
-	ldp x18, x19, [sp, #16*9]
-	ldp x20, x21, [sp, #16*10]
-	ldp x22, x23, [sp, #16*11]
-	ldp x24, x25, [sp, #16*12]
-	ldp x26, x27, [sp, #16*13]
-	ldp x28, x29, [sp, #16*14]
-	ldr x30, [sp, #16*15]
-	add sp, sp, #16*16	//reclaim stack
+.macro m__resume_from_context base
+	
+	ldp x19, x20, [x0, #16*0]
+	ldp x21, x22, [x0, #16*1]
+	ldp x23, x24, [x0, #16*2]
+	ldp x25, x26, [x0, #16*3]
+	ldp x27, x28, [x0, #16*4]
+	ldp x29, x30, [x0, #16*5]
+
+	add \base, \base, #16*6
+	mov sp, \base
+
 .endm
 
 //TODO: this will almost certainly fault when a task is freed
 //and the next one is queued. We need to let the task linger a bit longer,
 //similar to the kernels rcu
-.macro m__switch_ctxt
-	// we are already on current task's stack
-	stp x19, x20, [x1, #16*1]
-	stp x21, x22, [x1, #16*2]
-	stp x23, x24, [x1, #16*3]
-	stp x25, x26, [x1, #16*4]
-	stp x27, x28, [x1, #16*5]
-	stp x29, x30, [x1, #16*6]
-
-	// x1 has prev->ctxt->sp
-	mov x1, sp
-	// x2 has next->ctxt->sp
-	mov sp, x2
-
-	ldp x19, x20, [x2, #16*1]
-	ldp x21, x22, [x2, #16*2]
-	ldp x23, x24, [x2, #16*3]
-	ldp x25, x26, [x2, #16*4]
-	ldp x27, x28, [x2, #16*5]
-	ldp x29, x30, [x2, #16*6]
-.endm
-
 .global handle_irq
 handle_irq:
-	//m__save_curr_context
+	// save curr task on its stack
+	m__save_curr_context sp
+	mov x0, sp
 	bl __handle_sched_irq
-	m__switch_ctxt
-	//m__resume_from_context
+	m__resume_from_context x0
 	eret
 
 .global setup_stack

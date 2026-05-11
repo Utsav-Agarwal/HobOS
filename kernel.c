@@ -59,7 +59,7 @@ static void enable_interrupts(void)
 	soc_irq.enable_interrupt(soc_irq.priv, BCM_DEFAULT_IRQ_TIMER);
 
 	//TODO: timer value can be configured at compile time
-	global_timer.set_timer(&global_timer, 0x100);
+	global_timer.set_timer(&global_timer, 0x1000);
 }
 
 static void init_device_drivers(void)

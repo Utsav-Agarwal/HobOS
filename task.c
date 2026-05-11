@@ -5,6 +5,7 @@
 #include <hobos/task.h>
 #include <hobos/sched.h>
 #include <hobos/workqueue.h>
+#include <hobos/irq.h>
 
 mutex_t pid_mutex;
 pid_t pid_cntr = 1;
@@ -67,6 +68,8 @@ struct task *clone(struct task *task)
 	memcpy(new_task, task, sizeof(*new_task));
 	new_task->pid = assign_new_pid();
 	new_ctxt->sp = &new_task->stack[8192];
+	/* context is stored on the stack by default */
+	new_ctxt->x = new_ctxt->sp;
 	new_task->ctxt = new_ctxt;
 	return new_task;
 }
@@ -75,7 +78,7 @@ struct task *get_curr_task(void)
 {
 	struct workqueue *wq = wq_get_curr();
 
-	if (pid_cntr == 1)
+	if ((pid_cntr == 1) || (!wq))
 		return &idle_task;
 
 	return wq->queue;
@@ -117,14 +120,19 @@ __noreturn void kthread_ret_from_fork(void)
 	int (*thread_fn)(void *data);
 	void *data;
 	int ret;
+	u64 flags;
 
 	asm volatile("mov %0, x20" : "=r"(data));
 	asm volatile("mov %0, x19" : "=r"(thread_fn));
 
 	ret = thread_fn(data);
+
+	// finish peacefully
+	flags = irq_save();
 	t = get_curr_task();
 	kprintf("Task (%d) returned with ret: %x\n", ret, t->pid);
 	mark_completed(t);
+	irq_restore(flags);
 
 	while (1)
 		yield();
@@ -160,7 +168,7 @@ void kthread_init_stack(struct task *t)
 	ctxt->x[0] = (u64)(t->pc);
 	ctxt->x[1] = (u64)(t->data);
 	ctxt->x[11] = (u64)(kthread_ret_from_fork);
-
+	
 	t->running = 1;
 
 	/* no context to resume */
@@ -194,11 +202,17 @@ bool is_running(struct task *t)
 
 int kthread_start(struct task *t)
 {
+	u64 flags;
+
 	if (!t)
 		return -1;
 	
-	if (!is_running(t))
+	if (!is_running(t)) {
+		flags = irq_save();
+		kprintf("started: %x\n", t->pid);
 		kthread_init_stack(t);
+		irq_restore(flags);
+	}
 
 	return 0;
 }
