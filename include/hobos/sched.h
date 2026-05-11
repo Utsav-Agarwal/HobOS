@@ -5,8 +5,7 @@
 
 #include <hobos/task.h>
 
-void sched_run(struct task *t);
-void schedule(void);
+void yield(void);
 void resume_ctxt(struct task *task);
 
 #endif

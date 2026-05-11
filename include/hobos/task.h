@@ -10,15 +10,17 @@
 extern pid_t pid_cntr;
 
 struct ctxt {
-	/* We only care about the Callee-saved registers. Caller-saved
-	 * regs would be saved by the caller (or atleast we make that
-	 * assumption)
+	/*
+	 * Since scheduler handles preemption, we need to be ready for all
+	 * registers - i.e, we need to save the entire irq frame
 	 *
 	 * Look at AAPCS64 for clarification if needed
 	 */
 	void *sp;
 	u64 spsr;
-	u64 x[12];
+	u64 *x;
+	u64 pad;
+	u64 elr;
 	struct kmem_obj *used_kmem;
 };
 

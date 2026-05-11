@@ -23,7 +23,7 @@ static void id_map_to_usr(u64 start, u64 end, struct page_table_desc *pt_desc)
 		ret = map_pa_to_va_pg(start, va, pt_desc,
 				      PTE_FLAGS_USER_GENERIC, 0);
 		if (ret != (void *)va) {
-			kprintf("Failed at %x -> %x!(%x)\n", start, va, ret);
+			kprintf("Failed to map %x -> %x!(%x)\n", start, va, ret);
 			return;
 		}
 
@@ -55,7 +55,7 @@ void usr_init(void)
 __section(".usr_entry") __noreturn void user_panic(void)
 {
 	while (1)
-		;
+		asm volatile ("wfi");
 }
 
 __section(".usr_entry") static int mount_initrd(void)

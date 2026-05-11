@@ -26,7 +26,7 @@ static void wq_print(struct workqueue *wq)
 	if (!t)
 		return;
 
-	while(t) {
+	while (t) {
 #ifdef DEBUG
 		kprintf("[%d] < ", t->pid);
 #endif
@@ -39,15 +39,16 @@ static void wq_print(struct workqueue *wq)
 }
 
 /*
- * pop from head 
+ * pop from head
  */
 struct task *wq_pop(struct workqueue *wq)
 {
-	struct task *t = wq->queue;
+	struct task *t;
 
-	if (!t)
+	if (wq_is_empty(wq))
 		return 0;
 
+	t = wq->queue;
 	wq->queue = t->next;
 	t->next = 0;
 
@@ -67,7 +68,7 @@ static inline struct task *get_workqueue_end(struct workqueue *wq)
 	if (!t)
 		return 0;
 
-	while(t->next)
+	while (t->next)
 		t = t->next;
 
 	return t;

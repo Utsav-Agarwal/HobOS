@@ -14,22 +14,29 @@ __noreturn static void fail(char *msg)
 		;
 }
 
-static void switch_ctxt(struct task *prev, struct task *next)
+static void sched_switch(struct task *prev, struct task *next)
 {
 	volatile struct ctxt *ctxt;
+
+#ifdef DEBUG
+	if (prev)
+		kprintf("SWITCH: [%x] -> [%x]\n", prev->pid, next->pid);
+	else
+		kprintf("RUN: [%x]\n", next->pid);
+#endif
 
 	ctxt = prev->ctxt;
 	asm volatile ("mov %0, sp\n" : "=r"(ctxt->sp));
 	asm volatile ("mrs %0, spsr_el1\n" : "=r"(ctxt->spsr));
 	asm volatile ("mov x0, %0\n"
-		      "stp x19, x20, [x0, #16*1]\n"
-		      "stp x21, x22, [x0, #16*2]\n"
-		      "stp x23, x24, [x0, #16*3]\n"
-		      "stp x25, x26, [x0, #16*4]\n"
-		      "stp x27, x28, [x0, #16*5]\n"
-		      "stp x29, x30, [x0, #16*6]\n"
+		      "stp x19, x20, [x0, #16*0]\n"
+		      "stp x21, x22, [x0, #16*1]\n"
+		      "stp x23, x24, [x0, #16*2]\n"
+		      "stp x25, x26, [x0, #16*3]\n"
+		      "stp x27, x28, [x0, #16*4]\n"
+		      "stp x29, x30, [x0, #16*5]\n"
 		      :
-		      : "r"(ctxt)
+		      : "r"(ctxt->sp)
 		      : "x0", "memory");
 
 	/* Ensure that all previous memory operations have been completed
@@ -38,75 +45,58 @@ static void switch_ctxt(struct task *prev, struct task *next)
 
 	/* Is this what we want to resume? */
 	if (prev->resume == 1) {
-		prev->resume = 0; 
+		prev->resume = 0;
 		return;
 	}
 
-	
 	/* Resume this next time */
-	next->resume = 1; 
+	next->resume = 1;
 	if (kthread_start(next) < 0)
 		fail("got NULL thread!\n");
 
 	ctxt = next->ctxt;
 	asm volatile ("mov x0, %0\n"
-		      "ldp x19, x20, [x0, #16*1]\n"
-		      "ldp x21, x22, [x0, #16*2]\n"
-		      "ldp x23, x24, [x0, #16*3]\n"
-		      "ldp x25, x26, [x0, #16*4]\n"
-		      "ldp x27, x28, [x0, #16*5]\n"
-		      "ldp x29, x30, [x0, #16*6]\n"
+		      "ldp x19, x20, [x0, #16*0]\n"
+		      "ldp x21, x22, [x0, #16*1]\n"
+		      "ldp x23, x24, [x0, #16*2]\n"
+		      "ldp x25, x26, [x0, #16*3]\n"
+		      "ldp x27, x28, [x0, #16*4]\n"
+		      "ldp x29, x30, [x0, #16*5]\n"
 		      :
 		      : "r"(ctxt)
 		      : "x0", "memory");
 
 	asm volatile ("msr spsr_el1, %0\n":: "r"(ctxt->spsr));
 	asm volatile ("mov sp, %0\n"
-		      "mov x0, #5\n"
+		      "dmb ish\n"
 		      "ret\n"
 		      :: "r"(ctxt->sp));
 
+	// Ensure context has been restored before returning
 	wmb();
-}
-
-static inline void sched_switch(struct task *prev, struct task *next)
-{
-#ifdef DEBUG
-	if (prev)
-		kprintf("SWITCH: [%x] -> [%x]\n", prev->pid, next->pid);
-	else
-		kprintf("RUN: [%x]\n", next->pid);
-#endif
-	switch_ctxt(prev, next);
 }
 
 /*
  * Each processor will have its own workqueue. This means, each processor
- * can manage its own workqueue - i.e, let the scheduler logic be local 
+ * can manage its own workqueue - i.e, let the scheduler logic be local
  * and the only thing we need to do when a new thread comes in is queue it
  * in the respective workqueue (depending on scheduling strategy - such as simple
  * load balancing).
  */
 
-static inline void idle(void)
-{
-	sched_run(&idle_task);
-}
-
 /* queue next */
 /* we follow Round Robin for now */
-void schedule(void)
+void yield(void)
 {
 	struct workqueue *wq = wq_get_curr();
 	struct task *next, *t = get_curr_task();
-
 
 	// nothing to do
 	if (!wq) {
 		fail("workqueue not initialized!\n");
 		return;
 	}
-	
+
 	if (wq_is_empty(wq) || !wq->queue->next)
 		return;
 
@@ -121,9 +111,21 @@ void schedule(void)
 }
 
 int volatile schedule_needed;
-void __handle_sched_irq(void)
+u64 __handle_sched_irq(u64 sp)
 {
+	struct workqueue *wq = wq_get_curr();
+	struct task *next, *t = get_curr_task();
+
+	t->ctxt->sp = (void *)sp;
+
 	schedule_needed = 1;
+	next = wq_queue_next(wq);
 	global_timer.reset_timer(&global_timer);
-	global_timer.set_timer(&global_timer, 0x10000);
+	global_timer.set_timer(&global_timer, 0x100);
+
+	//let yield handle null for now
+	if (!next || wq_is_empty(wq) || (kthread_start(next) < 0))
+		asm volatile ("eret");
+
+	return (u64)next->ctxt->sp;
 }
