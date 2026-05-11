@@ -14,10 +14,17 @@ __noreturn static void fail(char *msg)
 		;
 }
 
-static void switch_ctxt(struct task *prev, struct task *next)
+static void sched_switch(struct task *prev, struct task *next)
 {
 	volatile struct ctxt *ctxt;
 
+#ifdef DEBUG
+	if (prev)
+		kprintf("SWITCH: [%x] -> [%x]\n", prev->pid, next->pid);
+	else
+		kprintf("RUN: [%x]\n", next->pid);
+#endif
+	
 	ctxt = prev->ctxt;
 	asm volatile ("mov %0, sp\n" : "=r"(ctxt->sp));
 	asm volatile ("mrs %0, spsr_el1\n" : "=r"(ctxt->spsr));
@@ -69,17 +76,6 @@ static void switch_ctxt(struct task *prev, struct task *next)
 	wmb();
 }
 
-static inline void sched_switch(struct task *prev, struct task *next)
-{
-#ifdef DEBUG
-	if (prev)
-		kprintf("SWITCH: [%x] -> [%x]\n", prev->pid, next->pid);
-	else
-		kprintf("RUN: [%x]\n", next->pid);
-#endif
-	switch_ctxt(prev, next);
-}
-
 /*
  * Each processor will have its own workqueue. This means, each processor
  * can manage its own workqueue - i.e, let the scheduler logic be local 
@@ -88,14 +84,9 @@ static inline void sched_switch(struct task *prev, struct task *next)
  * load balancing).
  */
 
-static inline void idle(void)
-{
-	sched_run(&idle_task);
-}
-
 /* queue next */
 /* we follow Round Robin for now */
-void schedule(void)
+void yield(void)
 {
 	struct workqueue *wq = wq_get_curr();
 	struct task *next, *t = get_curr_task();
@@ -123,7 +114,23 @@ void schedule(void)
 int volatile schedule_needed;
 void __handle_sched_irq(void)
 {
+	struct workqueue *wq = wq_get_curr();
+	struct task *next, *t = get_curr_task();
+	
 	schedule_needed = 1;
+	next = wq_queue_next(wq);
 	global_timer.reset_timer(&global_timer);
-	global_timer.set_timer(&global_timer, 0x10000);
+	global_timer.set_timer(&global_timer, 0x50);
+
+	//let yield handle null for now
+	if ((t == &idle_task) || (!next))
+		asm volatile ("eret");
+	
+	kthread_start(next);
+	kprintf("preempted! (%x)->(%x)\n", t->pid, next->pid);
+	asm volatile ("mov x1, %0\n"
+		      "mov x2, %1\n"
+		      :
+		      :"r"(t->ctxt), "r"(next->ctxt)
+		      :"x1", "x2");
 }

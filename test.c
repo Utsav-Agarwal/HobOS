@@ -12,9 +12,12 @@ static int print_msg(void *data)
 {
 	char *t_msg = (char *)data;
 
-	kprintf("1%s", t_msg);
-	schedule();
-	kprintf("2%s", t_msg);
+	for (int i=0; i<1000; i++) {
+		kprintf("1%s", t_msg);
+		//yield();
+		kprintf("2%s", t_msg);
+	}
+	
 	return 5;
 }
 

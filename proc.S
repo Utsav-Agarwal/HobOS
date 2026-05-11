@@ -133,11 +133,37 @@ jump_to_EL1:
 	add sp, sp, #16*16	//reclaim stack
 .endm
 
+//TODO: this will almost certainly fault when a task is freed
+//and the next one is queued. We need to let the task linger a bit longer,
+//similar to the kernels rcu
+.macro m__switch_ctxt
+	// we are already on current task's stack
+	stp x19, x20, [x1, #16*1]
+	stp x21, x22, [x1, #16*2]
+	stp x23, x24, [x1, #16*3]
+	stp x25, x26, [x1, #16*4]
+	stp x27, x28, [x1, #16*5]
+	stp x29, x30, [x1, #16*6]
+
+	// x1 has prev->ctxt->sp
+	mov x1, sp
+	// x2 has next->ctxt->sp
+	mov sp, x2
+
+	ldp x19, x20, [x2, #16*1]
+	ldp x21, x22, [x2, #16*2]
+	ldp x23, x24, [x2, #16*3]
+	ldp x25, x26, [x2, #16*4]
+	ldp x27, x28, [x2, #16*5]
+	ldp x29, x30, [x2, #16*6]
+.endm
+
 .global handle_irq
 handle_irq:
-	m__save_curr_context
+	//m__save_curr_context
 	bl __handle_sched_irq
-	m__resume_from_context
+	m__switch_ctxt
+	//m__resume_from_context
 	eret
 
 .global setup_stack

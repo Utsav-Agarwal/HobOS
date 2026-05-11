@@ -127,7 +127,7 @@ __noreturn void kthread_ret_from_fork(void)
 	mark_completed(t);
 
 	while (1)
-		schedule();
+		yield();
 }
 
 void kthread_init_stack(struct task *t)
