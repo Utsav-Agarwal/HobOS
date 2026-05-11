@@ -8,13 +8,15 @@
 char msg1[10] = "Hello\n";
 char msg2[10] = "World\n";
 
+#if ENABLE_TEST
 static int print_msg(void *data)
 {
 	char *t_msg = (char *)data;
+	int i;
 
-	kprintf("1%s", t_msg);
-	schedule();
-	kprintf("2%s", t_msg);
+	for (i = 0; i < 100; i++)
+		kprintf("%x %s", i, t_msg);
+
 	return 5;
 }
 
@@ -35,6 +37,7 @@ static int kthread_test(void)
 	kthread_queue(t2);
 	return 0;
 }
+#endif
 
 int kernel_test(void)
 {

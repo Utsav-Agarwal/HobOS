@@ -59,12 +59,27 @@ static void enable_interrupts(void)
 	soc_irq.enable_interrupt(soc_irq.priv, BCM_DEFAULT_IRQ_TIMER);
 
 	//TODO: timer value can be configured at compile time
-	global_timer.set_timer(&global_timer, 0x200000);
+	global_timer.set_timer(&global_timer, 0x100);
 }
 
 static void init_device_drivers(void)
 {
 	init_timer(&global_timer);
+}
+
+static int kthread_start_userspace(void *data)
+{
+	kprintf("Starting userspace...\n");
+	jump_to_usr();
+
+	return 0;
+}
+
+static void kthread_queue_userspace(void)
+{
+	struct task *t = kthread_create(kthread_start_userspace, 0);
+
+	kthread_queue(t);
 }
 
 __noreturn void main(void)
@@ -76,21 +91,17 @@ __noreturn void main(void)
 	if (!global_page_tables)
 		kernel_panic();
 
-	//init_smp();
+	init_smp();
 	setup_console();
 	init_device_drivers();
-	
+
 	wq_init();
 	enable_interrupts();
 	if (kernel_test())
 		kernel_panic();
 
-	//kprintf("Starting userspace...\n");
-	//jump_to_usr();
-	while (1) {
-		if (schedule_needed) {
-			schedule();
-			schedule_needed = 0;
-		}
-	}
+	kthread_queue_userspace();
+
+	while (1)
+		asm volatile ("wfi");
 }

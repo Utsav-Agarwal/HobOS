@@ -5,6 +5,7 @@
 #include <hobos/task.h>
 #include <hobos/sched.h>
 #include <hobos/workqueue.h>
+#include <hobos/irq.h>
 
 mutex_t pid_mutex;
 pid_t pid_cntr = 1;
@@ -22,6 +23,9 @@ pid_t pid_cntr = 1;
 
 int idle(void *data)
 {
+	while (1)
+		asm volatile ("wfi");
+
 	return 0;
 }
 
@@ -75,7 +79,7 @@ struct task *get_curr_task(void)
 {
 	struct workqueue *wq = wq_get_curr();
 
-	if (pid_cntr == 1)
+	if ((pid_cntr == 1) || (!wq))
 		return &idle_task;
 
 	return wq->queue;
@@ -117,17 +121,24 @@ __noreturn void kthread_ret_from_fork(void)
 	int (*thread_fn)(void *data);
 	void *data;
 	int ret;
+	u64 flags;
 
+	flags = irq_save();
 	asm volatile("mov %0, x20" : "=r"(data));
 	asm volatile("mov %0, x19" : "=r"(thread_fn));
+	irq_restore(flags);
 
 	ret = thread_fn(data);
+
+	// finish peacefully
+	flags = irq_save();
 	t = get_curr_task();
 	kprintf("Task (%d) returned with ret: %x\n", ret, t->pid);
 	mark_completed(t);
+	irq_restore(flags);
 
 	while (1)
-		schedule();
+		yield();
 }
 
 void kthread_init_stack(struct task *t)
@@ -152,14 +163,19 @@ void kthread_init_stack(struct task *t)
 	 * (High mem)
 	 */
 	struct ctxt *ctxt = t->ctxt;
+	u64 *x;
 
 	/*
 	 * Since we cant use x0-x18 (caller saved regs, can be overwritten)
 	 * we need to designate one of the regs to contain the data.
 	 */
-	ctxt->x[0] = (u64)(t->pc);
-	ctxt->x[1] = (u64)(t->data);
-	ctxt->x[11] = (u64)(kthread_ret_from_fork);
+	ctxt->sp = (void *)((u64)ctxt->sp - 16*6);	// artificially reserve stack
+	x = ctxt->sp;
+	x[0] = (u64)(t->pc);
+	x[1] = (u64)(t->data);
+	x[11] = (u64)(kthread_ret_from_fork);
+
+	asm volatile ("msr elr_el1, %0"::"r"(kthread_ret_from_fork));
 
 	t->running = 1;
 
@@ -181,10 +197,10 @@ void kthread_queue(struct task *t)
 void task_free(struct task *t)
 {
 	//TODO:
-	//free all kobjs
-	kprintf("freeing task\n");
-	kfree(t->ctxt);
-	kfree(t);
+	//free all kobjs - seems like it causes a DABT for some reason...
+	//kprintf("freeing task %x\n", t->pid);
+	//kfree(t->ctxt);
+	//kfree(t);
 }
 
 bool is_running(struct task *t)
@@ -194,12 +210,19 @@ bool is_running(struct task *t)
 
 int kthread_start(struct task *t)
 {
+	u64 flags;
+
 	if (!t)
 		return -1;
-	
-	if (!is_running(t))
-		kthread_init_stack(t);
 
+	flags = irq_save();
+
+	if (!is_running(t)) {
+		kprintf("[%x] started\n", t->pid);
+		kthread_init_stack(t);
+	}
+
+	irq_restore(flags);
 	return 0;
 }
 
