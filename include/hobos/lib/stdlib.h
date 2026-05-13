@@ -6,7 +6,9 @@
 #define BITP(pos) 	(1UL << (pos))
 #define BITM(pos)	((BITP(pos)) - 1UL)
 
-void *kmalloc(unsigned size);
+#include <hobos/types.h>
+
+void *kmalloc(size_t size);
 void kfree(void *p);
 
 void strcpy(void *dst, void *src);

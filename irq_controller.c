@@ -4,6 +4,7 @@
 #include <hobos/irq/irq_bcm.h>
 #include <hobos/kstdio.h>
 #include <hobos/mmio.h>
+#include <hobos/timer.h>
 
 //use soc based ic by default for now
 void init_irq_controller(struct irq_controller *irq, char type)

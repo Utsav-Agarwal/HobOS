@@ -10,9 +10,13 @@
 #include <hobos/irq/irq_bcm.h>
 #include <hobos/asm/barrier.h>
 #include <hobos/entry.h>
+#include <hobos/sched.h>
+#include <hobos/workqueue.h>
+#include <hobos/test.h>
 
 extern __noreturn void jump_to_usr(void);
 
+extern int volatile schedule_needed;
 struct irq_controller soc_irq;
 struct irq_bcm_priv priv;
 
@@ -27,11 +31,6 @@ void kernel_splash_msg(void)
 	kprintf("\n** Welcome to HobOS! **\n");
 }
 
-void kernel_test(void)
-{
-	global_timer.reset_timer(&global_timer);
-	global_timer.set_timer(&global_timer, 0x200000);
-}
 
 static void setup_console(void)
 {
@@ -58,12 +57,14 @@ static void enable_interrupts(void)
 	init_irq_controller(&soc_irq, IRQ_BCM_SOC);
 
 	soc_irq.enable_interrupt(soc_irq.priv, BCM_DEFAULT_IRQ_TIMER);
+
+	//TODO: timer value can be configured at compile time
+	global_timer.set_timer(&global_timer, 0x100);
 }
 
 static void init_device_drivers(void)
 {
 	init_timer(&global_timer);
-	enable_interrupts();
 }
 
 __noreturn void main(void)
@@ -78,9 +79,19 @@ __noreturn void main(void)
 	init_smp();
 	setup_console();
 	init_device_drivers();
+	
+	wq_init();
+	enable_interrupts();
+	if (kernel_test())
+		kernel_panic();
 
-	jump_to_usr();
-
-	while (1)
-		;
+	//kprintf("Starting userspace...\n");
+	//jump_to_usr();
+	while (1) {
+		// let the scheduler work
+	//	if (schedule_needed) {
+	//		yield();
+	//		schedule_needed = 0;
+	//	}
+	}
 }

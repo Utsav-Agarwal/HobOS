@@ -10,15 +10,36 @@
 extern pid_t pid_cntr;
 
 struct ctxt {
-	u64 x[21];
+	/*
+	 * Since scheduler handles preemption, we need to be ready for all
+	 * registers - i.e, we need to save the entire irq frame
+	 *
+	 * Look at AAPCS64 for clarification if needed
+	 */
+	void *sp;
+	u64 spsr;
+	u64 *x;
+	u64 pad;
+	u64 elr;
 	struct kmem_obj *used_kmem;
 };
 
+/*
+ * Each task needs its own stack. Due to interrupts, another task
+ * might just come in and write over the current stack frame completely.
+ */
 //TODO: maybe consider shared memory processes
 struct task {
+	char stack[8192];			//stack
 	pid_t pid;
-	struct page_table_desc *base_pt;		//memory map
-	struct ctxt *ctxt;				//context
+	struct page_table_desc *base_pt;	//memory map
+	struct ctxt *ctxt;			//context
+	int (*pc)(void *data);			//start exec here
+	void *data;				//start exec here
+	bool running;				//start exec here
+	struct task *next;			//tasks are always in a queue
+	bool completed;				//completed?
+	bool resume;				//just resumed?
 };
 
 //TODO: we need to make sure proc_ctxt is not stored on stack
@@ -29,5 +50,13 @@ struct task {
 void save_curr_context(struct ctxt *proc_ctxt);
 void resume_from_context(struct ctxt *proc_ctxt);
 struct task *get_curr_task(void);
+void set_curr_task(struct task *t);
+int kthread_start(struct task *t);
+struct task *kthread_create(int (*thread_fn)(void *data), void *data);
+void kthread_init(void);
+bool has_completed(struct task *t);
+bool is_running(struct task *t);
+void task_free(struct task *t);
+void kthread_queue(struct task *t);
 
 #endif
