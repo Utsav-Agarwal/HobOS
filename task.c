@@ -68,8 +68,6 @@ struct task *clone(struct task *task)
 	memcpy(new_task, task, sizeof(*new_task));
 	new_task->pid = assign_new_pid();
 	new_ctxt->sp = &new_task->stack[8192];
-	/* context is stored on the stack by default */
-	new_ctxt->x = new_ctxt->sp;
 	new_task->ctxt = new_ctxt;
 	return new_task;
 }
@@ -122,8 +120,10 @@ __noreturn void kthread_ret_from_fork(void)
 	int ret;
 	u64 flags;
 
+	flags = irq_save();
 	asm volatile("mov %0, x20" : "=r"(data));
 	asm volatile("mov %0, x19" : "=r"(thread_fn));
+	irq_restore(flags);
 
 	ret = thread_fn(data);
 
@@ -160,14 +160,19 @@ void kthread_init_stack(struct task *t)
 	 * (High mem)
 	 */
 	struct ctxt *ctxt = t->ctxt;
+	u64 *x;
 
 	/*
 	 * Since we cant use x0-x18 (caller saved regs, can be overwritten)
 	 * we need to designate one of the regs to contain the data.
 	 */
-	ctxt->x[0] = (u64)(t->pc);
-	ctxt->x[1] = (u64)(t->data);
-	ctxt->x[11] = (u64)(kthread_ret_from_fork);
+	ctxt->sp = (void *)((u64)ctxt->sp - 16*6);	// artificially reserve stack
+	x = ctxt->sp;
+	x[0] = (u64)(t->pc);
+	x[1] = (u64)(t->data);
+	x[11] = (u64)(kthread_ret_from_fork);
+
+	asm volatile ("msr elr_el1, %0"::"r"(kthread_ret_from_fork));
 	
 	t->running = 1;
 
@@ -207,13 +212,14 @@ int kthread_start(struct task *t)
 	if (!t)
 		return -1;
 	
+	flags = irq_save();
+	
 	if (!is_running(t)) {
-		flags = irq_save();
 		kprintf("started: %x\n", t->pid);
 		kthread_init_stack(t);
-		irq_restore(flags);
 	}
 
+	irq_restore(flags);
 	return 0;
 }
 

@@ -36,7 +36,7 @@ static void sched_switch(struct task *prev, struct task *next)
 		      "stp x27, x28, [x0, #16*4]\n"
 		      "stp x29, x30, [x0, #16*5]\n"
 		      :
-		      : "r"(&ctxt->x[0])
+		      : "r"(ctxt->sp)
 		      : "x0", "memory");
 
 	/* Ensure that all previous memory operations have been completed
@@ -64,7 +64,7 @@ static void sched_switch(struct task *prev, struct task *next)
 		      "ldp x27, x28, [x0, #16*4]\n"
 		      "ldp x29, x30, [x0, #16*5]\n"
 		      :
-		      : "r"(&ctxt->x[0])
+		      : "r"(ctxt)
 		      : "x0", "memory");
 
 	asm volatile ("msr spsr_el1, %0\n":: "r"(ctxt->spsr));
@@ -112,22 +112,22 @@ void yield(void)
 }
 
 int volatile schedule_needed;
-u64 __handle_sched_irq(void *sp)
+u64 __handle_sched_irq(u64 sp)
 {
 	struct workqueue *wq = wq_get_curr();
 	struct task *next, *t = get_curr_task();
 
-	t->ctxt->sp = sp;
+	t->ctxt->sp = (void *)sp;
 
 	schedule_needed = 1;
 	next = wq_queue_next(wq);
 	global_timer.reset_timer(&global_timer);
-	global_timer.set_timer(&global_timer, 0x1000);
+	global_timer.set_timer(&global_timer, 0x100);
 
+	kprintf("preempted! (%x)->(%x)\n", t->pid, next->pid);
 	//let yield handle null for now
 	if ((!next) || wq_is_empty(wq) || (kthread_start(next) < 0))
 		asm volatile ("eret");
 	
-	kprintf("preempted! (%x)->(%x)\n", t->pid, next->pid);
 	return (u64)next->ctxt->sp;
 }

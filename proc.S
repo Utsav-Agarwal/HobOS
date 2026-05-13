@@ -95,29 +95,28 @@ jump_to_EL1:
 
 	sub sp, sp, #16*6
 
-	stp x19, x20, [x0, #16*0]
-	stp x21, x22, [x0, #16*1]
-	stp x23, x24, [x0, #16*2]
-	stp x25, x26, [x0, #16*3]
-	stp x27, x28, [x0, #16*4]
-	stp x29, x30, [x0, #16*5]
-	
-	mov \base, sp	// save sp
+	stp x19, x20, [sp, #16*0]
+	stp x21, x22, [sp, #16*1]
+	stp x23, x24, [sp, #16*2]
+	stp x25, x26, [sp, #16*3]
+	stp x27, x28, [sp, #16*4]
+	stp x29, x30, [sp, #16*5]
 	
 .endm
 
 //undo previous operation and start restoring
 .macro m__resume_from_context base
 	
-	ldp x19, x20, [x0, #16*0]
-	ldp x21, x22, [x0, #16*1]
-	ldp x23, x24, [x0, #16*2]
-	ldp x25, x26, [x0, #16*3]
-	ldp x27, x28, [x0, #16*4]
-	ldp x29, x30, [x0, #16*5]
-
-	add \base, \base, #16*6
 	mov sp, \base
+
+	ldp x19, x20, [sp, #16*0]
+	ldp x21, x22, [sp, #16*1]
+	ldp x23, x24, [sp, #16*2]
+	ldp x25, x26, [sp, #16*3]
+	ldp x27, x28, [sp, #16*4]
+	ldp x29, x30, [sp, #16*5]
+
+	add sp, sp, #16*6
 
 .endm
 
