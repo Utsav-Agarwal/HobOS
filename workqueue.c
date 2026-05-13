@@ -3,6 +3,9 @@
 #include <hobos/workqueue.h>
 #include <hobos/lib/stdlib.h>
 #include <hobos/smp.h>
+#include <hobos/irq.h>
+
+//#define DEBUG
 
 static struct workqueue *global_wqs[MAX_REMOTE_CORE_ID + 1];
 
@@ -28,7 +31,7 @@ static void wq_print(struct workqueue *wq)
 
 	while(t) {
 #ifdef DEBUG
-		kprintf("[%d] < ", t->pid);
+		kprintf("[%x] < ", t->pid);
 #endif
 		t = t->next;
 	}
@@ -43,20 +46,39 @@ static void wq_print(struct workqueue *wq)
  */
 struct task *wq_pop(struct workqueue *wq)
 {
-	struct task *t;
-
-	if (wq_is_empty(wq))
-		return 0;
+	struct task *t, *next, *_tmp;
 	
-	t = wq->queue;
-	wq->queue = t->next;
-	t->next = 0;
+	t = get_curr_task();
 
-	if (has_completed(t)) {
-		isb();
-		task_free(t);
-		return 0;
+	/* Dont free the task immediately. We need this just until this current
+	 * schedule is finished so we can context switch gracefully.
+	 *
+	 * Cleanup upcoming tasks
+	 */
+	next = t;
+	if (t->next)
+		next = t->next;
+
+	while (next) {
+		if (has_completed(next)) {
+			_tmp = next;
+			next = next->next;
+			task_free(_tmp);
+		} else {
+			break;
+		}
 	}
+
+	/* if next == t, this is the last task */
+	if (next == t)
+		next = 0;
+
+	wq->queue = next;
+	/* Mark end of queue upcoming element
+	 * If this was the last task, it could have been freed
+	 */
+	if (t)
+		t->next = 0;
 
 	return t;
 }
@@ -68,7 +90,7 @@ static inline struct task *get_workqueue_end(struct workqueue *wq)
 	if (!t)
 		return 0;
 
-	while(t->next)
+	while (t->next)
 		t = t->next;
 
 	return t;
@@ -81,12 +103,11 @@ void wq_push(struct workqueue *wq, struct task *t)
 	tail_t = get_workqueue_end(wq);
 	if (!tail_t) {
 		wq->queue = t;
-		t->next = 0;
+		wq->queue->next = 0;
 		return;
 	}
 
 	tail_t->next = t;
-
 }
 
 /*
@@ -97,18 +118,25 @@ void wq_push(struct workqueue *wq, struct task *t)
 struct task *wq_queue_next(struct workqueue *wq)
 {
 	struct task *t;
-
+	u64 flags;
+	
+	flags = irq_save();
 	t = wq_pop(wq);
 	//do we need to requeue this?
 	if (t) {
 #ifdef DEBUG
-		kprintf("pushing unfinished queue back (%d)\n", t->pid);
+		kprintf("pushing unfinished queue back (%x)\n", t->pid);
 #endif
 		wq_push(wq, t);
-	}
+	} 
 
-	// return head
+#ifdef DEBUG
+	else {
+		kprintf("NULL t!\n");
+	}
+#endif
 	t = wq->queue;
+	irq_restore(flags);
 	wq_print(wq);
 	return t;
 }

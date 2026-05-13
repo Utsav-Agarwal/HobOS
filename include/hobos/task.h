@@ -30,6 +30,7 @@ struct ctxt {
  */
 //TODO: maybe consider shared memory processes
 struct task {
+	char stack[8192];			//stack
 	pid_t pid;
 	struct page_table_desc *base_pt;	//memory map
 	struct ctxt *ctxt;			//context
@@ -39,7 +40,6 @@ struct task {
 	struct task *next;			//tasks are always in a queue
 	bool completed;				//completed?
 	bool resume;				//just resumed?
-	char stack[8192];			//stack
 };
 
 //TODO: we need to make sure proc_ctxt is not stored on stack

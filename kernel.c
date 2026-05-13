@@ -76,7 +76,7 @@ __noreturn void main(void)
 	if (!global_page_tables)
 		kernel_panic();
 
-	//init_smp();
+	init_smp();
 	setup_console();
 	init_device_drivers();
 	
@@ -89,6 +89,9 @@ __noreturn void main(void)
 	//jump_to_usr();
 	while (1) {
 		// let the scheduler work
-		//yield();
+	//	if (schedule_needed) {
+	//		yield();
+	//		schedule_needed = 0;
+	//	}
 	}
 }

@@ -5,6 +5,8 @@
 #include <hobos/timer.h>
 #include <hobos/workqueue.h>
 
+//#define DEBUG
+
 extern struct task idle_task;
 
 __noreturn static void fail(char *msg)
@@ -39,6 +41,7 @@ static void sched_switch(struct task *prev, struct task *next)
 		      : "r"(ctxt->sp)
 		      : "x0", "memory");
 
+	ctxt->sp -= 12*6;	//reserve stack
 	/* Ensure that all previous memory operations have been completed
 	 * since ctxt read/wrties are load/stores
 	 */
@@ -56,19 +59,21 @@ static void sched_switch(struct task *prev, struct task *next)
 		fail("got NULL thread!\n");
 
 	ctxt = next->ctxt;
-	asm volatile ("mov x0, %0\n"
-		      "ldp x19, x20, [x0, #16*0]\n"
-		      "ldp x21, x22, [x0, #16*1]\n"
-		      "ldp x23, x24, [x0, #16*2]\n"
-		      "ldp x25, x26, [x0, #16*3]\n"
-		      "ldp x27, x28, [x0, #16*4]\n"
-		      "ldp x29, x30, [x0, #16*5]\n"
+	asm volatile ("sub sp, sp, #16*6\n"
+		      "ldp x19, x20, [sp, #16*0]\n"
+		      "ldp x21, x22, [sp, #16*1]\n"
+		      "ldp x23, x24, [sp, #16*2]\n"
+		      "ldp x25, x26, [sp, #16*3]\n"
+		      "ldp x27, x28, [sp, #16*4]\n"
+		      "ldp x29, x30, [sp, #16*5]\n"
+		      "mov %0, x0\n"
+		      : "=r"(ctxt->sp)
 		      :
-		      : "r"(ctxt)
 		      : "x0", "memory");
 
 	asm volatile ("msr spsr_el1, %0\n":: "r"(ctxt->spsr));
 	asm volatile ("mov sp, %0\n"
+		      "add sp, sp, #16*6\n"
 		      "dmb ish\n"
 		      "ret\n"
 		      :: "r"(ctxt->sp));
@@ -119,15 +124,19 @@ u64 __handle_sched_irq(u64 sp)
 
 	t->ctxt->sp = (void *)sp;
 
-	schedule_needed = 1;
-	next = wq_queue_next(wq);
 	global_timer.reset_timer(&global_timer);
-	global_timer.set_timer(&global_timer, 0x100);
+	global_timer.set_timer(&global_timer, 0x1000);
+	
+	/* if nothing else, sit idle */
+	next = wq_queue_next(wq);
+	if (kthread_start(next) < 0) {
+		kthread_queue(&idle_task);
+		next = wq_queue_next(wq);
+	}
 
-	kprintf("preempted! (%x)->(%x)\n", t->pid, next->pid);
-	//let yield handle null for now
-	if ((!next) || wq_is_empty(wq) || (kthread_start(next) < 0))
-		asm volatile ("eret");
+#ifdef DEBUG
+      kprintf("preempted! (%x)->(%x)\n", t->pid, next->pid);
+#endif
 	
 	return (u64)next->ctxt->sp;
 }

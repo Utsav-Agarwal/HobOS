@@ -28,11 +28,13 @@ static int kthread_test(void)
 		return -1;
 
 	kthread_queue(t1);
+
 	t2 = kthread_create(print_msg, msg2);
 	if (!t2)
 		return -1;
 
 	kthread_queue(t2);
+	
 	return 0;
 }
 

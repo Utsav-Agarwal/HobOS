@@ -129,6 +129,7 @@ handle_irq:
 	m__save_curr_context sp
 	mov x0, sp
 	bl __handle_sched_irq
+	dmb ish
 	m__resume_from_context x0
 	eret
 

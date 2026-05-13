@@ -23,6 +23,9 @@ pid_t pid_cntr = 1;
 
 int idle(void *data)
 {
+	while(1)
+		asm volatile ("wfe");
+
 	return 0;
 }
 
@@ -94,6 +97,7 @@ struct task *kthread_create(int (*thread_fn)(void *data), void *data)
 	new_t->pc = thread_fn;
 	new_t->running = 0;
 	new_t->resume = 0;
+	new_t->completed = 0;
 	new_t->data = data;
 	wmb();
 
@@ -135,7 +139,8 @@ __noreturn void kthread_ret_from_fork(void)
 	irq_restore(flags);
 
 	while (1)
-		yield();
+		asm volatile ("wfe");
+		;
 }
 
 void kthread_init_stack(struct task *t)
@@ -193,9 +198,8 @@ void kthread_queue(struct task *t)
 
 void task_free(struct task *t)
 {
-	//TODO:
-	//free all kobjs
-	kprintf("freeing task\n");
+	//TODO: free all kobjs
+	kprintf("freeing [%x]\n", t->pid);
 	kfree(t->ctxt);
 	kfree(t);
 }
