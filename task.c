@@ -218,7 +218,7 @@ int kthread_start(struct task *t)
 	flags = irq_save();
 	
 	if (!is_running(t)) {
-		kprintf("started: %x\n", t->pid);
+		kprintf("[%x] started\n", t->pid);
 		kthread_init_stack(t);
 	}
 

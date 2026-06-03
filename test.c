@@ -8,6 +8,7 @@
 char msg1[10] = "Hello\n";
 char msg2[10] = "World\n";
 
+#if ENABLE_TEST
 static int print_msg(void *data)
 {
 	char *t_msg = (char *)data;
@@ -35,6 +36,7 @@ static int kthread_test(void)
 	kthread_queue(t2);
 	return 0;
 }
+#endif
 
 int kernel_test(void)
 {
