@@ -124,10 +124,11 @@ u64 __handle_sched_irq(u64 sp)
 	global_timer.reset_timer(&global_timer);
 	global_timer.set_timer(&global_timer, 0x100);
 
-	kprintf("preempted! (%x)->(%x)\n", t->pid, next->pid);
 	//let yield handle null for now
 	if ((!next) || wq_is_empty(wq) || (kthread_start(next) < 0))
 		asm volatile ("eret");
+	
+	kprintf("preempted! (%x)->(%x)\n", t->pid, next->pid);
 	
 	return (u64)next->ctxt->sp;
 }

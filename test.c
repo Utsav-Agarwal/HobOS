@@ -12,7 +12,7 @@ static int print_msg(void *data)
 {
 	char *t_msg = (char *)data;
 
-	for (int i=0; i<1000; i++)
+	for (int i=0; i<50; i++)
 		kprintf("%x %s", i, t_msg);
 	
 	return 5;

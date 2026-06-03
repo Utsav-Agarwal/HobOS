@@ -23,6 +23,9 @@ pid_t pid_cntr = 1;
 
 int idle(void *data)
 {
+	while (1)
+		asm volatile ("wfi");
+
 	return 0;
 }
 
@@ -196,8 +199,8 @@ void task_free(struct task *t)
 	//TODO:
 	//free all kobjs
 	kprintf("freeing task\n");
-	kfree(t->ctxt);
-	kfree(t);
+	//kfree(t->ctxt);
+	//kfree(t);
 }
 
 bool is_running(struct task *t)
