@@ -5,4 +5,7 @@
 
 #include <hobos/task.h>
 
+void yield(void);
+void resume_ctxt(struct task *task);
+
 #endif
