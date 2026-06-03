@@ -197,8 +197,8 @@ void kthread_queue(struct task *t)
 void task_free(struct task *t)
 {
 	//TODO:
-	//free all kobjs
-	kprintf("freeing task\n");
+	//free all kobjs - seems like it causes a DABT for some reason...
+	//kprintf("freeing task %x\n", t->pid);
 	//kfree(t->ctxt);
 	//kfree(t);
 }

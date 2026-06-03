@@ -128,7 +128,7 @@ u64 __handle_sched_irq(u64 sp)
 	if ((!next) || wq_is_empty(wq) || (kthread_start(next) < 0))
 		asm volatile ("eret");
 	
-	kprintf("preempted! (%x)->(%x)\n", t->pid, next->pid);
+	//kprintf("preempted! (%x)->(%x)\n", t->pid, next->pid);
 	
 	return (u64)next->ctxt->sp;
 }
